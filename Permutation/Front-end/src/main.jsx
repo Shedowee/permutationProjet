@@ -1,9 +1,13 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import AppProviders from './app/providers';
+import App from './App';
 import "./index.css";
-import { Login } from "./Login.jsx";
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <Login />
+    <AppProviders>
+      <App />
+    </AppProviders>
   </StrictMode>
 );

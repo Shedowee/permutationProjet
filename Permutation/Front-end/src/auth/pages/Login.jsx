@@ -1,10 +1,57 @@
-import { useState } from "react";
+// src/auth/pages/Login.jsx
+// Formulaire de connexion sécurisé avec Laravel Sanctum
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+// Import du thunk Redux pour le login
+import { login as loginAction } from '../redux/authSlice';
+// Sélecteurs pour l'état d'authentification
+import { selectIsAuthenticated, selectUserRole, selectAuthLoading, selectAuthError } from '../redux/authSlice';
 
-export function Login() {
+function Login() {
   const [form, setForm] = useState({ username: "", password: "" });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // === ÉTAT REDUX ===
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const userRole = useSelector(selectUserRole);
+  const loading = useSelector(selectAuthLoading);
+  const error = useSelector(selectAuthError);
+
+  // === REDIRECTION SI DÉJÀ CONNECTÉ ===
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Rediriger vers le dashboard approprié selon le rôle
+      redirectToDashboard(userRole);
+    }
+  }, [isAuthenticated, userRole]);
+  
+  // === FONCTIONS UTILITAIRES ===
+  
+  /**
+   * Redirection vers le dashboard selon le rôle
+   */
+  const redirectToDashboard = (role) => {
+    const from = location.state?.from?.pathname || '/';
+    
+    switch (role) {
+      case 'admin':
+        navigate('/admin', { replace: true });
+        break;
+      case 'commission':
+        navigate('/commission', { replace: true });
+        break;
+      case 'formateur':
+        navigate('/formateur', { replace: true });
+        break;
+      default:
+        navigate(from, { replace: true });
+    }
+  };
 
   // Handle input change
   const handleChange = (e) => {
@@ -23,9 +70,6 @@ export function Login() {
     } else if (form.username.length < 3) {
       newErrors.username =
         "Le nom d'utilisateur doit avoir au moins 3 caractères";
-    } else if (!/^[a-zA-Z0-9._]+$/.test(form.username)) {
-      newErrors.username =
-        "Le nom d'utilisateur contient des caractères invalides";
     }
 
     // Password validation
@@ -33,9 +77,6 @@ export function Login() {
       newErrors.password = "Le mot de passe est requis";
     } else if (form.password.length < 6) {
       newErrors.password = "Le mot de passe doit avoir au moins 6 caractères";
-    } else if (!/(?=.*[0-9])(?=.*[!@#$%^&*])/.test(form.password)) {
-      newErrors.password =
-        "Le mot de passe doit contenir au moins un chiffre et un caractère spécial";
     }
 
     setErrors(newErrors);
@@ -46,14 +87,20 @@ export function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-
-    setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Login success:", form);
-      setLoading(false);
-    }, 1500);
+    
+    try {
+      // Appel Redux pour l'authentification
+      // Aucune logique API directe ici - tout passe par Redux
+      await dispatch(loginAction({
+        email: form.username, // Using username as email for simplicity
+        password: form.password
+      })).unwrap(); // unwrap() pour gérer les erreurs
+          
+      // La redirection se fera via useEffect quand isAuthenticated changera
+    } catch (err) {
+      // L'erreur est déjà gérée par Redux
+      console.error('Erreur de connexion:', err);
+    }
   };
 
   return (
@@ -116,6 +163,9 @@ export function Login() {
           <p className="text-red-500 text-sm mt-1 min-h-[1.25rem]">
             {errors.password || "\u00A0"}
           </p>
+          {errors.general && (
+            <p className="text-red-500 text-sm mt-1">{errors.general}</p>
+          )}
         </div>
 
         {/* Submit button */}
@@ -157,3 +207,5 @@ export function Login() {
     </div>
   );
 }
+
+export default Login;
