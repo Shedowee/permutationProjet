@@ -1,62 +1,66 @@
-// src/routes/ProtectedRoute.jsx
-// Composant de protection des routes par rôle
-// Vérifie l'authentification et les permissions avant d'accéder aux routes
+/**
+ * src/routes/ProtectedRoute.jsx
+ *
+ * Protected route component for role-based access control
+ *
+ * Features:
+ * - Waits for auth check to complete (loading state)
+ * - Redirects to login if not authenticated
+ * - Validates user role against allowedRoles
+ * - Redirects to correct dashboard if role is invalid
+ * - No token logic - all auth from backend via cookies
+ */
 
-import React from 'react';
-import { useSelector } from 'react-redux';
-import { Navigate, useLocation } from 'react-router-dom';
-// Sélecteurs pour l'état d'authentification
-import { selectIsAuthenticated, selectUserRole } from '../auth/redux/authSlice';
+import React from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { useAuth } from "../auth/context/AuthContext";
 
 /**
- * Composant de route protégée
- * 
- * Vérifie :
- * 1. Si l'utilisateur est authentifié
- * 2. Si l'utilisateur a le bon rôle pour accéder à la route
- * 3. Redirige automatiquement selon le rôle si accès non autorisé
- * 
- * @param {Object} props - Propriétés du composant
- * @param {React.ReactNode} props.children - Composant à protéger
- * @param {string[]} props.allowedRoles - Rôles autorisés à accéder à cette route
- * @returns {JSX.Element} Composant protégé ou redirection
+ * ProtectedRoute component
+ *
+ * Checks:
+ * 1. Authentication status (wait for loading)
+ * 2. User role against allowedRoles
+ *
+ * @param {React.ReactNode} children - Component to protect
+ * @param {string[]} allowedRoles - Array of roles allowed (e.g., ['admin'])
  */
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  // === RÉCUPÉRATION DE L'ÉTAT D'AUTHENTIFICATION ===
-  // Depuis Redux store
-  const isAuthenticated = useSelector(selectIsAuthenticated);
-  const userRole = useSelector(selectUserRole);
-  
-  // Pour la redirection après login
+  // Get auth state from context (not Redux)
+  const { user, role, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  // === VÉRIFICATION D'AUTHENTIFICATION ===
-  // Si l'utilisateur n'est pas authentifié
-  if (!isAuthenticated) {
-    // Rediriger vers la page de login
-    // Conserver l'URL demandée pour redirection après login
+  // Wait for initial auth check to complete
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated - redirect to login
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // === VÉRIFICATION DES PERMISSIONS ===
-  // Si des rôles spécifiques sont requis et que l'utilisateur n'a pas le bon rôle
-  if (allowedRoles && !allowedRoles.includes(userRole)) {
-    // Redirection vers le dashboard approprié selon le rôle de l'utilisateur
-    switch (userRole) {
-      case 'admin':
-        return <Navigate to="/admin" replace />;
-      case 'commission':
-        return <Navigate to="/commission" replace />;
-      case 'formateur':
-        return <Navigate to="/formateur" replace />;
-      default:
-        // Si aucun rôle valide, redirection vers login
-        return <Navigate to="/login" replace />;
-    }
+  // Check role permission
+  if (allowedRoles && !allowedRoles.includes(role)) {
+    // User has wrong role - redirect to appropriate dashboard
+    const dashboards = {
+      admin: "/admin",
+      commission: "/commission",
+      formateur: "/formateur",
+    };
+
+    const redirectPath = dashboards[role] || "/login";
+    return <Navigate to={redirectPath} replace />;
   }
 
-  // === ACCÈS AUTORISÉ ===
-  // Si toutes les vérifications passent, afficher le composant protégé
+  // All checks passed - render protected component
   return children;
 };
 

@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../../auth/redux/authSlice';
+import { useAuth } from '../../auth/context/AuthContext';
 import { Bars3Icon, BellIcon, MagnifyingGlassIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 
 const Navbar = ({ onMenuClick, userRole }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const { logout, user } = useAuth();
   
   // Mock notifications
   const notifications = [
@@ -19,9 +18,14 @@ const Navbar = ({ onMenuClick, userRole }) => {
   
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      navigate('/login', { replace: true });
+    }
   };
 
   return (
@@ -121,12 +125,12 @@ const Navbar = ({ onMenuClick, userRole }) => {
             <div className="absolute right-0 mt-2 w-48 bg-gradient-to-b from-gray-800 to-gray-900 rounded-xl border border-gray-700 shadow-2xl shadow-blue-500/10 z-50">
               <div className="p-4 border-b border-gray-700">
                 <p className="text-sm text-gray-300 truncate">
-                  {userRole === 'admin' ? 'Administrateur' : 
+                  {user?.name || (userRole === 'admin' ? 'Administrateur' : 
                    userRole === 'commission' ? 'Commission' : 
-                   userRole === 'formateur' ? 'Formateur' : 'Utilisateur'}
+                   userRole === 'formateur' ? 'Formateur' : 'Utilisateur')}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  {userRole}@ofppt.ma
+                  {user?.email || `${userRole}@ofppt.ma`}
                 </p>
               </div>
               <div className="py-1">
@@ -145,5 +149,6 @@ const Navbar = ({ onMenuClick, userRole }) => {
     </header>
   );
 };
+
 
 export default Navbar;
