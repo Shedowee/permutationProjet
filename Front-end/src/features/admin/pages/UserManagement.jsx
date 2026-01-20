@@ -6,26 +6,15 @@ import Table from '../../../shared/components/Table';
 import Modal from '../../../shared/components/Modal';
 import Button from '../../../shared/components/Button';
 import CreateUserForm from '../components/CreateUserForm';
-import { UserPlusIcon, PencilIcon, TrashIcon, EyeIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon, PencilIcon, TrashIcon, EyeIcon, MagnifyingGlassIcon, FunnelIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../redux/adminSlice';
-
-// Define user roles and statuses as constants
-const USER_ROLES = {
-  ADMIN: 'admin',
-  STAFF: 'staff',
-  FORMATEUR: 'formateur',
-  MODERATEUR: 'moderateur',
-};
-
-const USER_STATUSES = {
-  ACTIF: 'actif',
-  BLOQUE: 'bloque',
-  INACTIF: 'inactif',
-};
+import { listRoles } from '../../../services/adminService';
+import { listUserStatuses } from '../../../services/paramService';
 
 const UserManagement = () => {
   const dispatch = useDispatch();
-  const users = useSelector(state => state.admin.users.data) || [];
+  const usersState = useSelector(state => state.admin.users) || { data: [], loading: false, error: null };
+  const users = useMemo(() => usersState.data || [], [usersState.data]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -40,13 +29,59 @@ const UserManagement = () => {
     dateCreated: '',
     lastLogin: ''
   });
+  const [roles, setRoles] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+  const [uiSuccess, setUiSuccess] = useState('');
+  const [uiError, setUiError] = useState('');
   
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
   
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await listRoles();
+        setRoles(data);
+      } catch {
+        setRoles([]);
+      }
+    })();
+  }, []);
+  
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await listUserStatuses();
+        setStatuses(data.length ? data : [
+          { value: 'actif', label: 'Actif' },
+          { value: 'inactif', label: 'Inactif' },
+        ]);
+      } catch {
+        setStatuses([
+          { value: 'actif', label: 'Actif' },
+          { value: 'inactif', label: 'Inactif' },
+        ]);
+      }
+    })();
+  }, []);
+  
   // État pour gérer la modal de création d'utilisateur
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  useEffect(() => {
+    if (uiSuccess) {
+      const t = setTimeout(() => setUiSuccess(''), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [uiSuccess]);
+
+  useEffect(() => {
+    if (uiError) {
+      const t = setTimeout(() => setUiError(''), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [uiError]);
 
   // Filter users based on search and filters
   const filteredUsers = useMemo(() => {
@@ -59,6 +94,8 @@ const UserManagement = () => {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchTerm, filterRole, filterStatus]);
+  
+  const availableStatuses = statuses;
 
   const handleViewUser = (user) => {
     setSelectedUser(user);
@@ -87,21 +124,54 @@ const UserManagement = () => {
   };
 
   const handleConfirmDelete = () => {
-    dispatch(deleteUser(selectedUser.id));
-    setShowModal(false);
-    setSelectedUser(null);
+    setUiError('');
+    setUiSuccess('');
+    dispatch(deleteUser(selectedUser.id))
+      .unwrap()
+      .then(() => {
+        setUiSuccess('Utilisateur supprimé avec succès');
+      })
+      .catch((err) => {
+        setUiError(err || 'Erreur lors de la suppression');
+      })
+      .finally(() => {
+        setShowModal(false);
+        setSelectedUser(null);
+      });
   };
 
   const handleSaveUser = () => {
-    dispatch(updateUser({ id: selectedUser.id, userData: formData }));
-    setShowModal(false);
-    setSelectedUser(null);
+    setUiError('');
+    setUiSuccess('');
+    dispatch(updateUser({ id: selectedUser.id, userData: formData }))
+      .unwrap()
+      .then(() => {
+        setUiSuccess('Utilisateur mis à jour avec succès');
+      })
+      .catch((err) => {
+        setUiError(err || 'Erreur lors de la mise à jour');
+      })
+      .finally(() => {
+        setShowModal(false);
+        setSelectedUser(null);
+      });
   };
 
   // Fonction pour gérer la création d'un utilisateur
   const handleCreateUser = (newUserData) => {
-    dispatch(createUser(newUserData));
-    setShowCreateModal(false);
+    setUiError('');
+    setUiSuccess('');
+    dispatch(createUser(newUserData))
+      .unwrap()
+      .then(() => {
+        setUiSuccess('Utilisateur créé avec succès');
+      })
+      .catch((err) => {
+        setUiError(err || 'Erreur lors de la création');
+      })
+      .finally(() => {
+        setShowCreateModal(false);
+      });
   };
 
   const handleInputChange = (e) => {
@@ -126,30 +196,31 @@ const UserManagement = () => {
     { 
       header: 'Rôle', 
       key: 'role',
-      render: (value) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          value === USER_ROLES.ADMIN ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-          value === USER_ROLES.STAFF ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-          value === USER_ROLES.FORMATEUR ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-          value === USER_ROLES.MODERATEUR ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
-          'bg-gray-500/20 text-gray-300 border border-gray-500/30'
-        }`}>
-          {value}
-        </span>
-      )
+      render: (value) => {
+        const roleLabel = roles.find(r => r.value === value)?.label || value;
+        return (
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-white/5 text-gray-200 border border-white/10">
+            {roleLabel}
+          </span>
+        );
+      }
     },
     { 
       header: 'Statut', 
       key: 'status',
-      render: (value) => (
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          value === USER_STATUSES.ACTIF ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-          value === USER_STATUSES.BLOQUE ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
-          'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-        }`}>
-          {value}
-        </span>
-      )
+      render: (value) => {
+        const cls =
+          value === 'actif'
+            ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+            : value === 'bloque'
+            ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+            : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30';
+        return (
+          <span className={`px-2 py-1 rounded-full text-xs font-medium ${cls}`}>
+            {value}
+          </span>
+        );
+      }
     },
     { 
       header: 'Date création', 
@@ -219,8 +290,8 @@ const UserManagement = () => {
                 onChange={(e) => setFilterRole(e.target.value)}
               >
                 <option value="">Tous les rôles</option>
-                {Object.values(USER_ROLES).map(role => (
-                  <option key={role} value={role}>{role}</option>
+                {roles.map(role => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
                 ))}
               </select>
             </div>
@@ -231,7 +302,7 @@ const UserManagement = () => {
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
                 <option value="">Tous les statuts</option>
-                {Object.values(USER_STATUSES).map(status => (
+                {availableStatuses.map(status => (
                   <option key={status} value={status}>{status}</option>
                 ))}
               </select>
@@ -252,11 +323,47 @@ const UserManagement = () => {
         
         {/* Users Table */}
         <Card className="p-6">
-          <Table 
-            data={filteredUsers} 
-            columns={columns} 
-            caption={`Utilisateurs (${filteredUsers.length})`}
-          />
+          {uiSuccess && (
+            <div className="mb-4 p-3 rounded-lg bg-green-500/20 border border-green-500/30 text-green-300 flex items-start justify-between">
+              <div className="flex items-start">
+                <CheckCircleIcon className="w-5 h-5 mr-2" />
+                <span>{uiSuccess}</span>
+              </div>
+              <button
+                onClick={() => setUiSuccess('')}
+                className="text-green-300/80 hover:text-green-200 transition-colors"
+                aria-label="Fermer la notification de succès"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {uiError && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 flex items-start justify-between">
+              <div className="flex items-start">
+                <ExclamationTriangleIcon className="w-5 h-5 mr-2" />
+                <span>{uiError}</span>
+              </div>
+              <button
+                onClick={() => setUiError('')}
+                className="text-red-300/80 hover:text-red-200 transition-colors"
+                aria-label="Fermer la notification d'erreur"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+          {usersState.loading ? (
+            <div className="py-8 text-center text-gray-400">Chargement des utilisateurs...</div>
+          ) : usersState.error ? (
+            <div className="py-8 text-center text-red-400">Erreur: {usersState.error}</div>
+          ) : (
+            <Table 
+              data={filteredUsers} 
+              columns={columns} 
+              caption={`Utilisateurs (${filteredUsers.length})`}
+            />
+          )}
         </Card>
       </div>
       
@@ -342,8 +449,8 @@ const UserManagement = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {Object.values(USER_ROLES).map(role => (
-                    <option key={role} value={role}>{role}</option>
+                  {roles.map(role => (
+                    <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
               </div>
@@ -355,7 +462,7 @@ const UserManagement = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {Object.values(USER_STATUSES).map(status => (
+                  {availableStatuses.map(status => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>

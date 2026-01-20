@@ -1,35 +1,5 @@
 // Constants for the Admin Panel
 
-// User roles
-export const USER_ROLES = [
-  { value: 'admin', label: 'Administrateur' },
-  { value: 'moderator', label: 'Modérateur' },
-  { value: 'user', label: 'Utilisateur' },
-  { value: 'staff', label: 'Personnel' },
-  { value: 'student', label: 'Étudiant' },
-  { value: 'trainer', label: 'Formateur' },
-];
-
-// User statuses
-export const USER_STATUSES = [
-  { value: 'active', label: 'Actif', color: 'bg-green-500' },
-  { value: 'inactive', label: 'Inactif', color: 'bg-gray-500' },
-  { value: 'blocked', label: 'Bloqué', color: 'bg-red-500' },
-  { value: 'pending', label: 'En attente', color: 'bg-yellow-500' },
-];
-
-// Log action types
-export const LOG_ACTION_TYPES = [
-  { value: 'login', label: 'Connexion', color: 'bg-blue-500' },
-  { value: 'logout', label: 'Déconnexion', color: 'bg-gray-500' },
-  { value: 'create_account', label: 'Création de compte', color: 'bg-green-500' },
-  { value: 'update_profile', label: 'Mise à jour profil', color: 'bg-purple-500' },
-  { value: 'assign_role', label: 'Attribution de rôle', color: 'bg-indigo-500' },
-  { value: 'block_user', label: 'Blocage utilisateur', color: 'bg-red-500' },
-  { value: 'unblock_user', label: 'Déblocage utilisateur', color: 'bg-teal-500' },
-  { value: 'delete_user', label: 'Suppression utilisateur', color: 'bg-orange-500' },
-];
-
 // Pagination defaults
 export const DEFAULT_PAGE_SIZE = 10;
 export const DEFAULT_CURRENT_PAGE = 1;

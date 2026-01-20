@@ -3,6 +3,7 @@
 // Gère les demandes de permutation et les statistiques du formateur
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as demandesApi from '../../../services/demandesService';
 
 // États possibles pour une demande
 const ETAT_DEMANDE = {
@@ -17,53 +18,22 @@ export const fetchDemandes = createAsyncThunk(
   'formateur/fetchDemandes',
   async (_, { rejectWithValue }) => {
     try {
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Données simulées
-      const mockDemandes = [
-        {
-          id: 1,
-          utilisateurId: 3,
-          utilisateurNom: 'Youssef Tahiri',
-          utilisateurEmail: 'youssef@ofppt.ma',
-          motif: 'Problème familial',
-          dateDemande: '2024-01-15',
-          dateDebut: '2024-02-01',
-          dateFin: '2024-02-15',
-          etat: ETAT_DEMANDE.EN_ATTENTE,
-          commentaire: '',
-          dateValidation: null,
-        },
-        {
-          id: 2,
-          utilisateurId: 3,
-          utilisateurNom: 'Youssef Tahiri',
-          utilisateurEmail: 'youssef@ofppt.ma',
-          motif: 'Santé',
-          dateDemande: '2024-01-14',
-          dateDebut: '2024-01-20',
-          dateFin: '2024-01-25',
-          etat: ETAT_DEMANDE.VALIDE,
-          commentaire: 'Demande validée par la commission',
-          dateValidation: '2024-01-15',
-        },
-        {
-          id: 3,
-          utilisateurId: 4,
-          utilisateurNom: 'Sara El Mansouri',
-          utilisateurEmail: 'sara@ofppt.ma',
-          motif: 'Vacances',
-          dateDemande: '2024-01-13',
-          dateDebut: '2024-02-10',
-          dateFin: '2024-02-20',
-          etat: ETAT_DEMANDE.REFUSE,
-          commentaire: 'Période de congés non autorisée',
-          dateValidation: '2024-01-14',
-        },
-      ];
-      
-      return mockDemandes;
+      const data = await demandesApi.listDemandes();
+      const mapped = data.map((d) => ({
+        id: d.id,
+        utilisateurId: d.employe?.user?.id ?? null,
+        utilisateurNom:
+          d.employe?.user?.nom ??
+          [d.employe?.nom, d.employe?.prenom].filter(Boolean).join(' ') ??
+          '—',
+        utilisateurEmail: d.employe?.user?.email ?? '—',
+        motif: d.motif ?? '',
+        dateDemande: d.date_soumission?.split('T')[0] ?? '',
+        etat: d.etat?.code ?? ETAT_DEMANDE.EN_ATTENTE,
+        commentaire: d.commentaire_commission ?? '',
+        dateValidation: d.date_traitement ?? null,
+      }));
+      return mapped;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des demandes');
     }
@@ -75,24 +45,22 @@ export const createDemande = createAsyncThunk(
   'formateur/createDemande',
   async (demandeData, { rejectWithValue }) => {
     try {
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const nouvelleDemande = {
-        id: Date.now(), // ID temporaire
-        utilisateurId: demandeData.utilisateurId,
-        utilisateurNom: demandeData.utilisateurNom,
-        utilisateurEmail: demandeData.utilisateurEmail,
+      const created = await demandesApi.createDemande({
         motif: demandeData.motif,
-        dateDemande: new Date().toISOString().split('T')[0],
-        dateDebut: demandeData.dateDebut,
-        dateFin: demandeData.dateFin,
+        regionSouhaiteeId: demandeData.regionSouhaiteeId,
+        etablissementSouhaiteId: demandeData.etablissementSouhaiteId,
+      });
+      return {
+        id: created.id,
+        utilisateurId: created.employe_id,
+        utilisateurNom: 'Moi',
+        utilisateurEmail: '',
+        motif: created.motif ?? '',
+        dateDemande: (created.date_soumission || '').split('T')[0],
         etat: ETAT_DEMANDE.EN_ATTENTE,
         commentaire: '',
         dateValidation: null,
       };
-      
-      return nouvelleDemande;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de création de la demande');
     }
@@ -105,21 +73,53 @@ export const fetchFormateurStats = createAsyncThunk(
   'formateur/fetchStats',
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const stats = {
-        totalRequests: 12,
-        pendingRequests: 3,
-        validatedRequests: 7,
-        rejectedRequests: 2,
-        lastRequestStatus: 'VALIDE',
-        lastRequestDate: '2024-01-15',
-        lastRequestMotif: 'Congés annuels',
-        lastRequestDates: '15-20 Janvier 2024',
-        successRate: 58.3,
+      const data = await demandesApi.listDemandes();
+
+      const totalRequests = data.length;
+      const pendingRequests = data.filter(
+        (d) => d.etat && d.etat.code === ETAT_DEMANDE.EN_ATTENTE
+      ).length;
+      const validatedRequests = data.filter(
+        (d) => d.etat && d.etat.code === ETAT_DEMANDE.VALIDE
+      ).length;
+      const rejectedRequests = data.filter(
+        (d) => d.etat && d.etat.code === ETAT_DEMANDE.REFUSE
+      ).length;
+
+      let lastRequestStatus = null;
+      let lastRequestDate = null;
+      let lastRequestMotif = '';
+      let lastRequestDates = '';
+
+      if (data.length > 0) {
+        const sorted = [...data].sort((a, b) => {
+          const da = a.date_soumission ? new Date(a.date_soumission) : 0;
+          const db = b.date_soumission ? new Date(b.date_soumission) : 0;
+          return db - da;
+        });
+        const last = sorted[0];
+        lastRequestStatus = last.etat ? last.etat.code : null;
+        lastRequestDate = last.date_soumission
+          ? last.date_soumission.split('T')[0]
+          : null;
+        lastRequestMotif = last.motif || '';
+        lastRequestDates = lastRequestDate || '';
+      }
+
+      const successRate =
+        totalRequests > 0 ? (validatedRequests / totalRequests) * 100 : 0;
+
+      return {
+        totalRequests,
+        pendingRequests,
+        validatedRequests,
+        rejectedRequests,
+        lastRequestStatus,
+        lastRequestDate,
+        lastRequestMotif,
+        lastRequestDates,
+        successRate: Number(successRate.toFixed(1)),
       };
-      
-      return stats;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des statistiques');
     }

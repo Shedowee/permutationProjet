@@ -3,6 +3,7 @@
 // Gère l'affichage et la recherche des logs système
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as logsApi from '../../../services/logsService';
 
 // Constantes pour les types d'actions
 export const LOG_ACTION_TYPES = {
@@ -23,54 +24,8 @@ export const fetchLogs = createAsyncThunk(
   'admin/fetchLogs',
   async (_, { rejectWithValue }) => {
     try {
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Données simulées pour les logs
-      const mockLogs = [
-        {
-          id: 1,
-          user: 'Administrateur',
-          action: 'Connexion au système',
-          type: LOG_ACTION_TYPES.LOGIN,
-          date: '2024-01-15 08:30:15',
-          ip: '192.168.1.100',
-        },
-        {
-          id: 2,
-          user: 'Formateur Ahmed',
-          action: 'Création d\'une nouvelle demande',
-          type: LOG_ACTION_TYPES.CREATE,
-          date: '2024-01-15 09:15:30',
-          ip: '192.168.1.101',
-        },
-        {
-          id: 3,
-          user: 'Commission Fatima',
-          action: 'Validation d\'une demande #123',
-          type: LOG_ACTION_TYPES.UPDATE,
-          date: '2024-01-15 10:45:22',
-          ip: '192.168.1.102',
-        },
-        {
-          id: 4,
-          user: 'Administrateur',
-          action: 'Création d\'un utilisateur',
-          type: LOG_ACTION_TYPES.CREATE,
-          date: '2024-01-15 11:20:05',
-          ip: '192.168.1.100',
-        },
-        {
-          id: 5,
-          user: 'Administrateur',
-          action: 'Déconnexion du système',
-          type: LOG_ACTION_TYPES.LOGOUT,
-          date: '2024-01-15 17:30:45',
-          ip: '192.168.1.100',
-        },
-      ];
-      
-      return mockLogs;
+      const logs = await logsApi.listLogs();
+      return logs;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des logs');
     }

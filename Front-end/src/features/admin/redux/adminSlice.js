@@ -3,6 +3,8 @@
 // Gère les utilisateurs, établissements, logs et autres fonctionnalités admin
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as usersApi from '../../../services/usersService';
+import api from '../../../services/api';
 
 // ==================== USERS MANAGEMENT ====================
 // Async thunk pour charger les utilisateurs
@@ -10,18 +12,8 @@ export const fetchUsers = createAsyncThunk(
   'admin/fetchUsers',
   async (_, { rejectWithValue }) => {
     try {
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Données simulées
-      const mockUsers = [
-        { id: 1, name: 'Ahmed Mohamed', email: 'ahmed@ofppt.ma', role: 'admin', status: 'actif', dateCreated: '2024-01-01', lastLogin: '2024-01-15' },
-        { id: 2, name: 'Fatima Karim', email: 'fatima@ofppt.ma', role: 'commission', status: 'actif', dateCreated: '2024-01-02', lastLogin: '2024-01-14' },
-        { id: 3, name: 'Youssef Tahiri', email: 'youssef@ofppt.ma', role: 'formateur', status: 'actif', dateCreated: '2024-01-03', lastLogin: '2024-01-13' },
-        { id: 4, name: 'Sara El Mansouri', email: 'sara@ofppt.ma', role: 'formateur', status: 'bloque', dateCreated: '2024-01-04', lastLogin: '2024-01-10' },
-      ];
-      
-      return mockUsers;
+      const users = await usersApi.listUsers();
+      return users;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des utilisateurs');
     }
@@ -34,22 +26,131 @@ export const fetchAdminStats = createAsyncThunk(
   'admin/fetchAdminStats',
   async (_, { rejectWithValue }) => {
     try {
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Données simulées pour les statistiques
-      const mockStats = {
-        totalUsers: 2879,
-        activeUsers: 2456,
-        validatedRequests: 1242,
-        pendingRequests: 87,
-        totalEstablishments: 23,
-        totalAdmins: 12,
-        totalCommission: 5,
-        totalFormateurs: 2862,
+      const [usersRes, demandesRes, etabsRes, logsRes] = await Promise.all([
+        api.get('/api/users', { withCredentials: true }),
+        api.get('/api/demandes', { withCredentials: true }),
+        api.get('/api/etablissements', { withCredentials: true }),
+        api.get('/api/logs', { withCredentials: true }),
+      ]);
+
+      const users = usersRes.data?.data ?? [];
+      const demandes = demandesRes.data?.data ?? [];
+      const etablissements = etabsRes.data?.data ?? [];
+      const logs = logsRes.data?.data ?? [];
+
+      const totalUsers = users.length;
+      const activeUsers = users.filter((u) => u.status === 'actif').length;
+
+      const roleCounts = users.reduce((acc, u) => {
+        const role = (u.role || '').toLowerCase();
+        if (!role) return acc;
+        acc[role] = (acc[role] || 0) + 1;
+        return acc;
+      }, {});
+
+      const totalAdmins = roleCounts['admin'] || 0;
+      const totalCommission = roleCounts['commission'] || 0;
+      const totalFormateurs = roleCounts['formateur'] || 0;
+
+      const validatedRequests = demandes.filter(
+        (d) => d.etat && d.etat.code === 'VALIDE'
+      ).length;
+      const pendingRequests = demandes.filter(
+        (d) => d.etat && d.etat.code === 'EN_ATTENTE'
+      ).length;
+
+      const totalEstablishments = etablissements.length;
+
+      const now = new Date();
+      const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+      const monthlyActivityData = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date(now);
+        date.setMonth(now.getMonth() - i);
+        const monthKey = `${date.getFullYear()}-${String(
+          date.getMonth() + 1
+        ).padStart(2, '0')}`;
+        const label = monthLabels[date.getMonth()];
+
+        const monthLogs = logs.filter((log) => {
+          if (!log.date) return false;
+          const d = new Date(log.date);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+            2,
+            '0'
+          )}`;
+          return key === monthKey;
+        });
+
+        const usersCount = monthLogs.filter((l) => l.type === 'login').length;
+        const registrationsCount = monthLogs.filter(
+          (l) => l.type === 'create'
+        ).length;
+
+        monthlyActivityData.push({
+          month: label,
+          users: usersCount,
+          registrations: registrationsCount,
+        });
+      }
+
+      const userStatsData = Object.entries(roleCounts).map(([role, count]) => {
+        let name = role;
+        if (role === 'admin') name = 'Admins';
+        else if (role === 'commission') name = 'Commission';
+        else if (role === 'formateur') name = 'Formateurs';
+        return { name, value: count };
+      });
+
+      const regionCounts = demandes.reduce((acc, d) => {
+        const regionObj = d.region_souhaitee || d.regionSouhaitee || null;
+        const regionName =
+          (regionObj && (regionObj.libelle || regionObj.code)) || 'Autre';
+        acc[regionName] = (acc[regionName] || 0) + 1;
+        return acc;
+      }, {});
+
+      const regionStats = Object.entries(regionCounts)
+        .map(([region, count]) => ({
+          region,
+          users: count,
+        }))
+        .sort((a, b) => b.users - a.users)
+        .slice(0, 5)
+        .map((entry) => {
+          if (!demandes.length) {
+            return { ...entry, growth: '0%' };
+          }
+          const share = (entry.users / demandes.length) * 100;
+          return {
+            ...entry,
+            growth: `${Math.round(share)}%`,
+          };
+        });
+
+      const recentActions = logs.slice(0, 5).map((log) => ({
+        id: log.id,
+        user: log.user,
+        action: log.action,
+        time: log.date,
+        type: log.type,
+      }));
+
+      return {
+        totalUsers,
+        activeUsers,
+        validatedRequests,
+        pendingRequests,
+        totalEstablishments,
+        totalAdmins,
+        totalCommission,
+        totalFormateurs,
+        monthlyActivityData,
+        userStatsData,
+        regionStats,
+        recentActions,
       };
-      
-      return mockStats;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des statistiques');
     }
@@ -61,14 +162,8 @@ export const createUser = createAsyncThunk(
   'admin/createUser',
   async (userData, { rejectWithValue }) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const newUser = {
-        id: Date.now(),
-        ...userData,
-        dateCreated: new Date().toISOString().split('T')[0],
-        lastLogin: null
-      };
-      return newUser;
+      const created = await usersApi.createUser(userData);
+      return created;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de création de l\'utilisateur');
     }
@@ -80,8 +175,8 @@ export const deleteUser = createAsyncThunk(
   'admin/deleteUser',
   async (userId, { rejectWithValue }) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return userId; // Return the ID of the deleted user
+      await usersApi.deleteUser(userId);
+      return userId;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de suppression de l\'utilisateur');
     }
@@ -93,9 +188,8 @@ export const updateUser = createAsyncThunk(
   'admin/updateUser',
   async ({ id, userData }, { rejectWithValue }) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // Simuler la mise à jour de l'utilisateur
-      return { id, ...userData };
+      const updated = await usersApi.updateUser({ id, ...userData });
+      return updated;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de mise à jour de l\'utilisateur');
     }
@@ -108,23 +202,19 @@ export const fetchEtablissement = createAsyncThunk(
   'admin/fetchEtablissement',
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const etablissement = {
-        id: 1,
-        code: 'ETAB-001',
-        nom: 'École Supérieure de Technologie',
-        adresse: 'Avenue Hassan II, Casablanca',
-        actif: true,
-        telephone: '+212 522-123456',
-        email: 'contact@etab.ac.ma',
-        responsable: 'Dr. Ahmed Benali',
-        type: 'École Supérieure',
-        capacite: 1500,
-        createdAt: '2020-09-01',
+      const res = await api.get('/api/etablissements', { withCredentials: true });
+      const list = res.data?.data ?? [];
+      const first = list[0] || null;
+      if (!first) {
+        return rejectWithValue('Aucun établissement actif trouvé');
+      }
+      return {
+        id: first.id,
+        code: first.code || '',
+        nom: first.nom || '',
+        adresse: first.adresse || '',
+        actif: !!first.actif,
       };
-      
-      return etablissement;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement de l\'établissement');
     }
@@ -136,9 +226,21 @@ export const updateEtablissement = createAsyncThunk(
   'admin/updateEtablissement',
   async (etablissementData, { rejectWithValue }) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      // Simuler la mise à jour de l'établissement
-      return etablissementData;
+      const payload = {
+        ...(etablissementData.code !== undefined ? { code: etablissementData.code } : {}),
+        ...(etablissementData.nom !== undefined ? { nom: etablissementData.nom } : {}),
+        ...(etablissementData.adresse !== undefined ? { adresse: etablissementData.adresse } : {}),
+        ...(etablissementData.actif !== undefined ? { actif: etablissementData.actif } : {}),
+      };
+      const res = await api.put(`/api/etablissements/${etablissementData.id}`, payload, { withCredentials: true });
+      const d = res.data?.data ?? etablissementData;
+      return {
+        id: d.id,
+        code: d.code || '',
+        nom: d.nom || '',
+        adresse: d.adresse || '',
+        actif: !!d.actif,
+      };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de mise à jour de l\'établissement');
     }

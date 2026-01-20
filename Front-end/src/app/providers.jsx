@@ -11,6 +11,7 @@
 import React from "react";
 import { Provider as ReduxProvider } from "react-redux";
 import { AuthProvider } from "../auth/context/AuthContext";
+import { ToastProvider } from "../shared/context/ToastContext";
 import store from "./store";
 
 /**
@@ -23,7 +24,9 @@ import store from "./store";
 const AppProviders = ({ children }) => {
   return (
     <ReduxProvider store={store}>
-      <AuthProvider>{children}</AuthProvider>
+      <ToastProvider>
+        <AuthProvider>{children}</AuthProvider>
+      </ToastProvider>
     </ReduxProvider>
   );
 };

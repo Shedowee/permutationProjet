@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
@@ -10,45 +10,32 @@ import {
 } from 'recharts';
 import { UserGroupIcon, ClockIcon, MapPinIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
 
+const COLORS = ['#3B82F6', '#8B5CF6', '#10B981'];
+
 const AdminDashboard = () => {
   const dispatch = useDispatch();
   const stats = useSelector(state => state.admin.stats.data);
-  
-  // Mock data for charts
-  const monthlyActivityData = [
-    { month: 'Jan', users: 4000, registrations: 2400 },
-    { month: 'Fév', users: 3000, registrations: 1398 },
-    { month: 'Mar', users: 2000, registrations: 9800 },
-    { month: 'Avr', users: 2780, registrations: 3908 },
-    { month: 'Mai', users: 1890, registrations: 4800 },
-    { month: 'Juin', users: 2390, registrations: 3800 },
-    { month: 'Juil', users: 3490, registrations: 4300 },
-  ];
 
-  const userStatsData = [
-    { name: 'Admins', value: 120 },
-    { name: 'Modérateurs', value: 300 },
-    { name: 'Utilisateurs', value: 2427 },
-  ];
+  const monthlyActivityData = useMemo(
+    () => stats?.monthlyActivityData || [],
+    [stats]
+  );
 
-  const COLORS = ['#3B82F6', '#8B5CF6', '#10B981'];
+  const userStatsData = useMemo(
+    () => stats?.userStatsData || [],
+    [stats]
+  );
 
-  const recentActions = [
-    { id: 1, user: 'Ahmed M.', action: 'a créé un nouveau compte', time: '2 min ago', type: 'create' },
-    { id: 2, user: 'Fatima K.', action: 'a mis à jour les permissions', time: '15 min ago', type: 'update' },
-    { id: 3, user: 'Youssef T.', action: 'a bloqué un utilisateur', time: '1 heure ago', type: 'block' },
-    { id: 4, user: 'Sara L.', action: 'a supprimé un compte', time: '3 heures ago', type: 'delete' },
-    { id: 5, user: 'Omar R.', action: 'a ajouté un nouveau rôle', time: '5 heures ago', type: 'create' },
-  ];
+  const recentActions = useMemo(
+    () => stats?.recentActions || [],
+    [stats]
+  );
 
-  const regionStats = [
-    { region: 'Casablanca', users: 850, growth: '+12%' },
-    { region: 'Rabat', users: 620, growth: '+8%' },
-    { region: 'Marrakech', users: 580, growth: '+5%' },
-    { region: 'Fès', users: 420, growth: '+15%' },
-    { region: 'Tanger', users: 380, growth: '+7%' },
-  ];
-  
+  const regionStats = useMemo(
+    () => stats?.regionStats || [],
+    [stats]
+  );
+
   useEffect(() => {
     dispatch(fetchAdminStats());
   }, [dispatch]);
@@ -74,12 +61,14 @@ const AdminDashboard = () => {
                 <div>
                   <p className="text-gray-400 text-sm font-medium">Total Utilisateurs</p>
                   <h3 className="text-2xl font-bold text-white mt-1">{stats.totalUsers}</h3>
-                  <div className="flex items-center mt-2">
-                    <span className="text-sm font-medium text-green-400">
-                      +{(stats.activeUsers / stats.totalUsers * 100).toFixed(1)}%
-                    </span>
-                    <span className="text-gray-500 text-sm ml-1">actifs</span>
-                  </div>
+                  {stats.totalUsers > 0 && (
+                    <div className="flex items-center mt-2">
+                      <span className="text-sm font-medium text-green-400">
+                        +{((stats.activeUsers / stats.totalUsers) * 100).toFixed(1)}%
+                      </span>
+                      <span className="text-gray-500 text-sm ml-1">actifs</span>
+                    </div>
+                  )}
                 </div>
                 <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-indigo-500/20">
                   <UserGroupIcon className="w-6 h-6 text-white" />
@@ -99,9 +88,9 @@ const AdminDashboard = () => {
                   <h3 className="text-2xl font-bold text-white mt-1">{stats.validatedRequests}</h3>
                   <div className="flex items-center mt-2">
                     <span className="text-sm font-medium text-green-400">
-                      +12%
+                      {stats.validatedRequests}
                     </span>
-                    <span className="text-gray-500 text-sm ml-1">depuis le mois dernier</span>
+                    <span className="text-gray-500 text-sm ml-1">demandes validées</span>
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20">
@@ -122,9 +111,9 @@ const AdminDashboard = () => {
                   <h3 className="text-2xl font-bold text-white mt-1">{stats.pendingRequests}</h3>
                   <div className="flex items-center mt-2">
                     <span className="text-sm font-medium text-red-400">
-                      -3%
+                      {stats.pendingRequests}
                     </span>
-                    <span className="text-gray-500 text-sm ml-1">depuis le mois dernier</span>
+                    <span className="text-gray-500 text-sm ml-1">demandes en attente</span>
                   </div>
                 </div>
                 <div className="p-3 rounded-xl bg-gradient-to-r from-red-500/20 to-pink-500/20">

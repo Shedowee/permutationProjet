@@ -1,61 +1,54 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
 import Modal from '../../../shared/components/Modal';
 import { OFPPT_ENTITY_TYPES, VALIDATION_MESSAGES } from '../../../shared/constants/constants';
-import { BuildingOffice2Icon, AcademicCapIcon, UserGroupIcon, BookOpenIcon, PlusIcon, PencilIcon, TrashIcon, EyeIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import { BuildingOffice2Icon, PencilIcon, PlusIcon, TrashIcon, BookOpenIcon, UserGroupIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
+import api from '../../../services/api';
 
 const OFPPTManagement = () => {
-  // Mock data for different entities
-  const [establishments, setEstablishments] = useState([
-    { id: 1, name: 'Centre Régional de Formation', city: 'Casablanca', director: 'Dr. Ahmed Benali', students: 250, staff: 15 },
-    { id: 2, name: 'Institut Technique', city: 'Rabat', director: 'Pr. Fatima Karim', students: 180, staff: 12 },
-    { id: 3, name: 'École de Technologie', city: 'Marrakech', director: 'Dr. Youssef Tahiri', students: 220, staff: 14 },
-  ]);
-  
-  const [fields, setFields] = useState([
-    { id: 1, name: 'Développement Informatique', establishment: 'Casablanca', level: 'TS', duration: '2 ans', students: 45 },
-    { id: 2, name: 'Techniques de Management', establishment: 'Rabat', level: 'TS', duration: '2 ans', students: 38 },
-    { id: 3, name: 'Maintenance Industrielle', establishment: 'Marrakech', level: 'TS', duration: '2 ans', students: 42 },
-  ]);
-  
-  const [groups, setGroups] = useState([
-    { id: 1, name: 'DI201', field: 'Développement Informatique', establishment: 'Casablanca', students: 25, year: '2024-2025' },
-    { id: 2, name: 'TM201', field: 'Techniques de Management', establishment: 'Rabat', students: 22, year: '2024-2025' },
-    { id: 3, name: 'MI201', field: 'Maintenance Industrielle', establishment: 'Marrakech', students: 28, year: '2024-2025' },
-  ]);
-  
-  const [trainees, setTrainees] = useState([
-    { id: 1, firstName: 'Mohamed', lastName: 'El Amrani', group: 'DI201', email: 'm.elamrani@example.com', phone: '+212 612345678', status: 'active' },
-    { id: 2, firstName: 'Fatima', lastName: 'Zahraoui', group: 'TM201', email: 'f.zahraoui@example.com', phone: '+212 623456789', status: 'active' },
-    { id: 3, firstName: 'Yassine', lastName: 'Benali', group: 'MI201', email: 'y.benali@example.com', phone: '+212 634567890', status: 'active' },
-  ]);
+  const [establishments, setEstablishments] = useState([]);
+  const [fields, setFields] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [trainees, setTrainees] = useState([]);
 
   // State for modals and forms
   const [activeTab, setActiveTab] = useState('establishments');
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [entityToDelete, setEntityToDelete] = useState(null);
   const [editingEntity, setEditingEntity] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [entityToDelete, setEntityToDelete] = useState(null);
   
   // Form state
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
 
-  // Get current entities based on active tab
-  const currentEntities = useMemo(() => {
-    switch(activeTab) {
-      case 'establishments': return establishments;
-      case 'fields': return fields;
-      case 'groups': return groups;
-      case 'trainees': return trainees;
-      default: return [];
-    }
-  }, [activeTab, establishments, fields, groups, trainees]);
+  // Load establishments from backend
+  useEffect(() => {
+    let mounted = true;
+    api.get('/api/etablissements', { withCredentials: true })
+      .then((res) => {
+        const list = res.data?.data ?? [];
+        const mapped = list.map((e) => ({
+          id: e.id,
+          code: e.code || '',
+          nom: e.nom || '',
+          adresse: e.adresse || '',
+          actif: !!e.actif,
+        }));
+        if (mounted) setEstablishments(mapped);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const currentEntities = useMemo(() => establishments, [establishments]);
 
   // Filtered entities
   const filteredEntities = useMemo(() => {

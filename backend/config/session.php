@@ -4,7 +4,7 @@ use Illuminate\Support\Str;
 
 return [
 
-    'driver' => env('SESSION_DRIVER', 'cookie'),
+    'driver' => env('SESSION_DRIVER', 'database'),
 
     'lifetime' => (int) env('SESSION_LIFETIME', 120),
 

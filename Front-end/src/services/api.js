@@ -1,23 +1,32 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
-  withCredentials: true, // ✅ critical for HttpOnly cookies
+  baseURL: "http://localhost:8000",
+  withCredentials: true, // 🔥 REQUIRED
   headers: {
-    "Content-Type": "application/json",
     Accept: "application/json",
   },
 });
 
-// Optional: handle 401 globally
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      console.warn("Unauthorized request - user is not authenticated");
-    }
-    return Promise.reject(error);
+// 🔥 VERY IMPORTANT
+const getCsrfTokenFromCookie = () => {
+  const name = "XSRF-TOKEN";
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop().split(";").shift();
   }
-);
+  return null;
+};
+
+api.interceptors.request.use((config) => {
+  const csrfToken = getCsrfTokenFromCookie();
+  
+  if (csrfToken) {
+    config.headers["X-XSRF-TOKEN"] = decodeURIComponent(csrfToken);
+  }
+  
+  return config;
+});
 
 export default api;

@@ -11,9 +11,9 @@
  * 5. Redirect based on user role
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 function Login() {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -25,17 +25,10 @@ function Login() {
   const location = useLocation();
   const { login, loading, isAuthenticated, role } = useAuth();
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      redirectToDashboard(role);
-    }
-  }, [isAuthenticated, role]);
-
   /**
    * Redirect to appropriate dashboard based on role
    */
-  const redirectToDashboard = (userRole) => {
+  const redirectToDashboard = useCallback((userRole) => {
     const from = location.state?.from?.pathname || "/";
 
     const dashboards = {
@@ -46,7 +39,14 @@ function Login() {
 
     const path = dashboards[userRole] || from;
     navigate(path, { replace: true });
-  };
+  }, [location.state?.from?.pathname, navigate]);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      redirectToDashboard(role);
+    }
+  }, [isAuthenticated, role, redirectToDashboard]);
 
   /**
    * Handle input change

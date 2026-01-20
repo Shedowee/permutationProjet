@@ -1,42 +1,53 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Card from '../../../shared/components/Card';
 import { UserGroupIcon, UserPlusIcon, UserMinusIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import { useSelector } from 'react-redux';
 
 const DashboardStats = () => {
-  const stats = [
-    {
-      title: 'Total Utilisateurs',
-      value: '2,847',
-      change: '+12%',
-      icon: UserGroupIcon,
-      color: 'blue',
-      trend: 'up'
-    },
-    {
-      title: 'Comptes Actifs',
-      value: '2,341',
-      change: '+8%',
-      icon: UserPlusIcon,
-      color: 'green',
-      trend: 'up'
-    },
-    {
-      title: 'Comptes Bloqués',
-      value: '123',
-      change: '-3%',
-      icon: UserMinusIcon,
-      color: 'red',
-      trend: 'down'
-    },
-    {
-      title: 'Taux d evolution',
-      value: '18.5%',
-      change: '+5.2%',
-      icon: ArrowTrendingUpIcon,
-      color: 'purple',
-      trend: 'up'
-    }
-  ];
+  const adminStats = useSelector((state) => state.admin.stats.data);
+  
+  const stats = useMemo(() => {
+    if (!adminStats) return [];
+    const inactiveUsers = Math.max(0, (adminStats.totalUsers || 0) - (adminStats.activeUsers || 0));
+    const activeRate = adminStats.totalUsers > 0 
+      ? `${((adminStats.activeUsers / adminStats.totalUsers) * 100).toFixed(1)}%`
+      : '0%';
+    
+    return [
+      {
+        title: 'Total Utilisateurs',
+        value: String(adminStats.totalUsers ?? 0),
+        change: activeRate,
+        icon: UserGroupIcon,
+        color: 'blue',
+        trend: 'up'
+      },
+      {
+        title: 'Comptes Actifs',
+        value: String(adminStats.activeUsers ?? 0),
+        change: '+',
+        icon: UserPlusIcon,
+        color: 'green',
+        trend: 'up'
+      },
+      {
+        title: 'Comptes Inactifs',
+        value: String(inactiveUsers),
+        change: '-',
+        icon: UserMinusIcon,
+        color: 'red',
+        trend: 'down'
+      },
+      {
+        title: 'Demandes Validées',
+        value: String(adminStats.validatedRequests ?? 0),
+        change: '+',
+        icon: ArrowTrendingUpIcon,
+        color: 'purple',
+        trend: 'up'
+      }
+    ];
+  }, [adminStats]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

@@ -1,27 +1,36 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Button from '../../../shared/components/Button';
 import Modal from '../../../shared/components/Modal';
-import { USER_ROLES } from '../../../shared/constants/constants';
+import { listRoles } from '../../../services/adminService';
+import { listUsers, updateUser } from '../../../services/usersService';
+import { useToast } from '../../../shared/context/useToast';
 import { UserGroupIcon, ShieldCheckIcon, CheckCircleIcon, ExclamationTriangleIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 
 const AssignRoles = () => {
-  // Mock users data
-  const [users] = useState([
-    { id: 1, name: 'Ahmed Mohamed', email: 'ahmed@ofppt.ma', role: 'admin', status: 'active' },
-    { id: 2, name: 'Fatima Karim', email: 'fatima@ofppt.ma', role: 'moderator', status: 'active' },
-    { id: 3, name: 'Youssef Tahiri', email: 'youssef@ofppt.ma', role: 'user', status: 'active' },
-    { id: 4, name: 'Sara Laaroussi', email: 'sara@ofppt.ma', role: 'user', status: 'blocked' },
-    { id: 5, name: 'Omar Benali', email: 'omar@ofppt.ma', role: 'user', status: 'active' },
-    { id: 6, name: 'Layla Fassi', email: 'layla@ofppt.ma', role: 'staff', status: 'pending' },
-  ]);
+  const { success, error } = useToast();
+  const [users, setUsers] = useState([]);
 
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [r, u] = await Promise.all([listRoles(), listUsers()]);
+        setRoles(r);
+        setUsers(u);
+      } catch {
+        setRoles([]);
+        setUsers([]);
+      }
+    })();
+  }, []);
 
   // Find selected user
   const selectedUser = useMemo(() => {
@@ -32,18 +41,14 @@ const AssignRoles = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would be an API call
-      console.log('Assigning role:', { userId: selectedUserId, role: selectedRole });
-      
-      setSuccessMessage(`Rôle ${USER_ROLES.find(r => r.value === selectedRole)?.label} attribué à ${selectedUser?.name} avec succès !`);
+      const updated = await updateUser({ id: selectedUserId, role: selectedRole });
+      success(`Rôle ${roles.find(r => r.value === selectedRole)?.label || selectedRole} attribué à ${updated.name} avec succès`);
+      setSuccessMessage(`Rôle ${roles.find(r => r.value === selectedRole)?.label || selectedRole} attribué à ${updated.name} avec succès !`);
       setSelectedUserId('');
       setSelectedRole('');
       setShowConfirmation(false);
-    } catch (error) {
-      console.error('Error assigning role:', error);
+    } catch {
+      error("Une erreur s'est produite lors de l'attribution du rôle");
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +101,7 @@ const AssignRoles = () => {
                 <option value="">Sélectionnez un utilisateur</option>
                 {users.map(user => (
                   <option key={user.id} value={user.id}>
-                    {user.name} ({user.email}) - Rôle actuel: {USER_ROLES.find(r => r.value === user.role)?.label}
+                    {user.name} ({user.email}) - Rôle actuel: {roles.find(r => r.value === user.role)?.label || user.role}
                   </option>
                 ))}
               </select>
@@ -117,7 +122,7 @@ const AssignRoles = () => {
                 className="w-full rounded-lg border-0 py-3 px-4 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
               >
                 <option value="">Sélectionnez un rôle</option>
-                {USER_ROLES.map(role => (
+                {roles.map(role => (
                   <option key={role.value} value={role.value}>{role.label}</option>
                 ))}
               </select>
@@ -141,7 +146,7 @@ const AssignRoles = () => {
                   </div>
                   <div>
                     <p className="text-gray-400">Rôle actuel:</p>
-                    <p className="text-white font-medium">{USER_ROLES.find(r => r.value === selectedUser.role)?.label}</p>
+                    <p className="text-white font-medium">{roles.find(r => r.value === selectedUser.role)?.label || selectedUser.role}</p>
                   </div>
                   <div>
                     <p className="text-gray-400">Statut:</p>
@@ -159,7 +164,7 @@ const AssignRoles = () => {
                   Résumé de l'attribution
                 </h3>
                 <p className="text-gray-300">
-                  Vous êtes sur le point d'attribuer le rôle <span className="text-purple-300 font-medium">{USER_ROLES.find(r => r.value === selectedRole)?.label}</span> à l'utilisateur <span className="text-white font-medium">{selectedUser.name}</span>.
+                  Vous êtes sur le point d'attribuer le rôle <span className="text-purple-300 font-medium">{roles.find(r => r.value === selectedRole)?.label || selectedRole}</span> à l'utilisateur <span className="text-white font-medium">{selectedUser.name}</span>.
                 </p>
               </div>
             )}
@@ -199,7 +204,7 @@ const AssignRoles = () => {
           {selectedUser && selectedRole && (
             <div className="space-y-4">
               <p className="text-gray-300">
-                Êtes-vous sûr de vouloir attribuer le rôle <strong>{USER_ROLES.find(r => r.value === selectedRole)?.label}</strong> à l'utilisateur <strong>{selectedUser.name}</strong> ?
+                Êtes-vous sûr de vouloir attribuer le rôle <strong>{roles.find(r => r.value === selectedRole)?.label || selectedRole}</strong> à l'utilisateur <strong>{selectedUser.name}</strong> ?
               </p>
               <p className="text-gray-400 text-sm">
                 Cette action modifiera les permissions de l'utilisateur en conséquence.

@@ -4,7 +4,7 @@ import Layout from "../../../shared/layouts/Layout";
 import Card from "../../../shared/components/Card";
 import Button from "../../../shared/components/Button";
 import { createDemande } from "../redux/formateurSlice";
-import { useAuth } from "../../../auth/context/AuthContext";
+import { useAuth } from "../../../auth/hooks/useAuth";
 
 const CreateDemande = () => {
   const dispatch = useDispatch();

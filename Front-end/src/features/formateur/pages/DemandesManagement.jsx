@@ -7,7 +7,7 @@ import Button from "../../../shared/components/Button";
 import DetailDemande from "../components/DetailDemande";
 import Modal from "../../../shared/components/Modal";
 import { fetchDemandes } from "../redux/formateurSlice";
-import { useAuth } from "../../../auth/context/AuthContext";
+import { useAuth } from "../../../auth/hooks/useAuth";
 import {
   EyeIcon,
   ClockIcon,

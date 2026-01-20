@@ -3,6 +3,7 @@
 // Gère le traitement des demandes et les statistiques de la commission
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as demandesApi from '../../../services/demandesService';
 
 // États possibles pour une demande
 const ETAT_DEMANDE = {
@@ -17,53 +18,22 @@ export const fetchDemandes = createAsyncThunk(
   'commission/fetchDemandes',
   async (_, { rejectWithValue }) => {
     try {
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Données simulées
-      const mockDemandes = [
-        {
-          id: 1,
-          utilisateurId: 3,
-          utilisateurNom: 'Ahmed Mohamed',
-          utilisateurEmail: 'ahmed@ofppt.ma',
-          motif: 'Problème familial',
-          dateDemande: '2024-01-15',
-          dateDebut: '2024-02-01',
-          dateFin: '2024-02-15',
-          etat: ETAT_DEMANDE.EN_ATTENTE,
-          commentaire: '',
-          dateValidation: null,
-        },
-        {
-          id: 2,
-          utilisateurId: 4,
-          utilisateurNom: 'Fatima Karim',
-          utilisateurEmail: 'fatima@ofppt.ma',
-          motif: 'Santé',
-          dateDemande: '2024-01-14',
-          dateDebut: '2024-01-20',
-          dateFin: '2024-01-25',
-          etat: ETAT_DEMANDE.VALIDE,
-          commentaire: 'Demande validée par la commission',
-          dateValidation: '2024-01-15',
-        },
-        {
-          id: 3,
-          utilisateurId: 5,
-          utilisateurNom: 'Youssef Tahiri',
-          utilisateurEmail: 'youssef@ofppt.ma',
-          motif: 'Vacances',
-          dateDemande: '2024-01-13',
-          dateDebut: '2024-02-10',
-          dateFin: '2024-02-20',
-          etat: ETAT_DEMANDE.REFUSE,
-          commentaire: 'Période de congés non autorisée',
-          dateValidation: '2024-01-14',
-        },
-      ];
-      
-      return mockDemandes;
+      const data = await demandesApi.listDemandes();
+      const mapped = data.map((d) => ({
+        id: d.id,
+        utilisateurId: d.employe?.user?.id ?? null,
+        utilisateurNom:
+          d.employe?.user?.nom ??
+          [d.employe?.nom, d.employe?.prenom].filter(Boolean).join(' ') ??
+          '—',
+        utilisateurEmail: d.employe?.user?.email ?? '—',
+        motif: d.motif ?? '',
+        dateDemande: d.date_soumission?.split('T')[0] ?? '',
+        etat: d.etat?.code ?? ETAT_DEMANDE.EN_ATTENTE,
+        commentaire: d.commentaire_commission ?? '',
+        dateValidation: d.date_traitement ?? null,
+      }));
+      return mapped;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des demandes');
     }
@@ -75,17 +45,17 @@ export const traiterDemande = createAsyncThunk(
   'commission/traiterDemande',
   async ({ id, etat, commentaire }, { rejectWithValue }) => {
     try {
-      // Simulation d'un appel API
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const demandeTraitee = {
+      const updated = await demandesApi.traiterDemande({
         id,
-        etat,
+        etatCode: etat,
         commentaire,
-        dateValidation: new Date().toISOString().split('T')[0],
+      });
+      return {
+        id: updated.id,
+        etat: updated.etat?.code ?? etat,
+        commentaire: updated.commentaire_commission ?? commentaire,
+        dateValidation: (updated.date_traitement || '').split('T')[0],
       };
-      
-      return demandeTraitee;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de traitement de la demande');
     }
@@ -98,19 +68,62 @@ export const fetchCommissionStats = createAsyncThunk(
   'commission/fetchStats',
   async (_, { rejectWithValue }) => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const stats = {
-        totalRequests: 42,
-        pendingRequests: 8,
-        validatedRequests: 25,
-        rejectedRequests: 9,
-        processingRate: 81,
-        avgProcessingTime: '2.3 jours',
-        lastProcessedRequest: 'Hier à 14h30',
+      const data = await demandesApi.listDemandes();
+
+      const totalRequests = data.length;
+      const pendingRequests = data.filter(
+        (d) => d.etat && d.etat.code === ETAT_DEMANDE.EN_ATTENTE
+      ).length;
+      const validatedRequests = data.filter(
+        (d) => d.etat && d.etat.code === ETAT_DEMANDE.VALIDE
+      ).length;
+      const rejectedRequests = data.filter(
+        (d) => d.etat && d.etat.code === ETAT_DEMANDE.REFUSE
+      ).length;
+
+      const processed = data.filter((d) => d.date_traitement);
+      let avgProcessingTime = '—';
+      if (processed.length > 0) {
+        const diffs = processed
+          .map((d) => {
+            const start = d.date_soumission ? new Date(d.date_soumission) : null;
+            const end = new Date(d.date_traitement);
+            if (!start || !end) return null;
+            return Math.max(0, (end - start) / (1000 * 60 * 60 * 24));
+          })
+          .filter((x) => x !== null);
+        if (diffs.length > 0) {
+          const avg = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+          avgProcessingTime = `${avg.toFixed(1)} jours`;
+        }
+      }
+
+      let lastProcessedRequest = '—';
+      if (processed.length > 0) {
+        const last = processed.sort(
+          (a, b) => new Date(b.date_traitement) - new Date(a.date_traitement)
+        )[0];
+        const d = new Date(last.date_traitement);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const min = String(d.getMinutes()).padStart(2, '0');
+        lastProcessedRequest = `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+      }
+
+      const processingRate =
+        totalRequests > 0 ? Math.round(((validatedRequests + rejectedRequests) / totalRequests) * 100) : 0;
+
+      return {
+        totalRequests,
+        pendingRequests,
+        validatedRequests,
+        rejectedRequests,
+        processingRate,
+        avgProcessingTime,
+        lastProcessedRequest,
       };
-      
-      return stats;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des statistiques');
     }

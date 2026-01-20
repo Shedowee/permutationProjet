@@ -1,23 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Button from '../../../shared/components/Button';
-import { USER_ROLES, USER_STATUSES, VALIDATION_MESSAGES } from '../../../shared/constants/constants';
+import { VALIDATION_MESSAGES } from '../../../shared/constants/constants';
+import { listRoles } from '../../../services/adminService';
+import { listUserStatuses } from '../../../services/paramService';
+import { createUser } from '../../../services/usersService';
+import { useToast } from '../../../shared/context/useToast';
 import { UserPlusIcon, UserIcon, EnvelopeIcon, LockClosedIcon, ShieldCheckIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 const CreateAccount = () => {
+  const { success, error } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'user',
+    role: '',
     status: 'active',
   });
   
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await listRoles();
+        setRoles(data);
+      } catch {
+        setRoles([]);
+      }
+    })();
+  }, []);
+  
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await listUserStatuses();
+        setStatuses(data.length ? data : [
+          { value: 'actif', label: 'Actif' },
+          { value: 'inactif', label: 'Inactif' },
+        ]);
+      } catch {
+        setStatuses([
+          { value: 'actif', label: 'Actif' },
+          { value: 'inactif', label: 'Inactif' },
+        ]);
+      }
+    })();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -81,13 +116,15 @@ const CreateAccount = () => {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would be an API call
-      console.log('Creating account:', formData);
-      
-      setSuccessMessage(`Compte pour ${formData.name} créé avec succès !`);
+      const created = await createUser({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        status: formData.status,
+      });
+      success(`Compte pour ${created.name} créé avec succès`);
+      setSuccessMessage(`Compte pour ${created.name} créé avec succès !`);
       
       // Reset form
       setFormData({
@@ -95,11 +132,11 @@ const CreateAccount = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'user',
+        role: '',
         status: 'active',
       });
-    } catch (error) {
-      console.error('Error creating account:', error);
+    } catch {
+      error("Erreur lors de la création du compte");
     } finally {
       setIsLoading(false);
     }
@@ -225,7 +262,8 @@ const CreateAccount = () => {
                   onChange={handleChange}
                   className="w-full rounded-lg border-0 py-3 px-4 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
                 >
-                  {USER_ROLES.map(role => (
+                  <option value="">Sélectionnez un rôle</option>
+                  {roles.map(role => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
@@ -242,7 +280,7 @@ const CreateAccount = () => {
                   onChange={handleChange}
                   className="w-full rounded-lg border-0 py-3 px-4 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
                 >
-                  {USER_STATUSES.map(status => (
+                  {statuses.map(status => (
                     <option key={status.value} value={status.value}>{status.label}</option>
                   ))}
                 </select>

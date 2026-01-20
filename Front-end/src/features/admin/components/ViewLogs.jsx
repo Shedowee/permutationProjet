@@ -1,27 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
-import { LOG_ACTION_TYPES, DEFAULT_PAGE_SIZE, DEFAULT_CURRENT_PAGE } from '../../../shared/constants/constants';
-import { ClockIcon, FunnelIcon, CalendarDaysIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
+import { DEFAULT_PAGE_SIZE, DEFAULT_CURRENT_PAGE } from '../../../shared/constants/constants';
+import { ClockIcon, CalendarDaysIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
+import { listLogs } from '../../../services/logsService';
+import { LOG_ACTION_TYPES as LOG_ENUM } from '../redux/logsSlice';
 
 const ViewLogs = () => {
-  // Mock logs data
-  const [logs] = useState([
-    { id: 1, user: 'Ahmed Mohamed', action: 'login', timestamp: '2024-01-15 10:30:00', ip: '192.168.1.100', details: 'Connexion réussie' },
-    { id: 2, user: 'Fatima Karim', action: 'create_account', timestamp: '2024-01-15 09:15:00', ip: '192.168.1.101', details: 'Création du compte utilisateur ID: 123' },
-    { id: 3, user: 'Youssef Tahiri', action: 'assign_role', timestamp: '2024-01-15 08:45:00', ip: '192.168.1.102', details: 'Attribution du rôle admin à utilisateur ID: 456' },
-    { id: 4, user: 'Sara Laaroussi', action: 'block_user', timestamp: '2024-01-14 16:20:00', ip: '192.168.1.103', details: 'Blocage de l\'utilisateur ID: 789' },
-    { id: 5, user: 'Omar Benali', action: 'update_profile', timestamp: '2024-01-14 15:30:00', ip: '192.168.1.104', details: 'Mise à jour des informations personnelles' },
-    { id: 6, user: 'Layla Fassi', action: 'logout', timestamp: '2024-01-14 14:45:00', ip: '192.168.1.105', details: 'Déconnexion de la session' },
-    { id: 7, user: 'Karim Ouali', action: 'delete_user', timestamp: '2024-01-14 13:20:00', ip: '192.168.1.106', details: 'Suppression de l\'utilisateur ID: 101' },
-    { id: 8, user: 'Nadia Chraibi', action: 'login', timestamp: '2024-01-14 12:15:00', ip: '192.168.1.107', details: 'Connexion réussie' },
-    { id: 9, user: 'Ahmed Mohamed', action: 'update_profile', timestamp: '2024-01-13 11:30:00', ip: '192.168.1.100', details: 'Mise à jour des permissions' },
-    { id: 10, user: 'Fatima Karim', action: 'create_account', timestamp: '2024-01-13 10:45:00', ip: '192.168.1.101', details: 'Création du compte utilisateur ID: 202' },
-    { id: 11, user: 'Youssef Tahiri', action: 'login', timestamp: '2024-01-13 09:20:00', ip: '192.168.1.102', details: 'Connexion réussie' },
-    { id: 12, user: 'Sara Laaroussi', action: 'assign_role', timestamp: '2024-01-12 08:15:00', ip: '192.168.1.103', details: 'Attribution du rôle modérateur à utilisateur ID: 303' },
-  ]);
+  const [logs, setLogs] = useState([]);
+  const actionTypes = Object.values(LOG_ENUM);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterAction, setFilterAction] = useState('');
@@ -31,17 +20,28 @@ const ViewLogs = () => {
   const [currentPage, setCurrentPage] = useState(DEFAULT_CURRENT_PAGE);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await listLogs();
+        setLogs(data);
+      } catch {
+        setLogs([]);
+      }
+    })();
+  }, []);
+
   // Filtered logs based on search and filters
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
       const matchesSearch = log.user.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          log.ip.includes(searchTerm) ||
-                          log.details.toLowerCase().includes(searchTerm.toLowerCase());
+                          (log.ip || '').includes(searchTerm) ||
+                          (log.action || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesAction = !filterAction || log.action === filterAction;
       
       let matchesDate = true;
       if (dateRange.start && dateRange.end) {
-        const logDate = new Date(log.timestamp.replace(' ', 'T'));
+        const logDate = new Date(String(log.date).replace(' ', 'T'));
         const startDate = new Date(dateRange.start);
         const endDate = new Date(dateRange.end);
         matchesDate = logDate >= startDate && logDate <= endDate;
@@ -75,29 +75,21 @@ const ViewLogs = () => {
     { 
       header: 'Action', 
       key: 'action',
-      render: (value) => {
-        const actionType = LOG_ACTION_TYPES.find(a => a.value === value);
-        return (
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${actionType?.color}/20 text-${actionType?.color.split('-')[1]}-400 border border-${actionType?.color.split('-')[1]}-500/30`}>
-            {actionType?.label || value}
-          </span>
-        );
-      }
+      render: (value) => (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-500/20 text-gray-300 border border-gray-500/30">
+          {String(value).charAt(0).toUpperCase() + String(value).slice(1)}
+        </span>
+      )
     },
     { 
       header: 'Date & Heure', 
-      key: 'timestamp',
+      key: 'date',
       render: (value) => <span className="text-gray-300 text-sm">{value}</span>
     },
     { 
       header: 'Adresse IP', 
       key: 'ip',
       render: (value) => <span className="text-gray-400 font-mono text-sm">{value}</span>
-    },
-    { 
-      header: 'Détails', 
-      key: 'details',
-      render: (value) => <span className="text-gray-300 text-sm max-w-xs truncate" title={value}>{value}</span>
     },
   ];
 
@@ -140,8 +132,8 @@ const ViewLogs = () => {
                 }}
               >
                 <option value="">Toutes les actions</option>
-                {LOG_ACTION_TYPES.map(action => (
-                  <option key={action.value} value={action.value}>{action.label}</option>
+                {actionTypes.map(type => (
+                  <option key={type} value={type}>{type.charAt(0).toUpperCase() + type.slice(1)}</option>
                 ))}
               </select>
               

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../auth/context/AuthContext';
+import { useAuth } from '../../auth/hooks/useAuth';
 import { Bars3Icon, BellIcon, MagnifyingGlassIcon, UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
+import { listLogs } from '../../services/logsService';
 
 const Navbar = ({ onMenuClick, userRole }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -9,12 +10,29 @@ const Navbar = ({ onMenuClick, userRole }) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   
-  // Mock notifications
-  const notifications = [
-    { id: 1, title: 'Nouvel utilisateur enregistré', time: '5 min ago', read: false },
-    { id: 2, title: 'Système mis à jour', time: '12 min ago', read: true },
-    { id: 3, title: 'Alerte de sécurité', time: '1 heure ago', read: false },
-  ];
+  const [notifications, setNotifications] = useState([]);
+  
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const logs = await listLogs();
+        const items = logs.slice(0, 5).map((l) => ({
+          id: l.id,
+          title: `${l.user} - ${l.action}`,
+          time: l.date || '',
+          read: false,
+          type: l.type,
+        }));
+        if (mounted) setNotifications(items);
+      } catch {
+        if (mounted) setNotifications([]);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
   
   const unreadCount = notifications.filter(n => !n.read).length;
 

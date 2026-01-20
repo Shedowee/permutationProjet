@@ -9,7 +9,9 @@ import { fetchLogs, selectLogs, LOG_ACTION_TYPES } from '../redux/logsSlice';
 
 const ViewLogs = () => {
   const dispatch = useDispatch();
-  const logs = useSelector(selectLogs) || [];
+  const logsRaw = useSelector(selectLogs);
+  const logs = useMemo(() => logsRaw || [], [logsRaw]);
+  const { loading, error } = useSelector(state => state.logs);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -222,11 +224,17 @@ const ViewLogs = () => {
         
         {/* Logs Table */}
         <Card className="p-6">
-          <Table 
-            data={currentLogs} 
-            columns={columns} 
-            caption={`Journal des activités (${filteredLogs.length} total)`}
-          />
+          {loading ? (
+            <div className="py-8 text-center text-gray-400">Chargement des logs...</div>
+          ) : error ? (
+            <div className="py-8 text-center text-red-400">Erreur: {error}</div>
+          ) : (
+            <Table 
+              data={currentLogs} 
+              columns={columns} 
+              caption={`Journal des activités (${filteredLogs.length} total)`}
+            />
+          )}
           
           {/* Pagination */}
           {totalPages > 1 && (

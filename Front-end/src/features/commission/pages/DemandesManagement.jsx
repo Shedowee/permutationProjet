@@ -6,7 +6,7 @@ import Table from "../../../shared/components/Table";
 import Button from "../../../shared/components/Button";
 import TraitementDemandeModal from "../components/TraitementDemandeModal";
 import { fetchDemandes, traiterDemande } from "../redux/commissionSlice";
-import { useAuth } from "../../../auth/context/AuthContext";
+import { useAuth } from "../../../auth/hooks/useAuth";
 import {
   CheckCircleIcon,
   XCircleIcon,

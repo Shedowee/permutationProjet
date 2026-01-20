@@ -1,30 +1,45 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
 import Modal from '../../../shared/components/Modal';
-import { USER_ROLES, USER_STATUSES, STATUS_BADGES, ACTION_BUTTON_STYLES } from '../../../shared/constants/constants';
-import { MagnifyingGlassIcon, FunnelIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { STATUS_BADGES, ACTION_BUTTON_STYLES } from '../../../shared/constants/constants';
+import { MagnifyingGlassIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { listRoles } from '../../../services/adminService';
+import { listUserStatuses } from '../../../services/paramService';
+import { listUsers } from '../../../services/usersService';
+import { deleteUser as apiDeleteUser } from '../../../services/usersService';
+import { useToast } from '../../../shared/context/useToast';
 
 const UserManagement = () => {
-  // Mock users data
-  const [users, setUsers] = useState([
-    { id: 1, name: 'Ahmed Mohamed', email: 'ahmed@ofppt.ma', role: 'admin', status: 'active', createdAt: '2024-01-15', lastLogin: '2024-01-15' },
-    { id: 2, name: 'Fatima Karim', email: 'fatima@ofppt.ma', role: 'moderator', status: 'active', createdAt: '2024-01-14', lastLogin: '2024-01-14' },
-    { id: 3, name: 'Youssef Tahiri', email: 'youssef@ofppt.ma', role: 'user', status: 'active', createdAt: '2024-01-13', lastLogin: '2024-01-13' },
-    { id: 4, name: 'Sara Laaroussi', email: 'sara@ofppt.ma', role: 'user', status: 'blocked', createdAt: '2024-01-10', lastLogin: '2024-01-10' },
-    { id: 5, name: 'Omar Benali', email: 'omar@ofppt.ma', role: 'user', status: 'active', createdAt: '2024-01-12', lastLogin: '2024-01-12' },
-    { id: 6, name: 'Layla Fassi', email: 'layla@ofppt.ma', role: 'staff', status: 'pending', createdAt: '2024-01-11', lastLogin: '2024-01-11' },
-    { id: 7, name: 'Karim Ouali', email: 'karim@ofppt.ma', role: 'student', status: 'active', createdAt: '2024-01-09', lastLogin: '2024-01-09' },
-    { id: 8, name: 'Nadia Chraibi', email: 'nadia@ofppt.ma', role: 'trainer', status: 'inactive', createdAt: '2024-01-08', lastLogin: '2024-01-08' },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+  const { success, error } = useToast();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [u, r, s] = await Promise.all([
+          listUsers(),
+          listRoles(),
+          listUserStatuses(),
+        ]);
+        setUsers(u);
+        setRoles(r);
+        setStatuses(s);
+      } catch {
+        // Silent fail for now
+      }
+    })();
+  }, []);
   
   // Filtered users based on search and filters
   const filteredUsers = useMemo(() => {
@@ -32,16 +47,23 @@ const UserManagement = () => {
       const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            user.email.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesRole = !filterRole || user.role === filterRole;
-      const matchesStatus = !filterStatus || user.status === filterStatus;
+      const matchesStatus = !filterStatus || String(user.status).toLowerCase() === String(filterStatus).toLowerCase();
       
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchTerm, filterRole, filterStatus]);
 
-  const handleDeleteUser = (userId) => {
-    setUsers(users.filter(user => user.id !== userId));
-    setShowDeleteModal(false);
-    setUserToDelete(null);
+  const handleDeleteUser = async (userId) => {
+    try {
+      await apiDeleteUser(userId);
+      setUsers(users.filter(user => user.id !== userId));
+      success("Utilisateur supprimé avec succès");
+    } catch {
+      error("Erreur lors de la suppression de l'utilisateur");
+    } finally {
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+    }
   };
 
   const confirmDelete = (user) => {
@@ -64,7 +86,7 @@ const UserManagement = () => {
       header: 'Rôle', 
       key: 'role',
       render: (value) => {
-        const role = USER_ROLES.find(r => r.value === value);
+        const role = roles.find(r => r.value === value);
         return <span className="text-blue-400 font-medium">{role?.label || value}</span>;
       }
     },
@@ -72,7 +94,7 @@ const UserManagement = () => {
       header: 'Statut', 
       key: 'status',
       render: (value) => {
-        const status = USER_STATUSES.find(s => s.value === value);
+        const status = statuses.find(s => s.value === String(value).toLowerCase());
         const badgeClass = STATUS_BADGES[value] || 'bg-gray-500/20 text-gray-400 border border-gray-500/30';
         return (
           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badgeClass}`}>
@@ -89,7 +111,7 @@ const UserManagement = () => {
     { 
       header: 'Actions', 
       key: 'actions',
-      render: (value, row) => (
+      render: (_value, row) => (
         <div className="flex space-x-2">
           <button 
             onClick={() => console.log('View user:', row)}
@@ -148,7 +170,7 @@ const UserManagement = () => {
                   onChange={(e) => setFilterRole(e.target.value)}
                 >
                   <option value="">Tous les rôles</option>
-                  {USER_ROLES.map(role => (
+                  {roles.map(role => (
                     <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
@@ -159,7 +181,7 @@ const UserManagement = () => {
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
                   <option value="">Tous les statuts</option>
-                  {USER_STATUSES.map(status => (
+                  {statuses.map(status => (
                     <option key={status.value} value={status.value}>{status.label}</option>
                   ))}
                 </select>

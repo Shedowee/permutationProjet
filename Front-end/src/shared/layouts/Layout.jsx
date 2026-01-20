@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useAuth } from "../../auth/context/AuthContext";
+import { useAuth } from "../../auth/hooks/useAuth";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 

@@ -3,16 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Button from '../../../shared/components/Button';
-import { KeyIcon, UserIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { KeyIcon, UserIcon, CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { fetchUsers } from '../redux/adminSlice';
-
-// Define user roles as constants
-const USER_ROLES = {
-  ADMIN: 'admin',
-  STAFF: 'staff',
-  FORMATEUR: 'formateur',
-  MODERATEUR: 'moderateur',
-};
+import { listRoles } from '../../../services/adminService';
 
 const AssignRoles = () => {
   const dispatch = useDispatch();
@@ -21,14 +14,28 @@ const AssignRoles = () => {
   const [selectedRole, setSelectedRole] = useState('');
   const [assignedUsers, setAssignedUsers] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [roles, setRoles] = useState([]);
   
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await listRoles();
+        setRoles(data);
+      } catch {
+        setRoles([]);
+      }
+    })();
+  }, []);
+
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) {
+      setErrorMessage('Veuillez sélectionner un utilisateur et un rôle.');
       return;
     }
 
@@ -50,6 +57,7 @@ const AssignRoles = () => {
         
         setAssignedUsers(prev => [...prev, newAssignment]);
         setSuccessMessage(`Rôle "${selectedRole}" assigné à ${user.name} avec succès !`);
+        setErrorMessage('');
         
         // Reset selections
         setSelectedUser('');
@@ -57,6 +65,7 @@ const AssignRoles = () => {
       }
     } catch (error) {
       console.error('Error assigning role:', error);
+      setErrorMessage("Une erreur s'est produite lors de l'attribution du rôle.");
     } finally {
       setIsSubmitting(false);
     }
@@ -65,6 +74,20 @@ const AssignRoles = () => {
   const handleRemoveAssignment = (userId) => {
     setAssignedUsers(prev => prev.filter(assignment => assignment.userId !== userId));
   };
+
+  useEffect(() => {
+    if (successMessage) {
+      const t = setTimeout(() => setSuccessMessage(''), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [successMessage]);
+
+  useEffect(() => {
+    if (errorMessage) {
+      const t = setTimeout(() => setErrorMessage(''), 5000);
+      return () => clearTimeout(t);
+    }
+  }, [errorMessage]);
 
   return (
     <Layout>
@@ -84,9 +107,34 @@ const AssignRoles = () => {
             
             <div className="space-y-6">
               {successMessage && (
-                <div className="p-4 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center">
-                  <CheckCircleIcon className="w-5 h-5 text-green-400 mr-3" />
-                  <span className="text-green-400">{successMessage}</span>
+                <div className="p-4 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-400 mr-3" />
+                    <span className="text-green-400">{successMessage}</span>
+                  </div>
+                  <button
+                    onClick={() => setSuccessMessage('')}
+                    className="text-green-300/80 hover:text-green-200 transition-colors"
+                    aria-label="Fermer la notification de succès"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+              
+              {errorMessage && (
+                <div className="p-4 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <ExclamationTriangleIcon className="w-5 h-5 text-red-400 mr-3" />
+                    <span className="text-red-300">{errorMessage}</span>
+                  </div>
+                  <button
+                    onClick={() => setErrorMessage('')}
+                    className="text-red-300/80 hover:text-red-200 transition-colors"
+                    aria-label="Fermer la notification d'erreur"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
               
@@ -118,8 +166,8 @@ const AssignRoles = () => {
                   className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
                 >
                   <option value="">Sélectionnez un rôle</option>
-                  {Object.values(USER_ROLES).map(role => (
-                    <option key={role} value={role}>{role}</option>
+                  {roles.map(role => (
+                    <option key={role.value} value={role.value}>{role.label}</option>
                   ))}
                 </select>
               </div>
@@ -227,13 +275,7 @@ const AssignRoles = () => {
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    user.role === USER_ROLES.ADMIN ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
-                    user.role === USER_ROLES.STAFF ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
-                    user.role === USER_ROLES.FORMATEUR ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                    user.role === USER_ROLES.MODERATEUR ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
-                    'bg-gray-500/20 text-gray-300 border border-gray-500/30'
-                  }`}>
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
                     {user.role}
                   </span>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${

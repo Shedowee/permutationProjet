@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Card from '../../../shared/components/Card';
 import Button from '../../../shared/components/Button';
 import { UserPlusIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
-import { USER_ROLES, USER_STATUSES } from '../../../shared/constants/constants';
+import { listUserStatuses } from '../../../services/paramService';
+import { listRoles } from '../../../services/adminService';
 
 /**
  * Composant de formulaire pour créer un utilisateur
@@ -16,12 +17,42 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
     email: '',
     password: '',
     role: '',
-    status: USER_STATUSES.ACTIF
+    status: 'actif'
   });
 
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [roles, setRoles] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await listRoles();
+        setRoles(data);
+      } catch {
+        setRoles([]);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await listUserStatuses();
+        setStatuses(data.length ? data : [
+          { value: 'actif', label: 'Actif' },
+          { value: 'inactif', label: 'Inactif' },
+        ]);
+      } catch {
+        setStatuses([
+          { value: 'actif', label: 'Actif' },
+          { value: 'inactif', label: 'Inactif' },
+        ]);
+      }
+    })();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -93,7 +124,7 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
         email: '',
         password: '',
         role: '',
-        status: USER_STATUSES.ACTIF
+        status: 'actif'
       });
       
       setSuccessMessage('Compte créé avec succès !');
@@ -194,8 +225,8 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
               } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200`}
             >
               <option value="">Sélectionnez un rôle</option>
-              {Object.values(USER_ROLES).map(role => (
-                <option key={role} value={role}>{role}</option>
+              {roles.map(role => (
+                <option key={role.value} value={role.value}>{role.label}</option>
               ))}
             </select>
             {errors.role && (
@@ -216,8 +247,8 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
               onChange={handleInputChange}
               className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
             >
-              {Object.values(USER_STATUSES).map(status => (
-                <option key={status} value={status}>{status}</option>
+              {statuses.map(status => (
+                <option key={status.value} value={status.value}>{status.label}</option>
               ))}
             </select>
           </div>
