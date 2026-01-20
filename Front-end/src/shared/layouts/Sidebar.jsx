@@ -1,9 +1,12 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { HomeIcon, UserGroupIcon, KeyIcon, DocumentTextIcon, BuildingOffice2Icon, BellIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../../auth/hooks/useAuth';
 
 const Sidebar = ({ isOpen, onClose, userRole }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // Définir les menus en fonction du rôle de l'utilisateur
   const getMenuItems = () => {
@@ -87,6 +90,13 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
             </Link>
             <button
               className="w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
+              onClick={async () => {
+                try {
+                  await logout();
+                } finally {
+                  navigate('/login', { replace: true });
+                }
+              }}
             >
               <ArrowRightOnRectangleIcon className="w-5 h-5 mr-3" />
               <span>Déconnexion</span>

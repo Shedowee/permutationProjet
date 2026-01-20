@@ -25,6 +25,7 @@ const UserManagement = lazy(() => import("./features/admin/pages/UserManagement"
 const AssignRoles = lazy(() => import("./features/admin/pages/AssignRoles"));
 const ViewLogs = lazy(() => import("./features/admin/pages/ViewLogs"));
 const EtablissementManagement = lazy(() => import("./features/admin/pages/EtablissementManagement"));
+const Settings = lazy(() => import("./features/admin/pages/Settings"));
 
 const CommissionDashboard = lazy(() => import("./features/commission/pages/CommissionDashboard"));
 const CommissionDemandesManagement = lazy(() => import("./features/commission/pages/DemandesManagement"));
@@ -102,6 +103,14 @@ const App = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <EtablissementManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Settings />
               </ProtectedRoute>
             }
           />
