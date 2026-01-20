@@ -28,6 +28,12 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
         { name: 'Dashboard', href: '/formateur', icon: HomeIcon },
         { name: 'Mes Demandes', href: '/formateur/demandes', icon: ClipboardDocumentListIcon },
       ];
+    } else if (userRole === 'employe') {
+      return [
+        { name: 'Dashboard', href: '/employe', icon: HomeIcon },
+        { name: 'Mes Demandes', href: '/employe/demandes', icon: ClipboardDocumentListIcon },
+        { name: 'Créer une Demande', href: '/employe/demandes/create', icon: ClipboardDocumentListIcon },
+      ];
     }
     return []; // Retourne un tableau vide si le rôle n'est pas reconnu
   };
@@ -81,13 +87,15 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
         {/* Settings and Logout */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
           <div className="space-y-2">
-            <Link
-              to="/admin/settings"
-              className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-all duration-200"
-            >
-              <Cog6ToothIcon className="w-5 h-5 mr-3" />
-              <span>Paramètres</span>
-            </Link>
+            {userRole === 'admin' && (
+              <Link
+                to="/admin/settings"
+                className="flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white transition-all duration-200"
+              >
+                <Cog6ToothIcon className="w-5 h-5 mr-3" />
+                <span>Paramètres</span>
+              </Link>
+            )}
             <button
               className="w-full flex items-center px-4 py-3 rounded-xl text-sm font-medium text-gray-300 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200"
               onClick={async () => {

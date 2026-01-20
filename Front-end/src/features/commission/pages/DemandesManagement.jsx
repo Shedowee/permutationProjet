@@ -228,20 +228,21 @@ const DemandesManagement = () => {
                   {
                     header: "Actions",
                     key: "actions",
-                    render: (value, row) => (
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleTraiterDemande(row)}
-                          disabled={row.etat !== "EN_ATTENTE"}
-                          className="flex items-center"
-                        >
-                          <EyeIcon className="w-4 h-4 mr-1" />
-                          Traiter
-                        </Button>
-                      </div>
-                    ),
+                    render: (value, row) =>
+                      userRole === "commission" ? (
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleTraiterDemande(row)}
+                            disabled={row.etat !== "EN_ATTENTE" || userRole !== "commission"}
+                            className="flex items-center"
+                          >
+                            <EyeIcon className="w-4 h-4 mr-1" />
+                            Traiter
+                          </Button>
+                        </div>
+                      ) : null,
                   },
                 ]}
                 caption={`Demandes de permutation (${demandes.length})`}

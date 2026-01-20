@@ -54,6 +54,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
       admin: "/admin",
       commission: "/commission",
       formateur: "/formateur",
+      employe: "/employe",
     };
 
     const redirectPath = dashboards[role] || "/login";

@@ -54,7 +54,11 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
       // Fermer la modal après succès
       onClose();
     } catch (err) {
-      setError('Erreur lors du traitement de la demande');
+      const message =
+        (err && err.status === 403)
+          ? "Vous n'êtes pas autorisé à traiter cette demande."
+          : (err && err.message) || 'Erreur lors du traitement de la demande';
+      setError(message);
       console.error('Erreur traitement:', err);
     } finally {
       setLoading(false);

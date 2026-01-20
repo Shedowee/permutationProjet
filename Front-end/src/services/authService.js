@@ -15,10 +15,11 @@ export const login = async ({ email, password }) => {
 };
 
 export const logout = async () => {
-  await api.post("/api/logout");
+  await getCsrfCookie();
+  await api.post("/api/logout", {}, { withCredentials: true });
 };
 
 export const getCurrentUser = async () => {
-  const response = await api.get("/api/me");
+  const response = await api.get("/api/me", { withCredentials: true });
   return response.data;
 };

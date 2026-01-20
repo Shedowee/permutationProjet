@@ -23,7 +23,7 @@ class DemandePermutationController extends Controller
             'etablissementSouhaite',
         ])->orderByDesc('date_soumission');
 
-        if ($roleCode === 'FORMATEUR') {
+        if (in_array($roleCode, ['FORMATEUR', 'EMPLOYE'])) {
             $employe = Employe::where('user_id', $user->id)->first();
             if ($employe) {
                 $query->where('employe_id', $employe->id);
@@ -81,6 +81,7 @@ class DemandePermutationController extends Controller
         ]);
 
         $user = $request->user();
+        $this->authorize('update', $demande);
 
         $etat = Parametre::where('type', 'ETAT')->where('code', $request->etat_code)->first();
         if (!$etat) {
@@ -105,4 +106,3 @@ class DemandePermutationController extends Controller
         return response()->json(['data' => $demande->fresh(['etat'])]);
     }
 }
-

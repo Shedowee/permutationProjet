@@ -8,6 +8,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const normalizeRole = (r) => {
+    if (!r) return null;
+    const v = String(r).toLowerCase();
+    if (v === "comission") return "commission";
+    return v;
+  };
+
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -17,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const data = await authService.getCurrentUser();
       setUser(data.user);
-      setRole(data.user?.role || null);
+      setRole(normalizeRole(data.user?.role));
     } catch {
       setUser(null);
       setRole(null);
@@ -33,7 +40,7 @@ export const AuthProvider = ({ children }) => {
       await authService.login(credentials);
       const data = await authService.getCurrentUser();
       setUser(data.user);
-      setRole(data.user?.role || null);
+      setRole(normalizeRole(data.user?.role));
       return data.user;
     } catch (err) {
       setError(err.message || "Login failed");

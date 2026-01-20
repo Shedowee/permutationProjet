@@ -35,6 +35,7 @@ function Login() {
       admin: "/admin",
       commission: "/commission",
       formateur: "/formateur",
+      employe: "/employe",
     };
 
     const path = dashboards[userRole] || from;

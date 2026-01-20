@@ -57,7 +57,10 @@ export const traiterDemande = createAsyncThunk(
         dateValidation: (updated.date_traitement || '').split('T')[0],
       };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Erreur de traitement de la demande');
+      return rejectWithValue({
+        status: error.response?.status,
+        message: error.response?.data?.message || 'Erreur de traitement de la demande',
+      });
     }
   }
 );
@@ -210,7 +213,7 @@ const commissionSlice = createSlice({
       })
       .addCase(traiterDemande.rejected, (state, action) => {
         state.demandes.loading = false;
-        state.demandes.error = action.payload;
+        state.demandes.error = action.payload?.message ?? action.payload;
       })
       
       // Stats reducers

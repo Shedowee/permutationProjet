@@ -26,6 +26,7 @@ const AssignRoles = lazy(() => import("./features/admin/pages/AssignRoles"));
 const ViewLogs = lazy(() => import("./features/admin/pages/ViewLogs"));
 const EtablissementManagement = lazy(() => import("./features/admin/pages/EtablissementManagement"));
 const Settings = lazy(() => import("./features/admin/pages/Settings"));
+const Logout = lazy(() => import("./auth/pages/Logout"));
 
 const CommissionDashboard = lazy(() => import("./features/commission/pages/CommissionDashboard"));
 const CommissionDemandesManagement = lazy(() => import("./features/commission/pages/DemandesManagement"));
@@ -37,7 +38,7 @@ const CreateDemande = lazy(() => import("./features/formateur/pages/CreateDemand
 const App = () => {
   // Auth is managed by AuthContext, not Redux
   // Loading state is handled by ProtectedRoute
-  const { loading } = useAuth();
+  const { loading, role, isAuthenticated } = useAuth();
 
   // Wait for initial auth check
   if (loading) {
@@ -67,7 +68,49 @@ const App = () => {
           <Route path="/login" element={<Login />} />
 
           <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "commission", "formateur", "employe"]}>
+                {role === "admin" ? (
+                  <AdminDashboard />
+                ) : role === "commission" ? (
+                  <CommissionDashboard />
+                ) : (
+                  <FormateurDashboard />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/demandes"
+            element={
+              <ProtectedRoute allowedRoles={["commission", "formateur", "employe"]}>
+                {role === "commission" ? (
+                  <CommissionDemandesManagement />
+                ) : (
+                  <FormateurDemandesManagement />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/demandes/create"
+            element={
+              <ProtectedRoute allowedRoles={["formateur", "employe"]}>
+                <CreateDemande />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/dashboard"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />
@@ -83,7 +126,23 @@ const App = () => {
             }
           />
           <Route
+            path="/users"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <UserManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/roles"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AssignRoles />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/roles"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AssignRoles />
@@ -99,6 +158,14 @@ const App = () => {
             }
           />
           <Route
+            path="/logs"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <ViewLogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/etablissements"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
@@ -107,7 +174,23 @@ const App = () => {
             }
           />
           <Route
+            path="/etablissements"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <EtablissementManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin/settings"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <Settings />
@@ -124,7 +207,23 @@ const App = () => {
             }
           />
           <Route
+            path="/commission/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["commission"]}>
+                <CommissionDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/commission/demandes"
+            element={
+              <ProtectedRoute allowedRoles={["commission"]}>
+                <CommissionDemandesManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/traitement/demandes"
             element={
               <ProtectedRoute allowedRoles={["commission"]}>
                 <CommissionDemandesManagement />
@@ -141,9 +240,25 @@ const App = () => {
             }
           />
           <Route
+            path="/formateur/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["formateur"]}>
+                <FormateurDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/formateur/demandes"
             element={
               <ProtectedRoute allowedRoles={["formateur"]}>
+                <FormateurDemandesManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mes-demandes"
+            element={
+              <ProtectedRoute allowedRoles={["formateur", "employe"]}>
                 <FormateurDemandesManagement />
               </ProtectedRoute>
             }
@@ -157,8 +272,48 @@ const App = () => {
             }
           />
 
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route
+            path="/employe"
+            element={
+              <ProtectedRoute allowedRoles={["employe"]}>
+                <FormateurDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employe/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["employe"]}>
+                <FormateurDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employe/demandes"
+            element={
+              <ProtectedRoute allowedRoles={["employe"]}>
+                <FormateurDemandesManagement />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/employe/demandes/create"
+            element={
+              <ProtectedRoute allowedRoles={["employe"]}>
+                <CreateDemande />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/"
+            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+          />
+          <Route path="/logout" element={<Logout />} />
+          <Route
+            path="*"
+            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+          />
         </Routes>
       </Suspense>
     </Router>

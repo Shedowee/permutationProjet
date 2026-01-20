@@ -78,7 +78,11 @@ const CreateDemande = () => {
         setSuccess(false);
       }, 3000);
     } catch (err) {
-      setError(err.message || "Erreur lors de la création de la demande");
+      if (err && err.status === 403) {
+        setError("Vous n'êtes pas autorisé à créer de demandes.");
+      } else {
+        setError((err && err.message) || "Erreur lors de la création de la demande");
+      }
     } finally {
       setLoading(false);
     }
