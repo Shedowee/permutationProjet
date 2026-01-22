@@ -19,6 +19,7 @@ import { useAuth } from "./auth/hooks/useAuth";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 const Login = lazy(() => import("./auth/pages/Login"));
+const Signup = lazy(() => import("./auth/pages/Signup"));
 
 const AdminDashboard = lazy(() => import("./features/admin/pages/AdminDashboard"));
 const UserManagement = lazy(() => import("./features/admin/pages/UserManagement"));
@@ -34,6 +35,7 @@ const CommissionDemandesManagement = lazy(() => import("./features/commission/pa
 const FormateurDashboard = lazy(() => import("./features/formateur/pages/FormateurDashboard"));
 const FormateurDemandesManagement = lazy(() => import("./features/formateur/pages/DemandesManagement"));
 const CreateDemande = lazy(() => import("./features/formateur/pages/CreateDemande"));
+const Profile = lazy(() => import("./auth/pages/Profile"));
 
 const App = () => {
   // Auth is managed by AuthContext, not Redux
@@ -66,6 +68,7 @@ const App = () => {
       >
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
           <Route
             path="/dashboard"
@@ -308,6 +311,14 @@ const App = () => {
           <Route
             path="/"
             element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute allowedRoles={["admin","commission","formateur","employe"]}>
+                <Profile />
+              </ProtectedRoute>
+            }
           />
           <Route path="/logout" element={<Logout />} />
           <Route

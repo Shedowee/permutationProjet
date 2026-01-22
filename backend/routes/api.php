@@ -13,6 +13,8 @@ use App\Http\Controllers\LogsController;
 
 // Public endpoints - CSRF protected by EnsureFrontendRequestsAreStateful middleware
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/signup', [AuthController::class, 'signup']);
+Route::post('/confirm', [AuthController::class, 'confirm']);
 
 // Protected endpoints - require authentication
 Route::middleware('auth:sanctum')->group(function () {

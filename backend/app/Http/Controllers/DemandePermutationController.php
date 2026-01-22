@@ -30,6 +30,8 @@ class DemandePermutationController extends Controller
             } else {
                 $query->whereRaw('1 = 0');
             }
+        } elseif (!in_array($roleCode, ['COMISSION', 'ADMIN'])) {
+            $query->whereRaw('1 = 0');
         }
 
         return response()->json(['data' => $query->get()]);
@@ -37,10 +39,12 @@ class DemandePermutationController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create', DemandePermutation::class);
+
         $request->validate([
-            'motif' => 'nullable|string',
-            'region_souhaitee_id' => 'nullable|exists:parametres,id',
-            'etablissement_souhaite_id' => 'nullable|exists:etablissements,id',
+            'motif' => 'required|string',
+            'region_souhaitee_id' => 'required|exists:parametres,id',
+            'etablissement_souhaite_id' => 'required|exists:etablissements,id',
         ]);
 
         $user = $request->user();

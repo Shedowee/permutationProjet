@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const data = await authService.getCurrentUser();
       setUser(data.user);
-      setRole(normalizeRole(data.user?.role));
+      setRole(data.user?.actif ? normalizeRole(data.user?.role) : null);
     } catch {
       setUser(null);
       setRole(null);
@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
       await authService.login(credentials);
       const data = await authService.getCurrentUser();
       setUser(data.user);
-      setRole(normalizeRole(data.user?.role));
+      setRole(data.user?.actif ? normalizeRole(data.user?.role) : null);
       return data.user;
     } catch (err) {
       setError(err.message || "Login failed");

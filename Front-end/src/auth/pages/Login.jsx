@@ -212,6 +212,11 @@ function Login() {
           {loading ? "Connexion..." : "Se connecter"}
         </button>
 
+        <p className="text-sm text-center text-slate-600 mt-4">
+          Vous n'avez pas de compte ?{" "}
+          <a href="/signup" className="text-blue-600 hover:text-blue-700">S'inscrire</a>
+        </p>
+
         {/* Footer */}
         <p className="text-xs text-center text-slate-500 mt-6">
           © OFPPT – Accès sécurisé

@@ -8,16 +8,14 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\RoleCategory;
-use App\Models\Employe;
 use App\Models\Parametre;
-use App\Models\DemandePermutation;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
-class DemandesCreationTest extends TestCase
+class DemandesCreationEdgeCaseTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_employe_can_create_demande_and_record_is_saved(): void
+    public function test_creation_fails_when_employe_record_missing(): void
     {
         $this->withoutMiddleware(VerifyCsrfToken::class);
 
@@ -33,21 +31,15 @@ class DemandesCreationTest extends TestCase
         ]);
 
         $user = User::create([
-            'username' => 'employe.test',
-            'nom' => 'Employe Test',
-            'email' => 'employe.test@ofppt.ma',
+            'username' => 'no.employe',
+            'nom' => 'Sans Employe',
+            'email' => 'no.employe@ofppt.ma',
             'mot_de_passe' => Hash::make('Password123!'),
             'role_id' => $role->id,
             'actif' => true,
         ]);
 
-        $employe = Employe::create([
-            'nom' => 'Employe',
-            'prenom' => 'Test',
-            'user_id' => $user->id,
-        ]);
-
-        $etatEnAttente = Parametre::create([
+        Parametre::create([
             'type' => 'ETAT',
             'code' => 'EN_ATTENTE',
             'libelle' => 'En attente',
@@ -57,38 +49,28 @@ class DemandesCreationTest extends TestCase
 
         $region = Parametre::create([
             'type' => 'REGION',
-            'code' => 'RABAT',
-            'libelle' => 'Rabat-Salé-Kénitra',
+            'code' => 'CASA',
+            'libelle' => 'Casablanca-Settat',
             'actif' => true,
             'ordre' => 1,
         ]);
 
         $etab = \App\Models\Etablissement::create([
-            'code' => 'ETAB001',
-            'nom' => 'Institut Rabat',
-            'adresse' => 'Rabat',
+            'code' => 'ETAB010',
+            'nom' => 'Institut Casablanca',
+            'adresse' => 'Casablanca',
             'actif' => true,
         ]);
 
         $payload = [
-            'motif' => 'Test de création',
+            'motif' => 'Doit échouer',
             'region_souhaitee_id' => $region->id,
             'etablissement_souhaite_id' => $etab->id,
         ];
 
         $this->actingAs($user);
-
         $response = $this->postJson('/api/demandes', $payload);
-        $response->assertStatus(201);
-
-        $this->assertDatabaseHas('demande_permutations', [
-            'employe_id' => $employe->id,
-            'motif' => 'Test de création',
-            'etat_id' => $etatEnAttente->id,
-        ]);
-
-        $demande = DemandePermutation::first();
-        $this->assertNotNull($demande);
-        $this->assertEquals($employe->id, $demande->employe_id);
+        $response->assertStatus(422);
+        $response->assertJson(['message' => 'Employe not found']);
     }
 }

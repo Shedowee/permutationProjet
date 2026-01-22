@@ -1,10 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import Layout from "../../../shared/layouts/Layout";
 import Card from "../../../shared/components/Card";
 import Button from "../../../shared/components/Button";
 import { createDemande } from "../redux/formateurSlice";
 import { useAuth } from "../../../auth/hooks/useAuth";
+import { listParametres } from "../../../services/paramService";
+import { listEtablissements } from "../../../services/etablissementsService";
 
 const CreateDemande = () => {
   const dispatch = useDispatch();
@@ -12,12 +14,36 @@ const CreateDemande = () => {
 
   const [formData, setFormData] = useState({
     motif: "",
-    dateDebut: "",
-    dateFin: "",
+    regionSouhaiteeId: "",
+    etablissementSouhaiteId: "",
   });
+  const [regions, setRegions] = useState([]);
+  const [etablissements, setEtablissements] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+    const loadData = async () => {
+      try {
+        const [regionsData, etabsData] = await Promise.all([
+          listParametres({ type: "REGION" }),
+          listEtablissements(),
+        ]);
+        if (!mounted) return;
+        setRegions(regionsData || []);
+        setEtablissements(etabsData || []);
+      } catch {
+        if (!mounted) return;
+        setError("Erreur de chargement des listes. Réessayez plus tard.");
+      }
+    };
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,16 +64,13 @@ const CreateDemande = () => {
       return;
     }
 
-    if (!formData.dateDebut || !formData.dateFin) {
-      setError("Veuillez sélectionner les dates de début et de fin");
+    if (!formData.regionSouhaiteeId) {
+      setError("Veuillez sélectionner une région souhaitée");
       return;
     }
 
-    const startDate = new Date(formData.dateDebut);
-    const endDate = new Date(formData.dateFin);
-
-    if (startDate >= endDate) {
-      setError("La date de fin doit être postérieure à la date de début");
+    if (!formData.etablissementSouhaiteId) {
+      setError("Veuillez sélectionner un établissement souhaité");
       return;
     }
 
@@ -61,16 +84,16 @@ const CreateDemande = () => {
           utilisateurNom: currentUser?.name,
           utilisateurEmail: currentUser?.email,
           motif: formData.motif,
-          dateDebut: formData.dateDebut,
-          dateFin: formData.dateFin,
+          regionSouhaiteeId: formData.regionSouhaiteeId ? Number(formData.regionSouhaiteeId) : null,
+          etablissementSouhaiteId: formData.etablissementSouhaiteId ? Number(formData.etablissementSouhaiteId) : null,
         })
       ).unwrap();
 
       setSuccess(true);
       setFormData({
         motif: "",
-        dateDebut: "",
-        dateFin: "",
+        regionSouhaiteeId: "",
+        etablissementSouhaiteId: "",
       });
 
       // Reset success message after 3 seconds
@@ -138,39 +161,47 @@ const CreateDemande = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Date de début *
+                  Région souhaitée *
                 </label>
-                <input
-                  type="date"
-                  name="dateDebut"
-                  value={formData.dateDebut}
+                <select
+                  name="regionSouhaiteeId"
+                  value={formData.regionSouhaiteeId}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={loading}
-                />
+                  disabled={loading || regions.length === 0}
+                >
+                  <option value="">Sélectionnez une région</option>
+                  {regions.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.libelle || r.code}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">
-                  Date de fin *
+                  Établissement souhaité *
                 </label>
-                <input
-                  type="date"
-                  name="dateFin"
-                  value={formData.dateFin}
+                <select
+                  name="etablissementSouhaiteId"
+                  value={formData.etablissementSouhaiteId}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={loading}
-                />
+                  disabled={loading || etablissements.length === 0}
+                >
+                  <option value="">Sélectionnez un établissement</option>
+                  {etablissements.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.nom || e.code}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
             <div className="text-sm text-gray-400">
               <p>* Champs obligatoires</p>
-              <p className="mt-1">
-                Les dates doivent être comprises entre aujourd'hui et 6 mois à
-                venir.
-              </p>
             </div>
 
             <div className="pt-4">

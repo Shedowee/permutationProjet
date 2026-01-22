@@ -64,6 +64,35 @@ export const fetchAdminStats = createAsyncThunk(
       const now = new Date();
       const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
 
+      const unverifiedUsers = users.filter((u) => !u.role || u.status !== 'actif');
+      const pendingVerification = unverifiedUsers.length;
+      const pendingUsers = unverifiedUsers.map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        status: u.status || 'inactif',
+      }));
+      const sameDay = (d1, d2) =>
+        d1.getFullYear() === d2.getFullYear() &&
+        d1.getMonth() === d2.getMonth() &&
+        d1.getDate() === d2.getDate();
+      const newAccountLogs = logs.filter(
+        (l) =>
+          l.type === 'create' &&
+          String(l.action || '').toLowerCase().includes('création compte utilisateur')
+      );
+      const newAccountsToday = newAccountLogs.filter((l) => {
+        if (!l.date) return false;
+        const d = new Date(l.date);
+        return sameDay(d, now);
+      }).length;
+      const newAccounts7d = newAccountLogs.filter((l) => {
+        if (!l.date) return false;
+        const d = new Date(l.date);
+        const diff = now.getTime() - d.getTime();
+        return diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000;
+      }).length;
+
       const monthlyActivityData = [];
       for (let i = 5; i >= 0; i--) {
         const date = new Date(now);
@@ -146,6 +175,10 @@ export const fetchAdminStats = createAsyncThunk(
         totalAdmins,
         totalCommission,
         totalFormateurs,
+        pendingVerification,
+        newAccountsToday,
+        newAccounts7d,
+        pendingUsers,
         monthlyActivityData,
         userStatsData,
         regionStats,

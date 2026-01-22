@@ -147,6 +147,58 @@ const AdminDashboard = () => {
           </div>
         )}
         
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card 
+              className="p-5"
+              style={{
+                background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%)'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm font-medium">Comptes à vérifier</p>
+                  <h3 className="text-2xl font-bold text-white mt-1">{stats.pendingVerification}</h3>
+                  <div className="flex items-center mt-2">
+                    <span className="text-sm font-medium text-yellow-400">
+                      Rôle manquant ou statut inactif
+                    </span>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-gradient-to-r from-yellow-500/20 to-amber-500/20">
+                  <UserGroupIcon className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </Card>
+            
+            <Card 
+              className="p-5"
+              style={{
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%)'
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-sm font-medium">Nouveaux comptes</p>
+                  <div className="mt-2">
+                    <div className="flex items-center">
+                      <span className="text-white font-semibold text-lg">{stats.newAccountsToday}</span>
+                      <span className="text-gray-500 text-sm ml-2">aujourd'hui</span>
+                    </div>
+                    <div className="flex items-center mt-1">
+                      <span className="text-white font-semibold text-lg">{stats.newAccounts7d}</span>
+                      <span className="text-gray-500 text-sm ml-2">sur 7 jours</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500/20 to-emerald-500/20">
+                  <ClockIcon className="w-6 h-6 text-white" />
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Activity Chart */}
           <div className="lg:col-span-2">
@@ -236,6 +288,43 @@ const AdminDashboard = () => {
             </Card>
           </div>
         </div>
+        
+        {stats && stats.pendingUsers && stats.pendingUsers.length > 0 && (
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
+              <UserGroupIcon className="w-5 h-5 mr-2 text-yellow-400" />
+              Comptes en attente de vérification
+            </h2>
+            <div className="text-sm text-gray-400 mb-3">
+              Valider et assigner un rôle pour activer ces comptes.
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-700/50">
+                <thead className="bg-white/5">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Nom</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Statut</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-700/50">
+                  {stats.pendingUsers.slice(0, 10).map((u) => (
+                    <tr key={u.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-3 text-sm text-gray-300">{u.name}</td>
+                      <td className="px-6 py-3 text-sm text-gray-300">{u.email}</td>
+                      <td className="px-6 py-3 text-sm text-gray-300">{u.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {stats.pendingUsers.length > 10 && (
+                <div className="text-right mt-3">
+                  <span className="text-xs text-gray-400">Et {stats.pendingUsers.length - 10} de plus…</span>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Actions */}
