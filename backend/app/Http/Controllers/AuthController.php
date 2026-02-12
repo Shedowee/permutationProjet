@@ -17,11 +17,13 @@ class AuthController extends Controller
             'password' => 'required|string|min:6',
         ]);
 
+        $role = \App\Models\Role::where('code', 'USER')->first();
+
         $user = \App\Models\User::create([
             'nom' => $validated['nom'],
             'email' => $validated['email'],
             'mot_de_passe' => Hash::make($validated['password']),
-            'role_id' => null,
+            'role_id' => $role?->id,
             'actif' => false,
         ]);
 
@@ -39,7 +41,7 @@ class AuthController extends Controller
         }
 
         \App\Models\LogAction::record(
-            null,
+            $user->id,
             'Création compte utilisateur',
             'utilisateurs',
             $user->id,

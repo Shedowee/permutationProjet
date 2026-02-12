@@ -303,7 +303,7 @@ const UserManagement = () => {
               >
                 <option value="">Tous les statuts</option>
                 {availableStatuses.map(status => (
-                  <option key={status} value={status}>{status}</option>
+                  <option key={status.value} value={status.value}>{status.label}</option>
                 ))}
               </select>
             </div>
@@ -463,7 +463,7 @@ const UserManagement = () => {
                   className="w-full px-3 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {availableStatuses.map(status => (
-                    <option key={status} value={status}>{status}</option>
+                    <option key={status.value} value={status.value}>{status.label}</option>
                   ))}
                 </select>
               </div>

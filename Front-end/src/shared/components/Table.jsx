@@ -20,7 +20,7 @@ const Table = ({
           <tr>
             {columns.map((column, index) => (
               <th 
-                key={index}
+                key={column.key || index}
                 className="px-6 py-3 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider"
               >
                 {column.header}
@@ -31,11 +31,11 @@ const Table = ({
         <tbody className={`divide-y divide-gray-700/50 ${striped ? 'divide-gray-800' : ''}`}>
           {data.map((row, rowIndex) => (
             <tr 
-              key={rowIndex}
+              key={row.id || row._id || rowIndex}
               className={`transition-colors duration-200 ${hoverable ? 'hover:bg-white/5' : ''} ${striped && rowIndex % 2 === 0 ? 'bg-white/5' : ''}`}
             >
               {columns.map((column, colIndex) => (
-                <td key={colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                <td key={column.key || colIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                   {column.render ? column.render(row[column.key], row) : row[column.key]}
                 </td>
               ))}

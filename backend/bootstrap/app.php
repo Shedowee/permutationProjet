@@ -2,9 +2,6 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Middleware;
-use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
-use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,13 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-
-        $middleware->api(prepend: [
-            EnsureFrontendRequestsAreStateful::class,
-            StartSession::class,
-            VerifyCsrfToken::class,
+        $middleware->statefulApi();
+        $middleware->alias([
+            'check.role' => \App\Http\Middleware\CheckUserRole::class,
         ]);
-
     })
     ->withExceptions(function ($exceptions): void {
         //

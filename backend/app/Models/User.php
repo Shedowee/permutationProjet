@@ -32,6 +32,15 @@ class User extends Authenticatable
         'mot_de_passe',
     ];
 
+    protected static function booted()
+    {
+        static::creating(function ($user) {
+            if (empty($user->username)) {
+                $user->username = explode('@', $user->email)[0] . '_' . rand(100, 999);
+            }
+        });
+    }
+
     // Tell Laravel which column is the password
     public function getAuthPassword()
     {

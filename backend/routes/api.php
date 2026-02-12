@@ -21,32 +21,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Parametres
-    Route::get('/parametres', [ParametreController::class, 'index']);
+    // Routes restricted for 'USER' role
+    Route::middleware('check.role')->group(function () {
+        // Parametres
+        Route::get('/parametres', [ParametreController::class, 'index']);
 
-    // Etablissements
-    Route::get('/etablissements', [EtablissementController::class, 'index']);
-    Route::put('/etablissements/{etablissement}', [EtablissementController::class, 'update']);
+        // Etablissements
+        Route::get('/etablissements', [EtablissementController::class, 'index']);
+        Route::put('/etablissements/{etablissement}', [EtablissementController::class, 'update']);
 
-    // Employe
-    Route::get('/employe/me', [EmployeController::class, 'me']);
+        // Employe
+        Route::get('/employe/me', [EmployeController::class, 'me']);
 
-    // Demandes
-    Route::get('/demandes', [DemandePermutationController::class, 'index']);
-    Route::post('/demandes', [DemandePermutationController::class, 'store']);
-    Route::put('/demandes/{demande}', [DemandePermutationController::class, 'update']);
+        // Demandes
+        Route::get('/demandes', [DemandePermutationController::class, 'index']);
+        Route::post('/demandes', [DemandePermutationController::class, 'store']);
+        Route::put('/demandes/{demande}', [DemandePermutationController::class, 'update']);
 
-    // Roles
-    Route::get('/roles', [RoleController::class, 'index']);
+        // Roles
+        Route::get('/roles', [RoleController::class, 'index']);
 
-    // Users
-    Route::get('/users', [UtilisateursController::class, 'index']);
-    Route::post('/users', [UtilisateursController::class, 'store']);
-    Route::put('/users/{user}', [UtilisateursController::class, 'update']);
-    Route::delete('/users/{user}', [UtilisateursController::class, 'destroy']);
+        // Users
+        Route::get('/users', [UtilisateursController::class, 'index']);
+        Route::post('/users', [UtilisateursController::class, 'store']);
+        Route::put('/users/{user}', [UtilisateursController::class, 'update']);
+        Route::delete('/users/{user}', [UtilisateursController::class, 'destroy']);
 
-    // Logs
-    Route::get('/logs', [LogsController::class, 'index']);
+        // Logs
+        Route::get('/logs', [LogsController::class, 'index']);
+    });
 });
 
 Route::get('/user', function (Request $request) {
