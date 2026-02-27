@@ -5,13 +5,13 @@ export const listDemandes = async () => {
   return res.data.data;
 };
 
-export const createDemande = async ({ motif, regionSouhaiteeId, etablissementSouhaiteId }) => {
-  const payload = {
-    motif,
-    region_souhaitee_id: regionSouhaiteeId || null,
-    etablissement_souhaite_id: etablissementSouhaiteId || null,
-  };
-  const res = await api.post("/api/demandes", payload, { withCredentials: true });
+export const createDemande = async (formData) => {
+  const res = await api.post("/api/demandes", formData, { 
+    withCredentials: true,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
   return res.data.data;
 };
 

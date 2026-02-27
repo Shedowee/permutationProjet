@@ -20,3 +20,8 @@ export const listLogs = async ({ q, type, date } = {}) => {
   return data.map(mapLogFromApi);
 };
 
+export const getLog = async (id) => {
+  const res = await api.get(`/api/logs/${id}`, { withCredentials: true });
+  return res.data?.data;
+};
+

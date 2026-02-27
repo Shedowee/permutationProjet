@@ -43,3 +43,34 @@ export const deleteUser = async (id) => {
   return id;
 };
 
+export const getUserDetail = async (id) => {
+  const res = await api.get(`/api/users/${id}`, { withCredentials: true });
+  return res.data?.data;
+};
+
+export const updateProfilePicture = async (formData) => {
+  const res = await api.post("/api/user/profile-picture", formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    withCredentials: true
+  });
+  return res.data;
+};
+
+export const listUserDocuments = async () => {
+  const res = await api.get("/api/user/documents", { withCredentials: true });
+  return res.data?.data ?? [];
+};
+
+export const uploadUserDocument = async (formData) => {
+  const res = await api.post("/api/user/documents", formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    withCredentials: true
+  });
+  return res.data;
+};
+
+export const deleteUserDocument = async (id) => {
+  const res = await api.delete(`/api/user/documents/${id}`, { withCredentials: true });
+  return res.data;
+};
+

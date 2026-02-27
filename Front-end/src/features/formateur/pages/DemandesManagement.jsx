@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Layout from "../../../shared/layouts/Layout";
 import Card from "../../../shared/components/Card";
@@ -8,12 +8,16 @@ import DetailDemande from "../components/DetailDemande";
 import Modal from "../../../shared/components/Modal";
 import { fetchDemandes } from "../redux/formateurSlice";
 import { useAuth } from "../../../auth/hooks/useAuth";
+import { selectSearchTerm } from "../../../shared/redux/searchSlice";
 import {
   EyeIcon,
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
   CalendarIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  PaperClipIcon,
 } from "@heroicons/react/24/outline";
 
 /**
@@ -27,6 +31,7 @@ import {
  */
 const DemandesManagement = () => {
   const dispatch = useDispatch();
+  const globalSearchTerm = useSelector(selectSearchTerm);
   const { role: userRole, user: currentUser } = useAuth();
   const allDemandes = useSelector((state) => state.formateur.demandes.data);
   const loading = useSelector((state) => state.formateur.demandes.loading);
@@ -40,6 +45,20 @@ const DemandesManagement = () => {
 
   const [selectedDemande, setSelectedDemande] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredDemandes = useMemo(() => {
+    if (!demandes) return [];
+    return demandes.filter((demande) => {
+      const searchToUse = (searchTerm || globalSearchTerm || "").toLowerCase();
+      return (
+        demande.motif?.toLowerCase().includes(searchToUse) ||
+        demande.etat?.toLowerCase().includes(searchToUse) ||
+        demande.dateDebut?.toLowerCase().includes(searchToUse) ||
+        demande.dateFin?.toLowerCase().includes(searchToUse)
+      );
+    });
+  }, [demandes, searchTerm, globalSearchTerm]);
 
   useEffect(() => {
     dispatch(fetchDemandes());
@@ -203,32 +222,65 @@ const DemandesManagement = () => {
             {/* Liste des demandes */}
             {demandes.length > 0 ? (
               <Card className="p-6">
-                <h2 className="text-xl font-semibold text-white mb-6">
-                  Historique de mes demandes
-                </h2>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <h2 className="text-xl font-semibold text-white">
+                    Historique de mes demandes
+                  </h2>
+                  <div className="relative w-full md:w-72">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
+                      placeholder="Rechercher..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    {searchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => setSearchTerm("")}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                      >
+                        <XMarkIcon className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 <Table
-                  data={demandes}
+                  data={filteredDemandes}
                   columns={[
                     {
-                      header: "Motif",
-                      key: "motif",
-                      render: (value) => (
-                        <div
-                          className="max-w-xs truncate text-gray-300"
-                          title={value}
-                        >
-                          {value}
+                      header: "Destination",
+                      key: "regionSouhaitee",
+                      render: (value, row) => (
+                        <div className="text-gray-300">
+                          <div className="font-bold text-white">{row.etablissementSouhaite}</div>
+                          <div className="text-[10px] uppercase tracking-widest">{row.villeSouhaitee}, {value}</div>
                         </div>
                       ),
                     },
                     {
-                      header: "Période",
-                      key: "dateDebut",
+                      header: "Motif",
+                      key: "motif",
                       render: (value, row) => (
-                        <div className="text-gray-300">
-                          <div>Du {value}</div>
-                          <div>Au {row.dateFin}</div>
+                        <div className="space-y-2">
+                          <div className="max-w-xs truncate text-gray-300" title={value}>
+                            {value}
+                          </div>
+                          {row.documentJoint && (
+                            <a 
+                              href={`${import.meta.env.VITE_API_URL}/storage/${row.documentJoint}`} 
+                              target="_blank" 
+                              rel="noreferrer"
+                              className="inline-flex items-center text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest bg-primary-50 px-2 py-1 rounded-lg transition-colors"
+                            >
+                              <PaperClipIcon className="h-3 w-3 mr-1" />
+                              Justificatif
+                            </a>
+                          )}
                         </div>
                       ),
                     },
@@ -260,8 +312,20 @@ const DemandesManagement = () => {
                       ),
                     },
                   ]}
-                  caption={`Vos demandes de permutation (${demandes.length})`}
+                  caption={`Vos demandes de permutation (${filteredDemandes.length})`}
                 />
+                
+                {filteredDemandes.length === 0 && (
+                  <div className="py-12 text-center">
+                    <MagnifyingGlassIcon className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                    <h3 className="text-xl font-medium text-white mb-2">
+                      Aucun résultat pour "{searchTerm}"
+                    </h3>
+                    <p className="text-gray-400">
+                      Essayez d'ajuster vos critères de recherche.
+                    </p>
+                  </div>
+                )}
               </Card>
             ) : (
               /* Message quand aucune demande */

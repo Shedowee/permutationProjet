@@ -6,9 +6,11 @@ import Button from '../../../shared/components/Button';
 import { KeyIcon, UserIcon, CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { fetchUsers } from '../redux/adminSlice';
 import { listRoles } from '../../../services/adminService';
+import { selectSearchTerm } from '../../../shared/redux/searchSlice';
 
 const AssignRoles = () => {
   const dispatch = useDispatch();
+  const globalSearchTerm = useSelector(selectSearchTerm);
   const users = useSelector(state => state.admin.users.data) || [];
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
@@ -17,6 +19,15 @@ const AssignRoles = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roles, setRoles] = useState([]);
+
+  // Filtrer les utilisateurs selon la recherche globale
+  const filteredUsers = React.useMemo(() => {
+    if (!globalSearchTerm) return users;
+    return users.filter(user => 
+      user.name.toLowerCase().includes(globalSearchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(globalSearchTerm.toLowerCase())
+    );
+  }, [users, globalSearchTerm]);
   
   useEffect(() => {
     dispatch(fetchUsers());
@@ -148,7 +159,7 @@ const AssignRoles = () => {
                   className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
                 >
                   <option value="">Sélectionnez un utilisateur</option>
-                  {users.map(user => (
+                  {filteredUsers.map(user => (
                     <option key={user.id} value={user.id.toString()}>
                       {user.name} - {user.email}
                     </option>

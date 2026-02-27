@@ -1,14 +1,17 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
 import { DEFAULT_PAGE_SIZE, DEFAULT_CURRENT_PAGE } from '../../../shared/constants/constants';
-import { ClockIcon, CalendarDaysIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, CalendarDaysIcon, ArrowsRightLeftIcon, MagnifyingGlassIcon, FunnelIcon, ArrowPathIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { listLogs } from '../../../services/logsService';
 import { LOG_ACTION_TYPES as LOG_ENUM } from '../redux/logsSlice';
+import { selectSearchTerm } from '../../../shared/redux/searchSlice';
 
 const ViewLogs = () => {
+  const globalSearchTerm = useSelector(selectSearchTerm);
   const [logs, setLogs] = useState([]);
   const actionTypes = Object.values(LOG_ENUM);
 
@@ -34,9 +37,10 @@ const ViewLogs = () => {
   // Filtered logs based on search and filters
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
-      const matchesSearch = log.user.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (log.ip || '').includes(searchTerm) ||
-                          (log.action || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const searchToUse = searchTerm || globalSearchTerm;
+      const matchesSearch = log.user.toLowerCase().includes(searchToUse.toLowerCase()) || 
+                          (log.ip || '').includes(searchToUse) ||
+                          (log.action || '').toLowerCase().includes(searchToUse.toLowerCase());
       const matchesAction = !filterAction || log.action === filterAction;
       
       let matchesDate = true;
@@ -112,14 +116,26 @@ const ViewLogs = () => {
                 </div>
                 <input
                   type="text"
-                  className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
-                  placeholder="Rechercher dans les journaux..."
+                  className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
+                  placeholder="Rechercher par utilisateur, IP ou action..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
                     setCurrentPage(DEFAULT_CURRENT_PAGE); // Reset to first page on search
                   }}
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setCurrentPage(DEFAULT_CURRENT_PAGE);
+                    }}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                )}
               </div>
               
               {/* Action Filter */}

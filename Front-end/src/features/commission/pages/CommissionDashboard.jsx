@@ -3,7 +3,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import { fetchCommissionStats } from '../redux/commissionSlice';
-
+import { 
+  ClipboardDocumentListIcon, 
+  ClockIcon, 
+  CheckCircleIcon, 
+  XCircleIcon,
+  ArrowPathIcon,
+  ChartBarIcon,
+  BoltIcon
+} from '@heroicons/react/24/outline';
 
 const CommissionDashboard = () => {
   const dispatch = useDispatch();
@@ -15,126 +23,175 @@ const CommissionDashboard = () => {
     dispatch(fetchCommissionStats());
   }, [dispatch]);
 
+  const handleRefresh = () => {
+    dispatch(fetchCommissionStats());
+  };
+
+  if (loading && !stats) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+          <p className="text-surface-400 font-medium uppercase tracking-widest text-xs">Chargement des statistiques...</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard Commission</h1>
-          <p className="text-gray-400 mt-2">Gérer les demandes de permutation</p>
+      <div className="space-y-10 pb-12 max-w-[1600px] mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-4xl font-black text-surface-900 tracking-tight">Espace Commission</h1>
+            <p className="text-surface-500 mt-1 font-medium">Supervision et traitement des demandes de permutation</p>
+          </div>
+          <button 
+            onClick={handleRefresh}
+            className="flex items-center space-x-2 px-6 py-3 bg-white hover:bg-surface-50 text-surface-700 rounded-2xl border border-surface-200 shadow-sm transition-all text-xs font-black uppercase tracking-widest group"
+          >
+            <ArrowPathIcon className={`w-4 h-4 transition-transform group-hover:rotate-180 duration-500 ${loading ? 'animate-spin' : ''}`} />
+            <span>Actualiser</span>
+          </button>
         </div>
 
-        {loading && (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        )}
-
         {error && (
-          <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 text-red-400">
-            Erreur: {error}
+          <div className="bg-red-50 border border-red-100 rounded-[2rem] p-6 flex items-center space-x-4 text-red-600 animate-fadeIn">
+            <XCircleIcon className="h-8 w-8 shrink-0" />
+            <p className="text-sm font-bold uppercase tracking-widest">Erreur: {error}</p>
           </div>
         )}
 
-        {!loading && !error && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Total Demandes */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Total Demandes</p>
-                  <p className="text-3xl font-bold text-white mt-2">{stats.totalRequests}</p>
-                </div>
-                <div className="bg-blue-500/20 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        {stats && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <StatCard 
+                title="Total Demandes" 
+                value={stats.totalRequests} 
+                icon={<ClipboardDocumentListIcon className="w-6 h-6" />}
+                color="indigo"
+              />
+              <StatCard 
+                title="En Attente" 
+                value={stats.pendingRequests} 
+                icon={<ClockIcon className="w-6 h-6" />}
+                color="amber"
+              />
+              <StatCard 
+                title="Validées" 
+                value={stats.validatedRequests} 
+                icon={<CheckCircleIcon className="w-6 h-6" />}
+                color="teal"
+              />
+              <StatCard 
+                title="Refusées" 
+                value={stats.rejectedRequests} 
+                icon={<XCircleIcon className="w-6 h-6" />}
+                color="red"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <Card className="p-10 lg:col-span-1 flex flex-col items-center justify-center text-center space-y-6 rounded-[2.5rem] bg-white border-surface-200 shadow-sm relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-50 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                
+                <div className="relative inline-flex items-center justify-center">
+                  <svg className="w-40 h-40 transform -rotate-90">
+                    <circle
+                      className="text-surface-100"
+                      strokeWidth="10"
+                      stroke="currentColor"
+                      fill="transparent"
+                      r="70"
+                      cx="80"
+                      cy="80"
+                    />
+                    <circle
+                      className="text-primary-600 transition-all duration-1000 ease-out shadow-sm shadow-primary-500/50"
+                      strokeWidth="10"
+                      strokeDasharray={439.8}
+                      strokeDashoffset={439.8 - (439.8 * stats.processingRate) / 100}
+                      strokeLinecap="round"
+                      stroke="currentColor"
+                      fill="transparent"
+                      r="70"
+                      cx="80"
+                      cy="80"
+                    />
                   </svg>
+                  <span className="absolute text-3xl font-black text-surface-900 tracking-tighter">{stats.processingRate}%</span>
                 </div>
-              </div>
-            </Card>
-
-            {/* En Attente */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-400 text-sm">En Attente</p>
-                  <p className="text-3xl font-bold text-yellow-400 mt-2">{stats.pendingRequests}</p>
+                  <h3 className="text-lg font-black text-surface-900 uppercase tracking-widest">Taux de Traitement</h3>
+                  <p className="text-xs text-surface-400 mt-2 font-bold uppercase tracking-[0.2em]">Progression globale</p>
                 </div>
-                <div className="bg-yellow-500/20 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-              </div>
-            </Card>
+              </Card>
 
-            {/* Validées */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Validées</p>
-                  <p className="text-3xl font-bold text-green-400 mt-2">{stats.validatedRequests}</p>
-                </div>
-                <div className="bg-green-500/20 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-              </div>
-            </Card>
+              <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Card className="p-8 rounded-[2.5rem] border-surface-200 shadow-sm hover:shadow-md transition-all group">
+                  <div className="flex items-center space-x-4 mb-8">
+                    <div className="p-3 bg-primary-50 rounded-2xl border border-primary-100 group-hover:scale-110 transition-transform">
+                      <BoltIcon className="w-6 h-6 text-primary-600" />
+                    </div>
+                    <h3 className="text-sm font-black text-surface-900 uppercase tracking-widest">Performance</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-4xl font-black text-surface-900 tracking-tight">{stats.avgProcessingTime}</p>
+                    <p className="text-[10px] text-surface-400 font-black uppercase tracking-[0.2em]">Temps moyen de réponse</p>
+                  </div>
+                  <div className="mt-10 pt-6 border-t border-surface-100 flex items-center justify-between">
+                    <span className="text-[10px] text-surface-400 font-black uppercase tracking-widest">Dernière action</span>
+                    <span className="text-[10px] text-primary-600 font-black px-3 py-1 bg-primary-50 border border-primary-100 rounded-lg uppercase tracking-widest">Il y a 24h</span>
+                  </div>
+                </Card>
 
-            {/* Refusées */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Refusées</p>
-                  <p className="text-3xl font-bold text-red-400 mt-2">{stats.rejectedRequests}</p>
-                </div>
-                <div className="bg-red-500/20 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
+                <Card className="p-8 rounded-[2.5rem] border-surface-200 shadow-sm hover:shadow-md transition-all group">
+                  <div className="flex items-center space-x-4 mb-8">
+                    <div className="p-3 bg-accent-50 rounded-2xl border border-accent-100 group-hover:scale-110 transition-transform">
+                      <ChartBarIcon className="w-6 h-6 text-accent-600" />
+                    </div>
+                    <h3 className="text-sm font-black text-surface-900 uppercase tracking-widest">Activité</h3>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-4xl font-black text-surface-900 tracking-tight truncate max-w-full" title={stats.lastProcessedRequest}>
+                      {stats.lastProcessedRequest.length > 15 ? stats.lastProcessedRequest.substring(0, 15) + '...' : stats.lastProcessedRequest}
+                    </p>
+                    <p className="text-[10px] text-surface-400 font-black uppercase tracking-[0.2em]">Dernier dossier traité</p>
+                  </div>
+                  <div className="mt-10 pt-6 border-t border-surface-100 flex items-center justify-between">
+                    <span className="text-[10px] text-surface-400 font-black uppercase tracking-widest">Statut global</span>
+                    <span className="text-[10px] text-teal-600 font-black px-3 py-1 bg-teal-50 border border-teal-100 rounded-lg uppercase tracking-widest">OPÉRATIONNEL</span>
+                  </div>
+                </Card>
               </div>
-            </Card>
-          </div>
-        )}
-
-        {/* Autres KPIs */}
-        {!loading && !error && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Taux de Traitement</h3>
-              <div className="flex items-center">
-                <div className="text-4xl font-bold text-blue-400">{stats.processingRate}%</div>
-                <div className="ml-4 text-gray-300">
-                  <p>Dernière mise à jour: {stats.lastProcessedRequest}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Temps Moyen</h3>
-              <div className="flex items-center">
-                <div className="text-4xl font-bold text-purple-400">{stats.avgProcessingTime}</div>
-                <div className="ml-4 text-gray-300">
-                  <p>Temps moyen de traitement</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Dernière Action</h3>
-              <div className="flex items-center">
-                <div className="text-4xl font-bold text-indigo-400">24h</div>
-                <div className="ml-4 text-gray-300">
-                  <p>Dernière demande traitée</p>
-                </div>
-              </div>
-            </Card>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </Layout>
+  );
+};
+
+const StatCard = ({ title, value, icon, color }) => {
+  const colorClasses = {
+    indigo: 'bg-primary-50 text-primary-600 border-primary-100',
+    teal: 'bg-accent-50 text-accent-600 border-accent-100',
+    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    red: 'bg-red-50 text-red-600 border-red-100',
+  };
+
+  return (
+    <Card className={`p-8 border shadow-sm group hover:shadow-lg transition-all duration-500 rounded-[2.5rem] ${colorClasses[color] || colorClasses.indigo}`}>
+      <div className="flex items-center justify-between">
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">{title}</p>
+          <h3 className="text-4xl font-black tracking-tight">{value}</h3>
+        </div>
+        <div className="p-4 rounded-2xl bg-white shadow-sm border border-black/5 group-hover:scale-110 transition-transform duration-500">
+          {icon}
+        </div>
+      </div>
+    </Card>
   );
 };
 

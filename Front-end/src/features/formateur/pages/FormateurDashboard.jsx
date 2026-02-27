@@ -1,9 +1,21 @@
 import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
+import Button from '../../../shared/components/Button';
 import { fetchFormateurStats } from '../redux/formateurSlice';
-
+import { 
+  DocumentTextIcon, 
+  ClockIcon, 
+  CheckBadgeIcon, 
+  XCircleIcon,
+  PlusIcon,
+  ArrowRightIcon,
+  CalendarDaysIcon,
+  ChartPieIcon,
+  InformationCircleIcon
+} from '@heroicons/react/24/outline';
 
 const FormateurDashboard = () => {
   const dispatch = useDispatch();
@@ -12,141 +24,186 @@ const FormateurDashboard = () => {
   const error = useSelector(state => state.formateur.stats.error);
 
   useEffect(() => {
-    // Dans une application réelle, vous passeriez l'ID de l'utilisateur connecté
     dispatch(fetchFormateurStats());
   }, [dispatch]);
 
+  if (loading && !stats) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+          <p className="text-surface-400 font-medium uppercase tracking-widest text-xs">Chargement de votre espace personnel...</p>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Dashboard Formateur</h1>
-          <p className="text-gray-400 mt-2">Suivi de vos demandes de permutation</p>
+      <div className="space-y-10 pb-12 max-w-[1600px] mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-4xl font-black text-surface-900 tracking-tight">Mon Espace Personnel</h1>
+            <p className="text-surface-500 mt-1 font-medium">Suivi et gestion de vos demandes de permutation</p>
+          </div>
+          <Link to="/formateur/demandes/create">
+            <Button variant="primary" className="px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-500/20">
+              <PlusIcon className="w-5 h-5 mr-2" />
+              Nouvelle Demande
+            </Button>
+          </Link>
         </div>
 
-        {loading && (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          </div>
-        )}
-
         {error && (
-          <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 text-red-400">
-            Erreur: {error}
+          <div className="bg-red-50 border border-red-100 rounded-[2rem] p-6 flex items-center space-x-4 text-red-600 animate-fadeIn">
+            <XCircleIcon className="h-8 w-8 shrink-0" />
+            <p className="text-sm font-bold uppercase tracking-widest">Erreur: {error}</p>
           </div>
         )}
 
-        {!loading && !error && stats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Total Demandes */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Mes Demandes</p>
-                  <p className="text-3xl font-bold text-white mt-2">{stats.totalRequests}</p>
-                </div>
-                <div className="bg-blue-500/20 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                  </svg>
-                </div>
-              </div>
-            </Card>
+        {stats && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <StatCard 
+                title="Mes Demandes" 
+                value={stats.totalRequests} 
+                icon={<DocumentTextIcon className="w-6 h-6" />}
+                color="indigo"
+              />
+              <StatCard 
+                title="En Attente" 
+                value={stats.pendingRequests} 
+                icon={<ClockIcon className="w-6 h-6" />}
+                color="amber"
+              />
+              <StatCard 
+                title="Acceptées" 
+                value={stats.validatedRequests} 
+                icon={<CheckBadgeIcon className="w-6 h-6" />}
+                color="teal"
+              />
+              <StatCard 
+                title="Refusées" 
+                value={stats.rejectedRequests} 
+                icon={<XCircleIcon className="w-6 h-6" />}
+                color="red"
+              />
+            </div>
 
-            {/* En Attente */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">En Attente</p>
-                  <p className="text-3xl font-bold text-yellow-400 mt-2">{stats.pendingRequests}</p>
-                </div>
-                <div className="bg-yellow-500/20 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-              </div>
-            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Dernier Dossier */}
+              <div className="lg:col-span-2 space-y-8">
+                <Card className="p-10 rounded-[2.5rem] relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:scale-110 transition-transform duration-700">
+                    <DocumentTextIcon className="w-48 h-48 text-primary-600" />
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <h2 className="text-lg font-black text-surface-900 mb-10 flex items-center uppercase tracking-widest">
+                      <InformationCircleIcon className="w-6 h-6 mr-3 text-primary-600" />
+                      Dernière Demande Soumise
+                    </h2>
 
-            {/* Validées */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Acceptées</p>
-                  <p className="text-3xl font-bold text-green-400 mt-2">{stats.validatedRequests}</p>
-                </div>
-                <div className="bg-green-500/20 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
+                    {stats.lastRequestStatus ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div className="space-y-8">
+                          <div>
+                            <p className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-4">Statut Actuel</p>
+                            <span className={`px-6 py-2 rounded-xl text-[10px] font-black border tracking-[0.2em] inline-block ${
+                              stats.lastRequestStatus === 'EN_ATTENTE' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                              stats.lastRequestStatus === 'VALIDE' ? 'bg-teal-50 text-teal-600 border-teal-100' : 
+                              'bg-red-50 text-red-600 border-red-100'
+                            }`}>
+                              {stats.lastRequestStatus === 'EN_ATTENTE' ? 'EN ATTENTE' :
+                               stats.lastRequestStatus === 'VALIDE' ? 'VALIDÉE' : 'REFUSÉE'}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-3">Soumise le</p>
+                            <p className="text-surface-900 font-bold text-xl">{stats.lastRequestDate}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="p-8 bg-surface-50 rounded-[2rem] border border-surface-100/50 shadow-inner">
+                          <p className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-4">Motif de la demande</p>
+                          <p className="text-surface-700 italic text-sm font-medium leading-relaxed">"{stats.lastRequestMotif}"</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-16 text-center bg-surface-50 rounded-[2rem] border border-dashed border-surface-200">
+                        <p className="text-surface-400 font-bold italic uppercase tracking-widest text-sm">Vous n'avez pas encore de demande soumise.</p>
+                        <Link to="/formateur/demandes/create" className="text-primary-600 hover:text-primary-700 text-xs mt-6 inline-block font-black uppercase tracking-widest underline underline-offset-8 decoration-2">
+                          Créer ma première demande
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </Card>
               </div>
-            </Card>
 
-            {/* Refusées */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm">Refusées</p>
-                  <p className="text-3xl font-bold text-red-400 mt-2">{stats.rejectedRequests}</p>
-                </div>
-                <div className="bg-red-500/20 p-3 rounded-lg">
-                  <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                  </svg>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
+              {/* KPIs Secondaires */}
+              <div className="space-y-8">
+                <Card className="p-8 rounded-[2.5rem] bg-primary-600 border-none shadow-2xl shadow-primary-500/40 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                  <div className="flex items-center space-x-4 mb-8 relative z-10">
+                    <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 shadow-lg">
+                      <CalendarDaysIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Période Cible</h3>
+                  </div>
+                  <div className="space-y-2 relative z-10">
+                    <p className="text-3xl font-black text-white tracking-tight">{stats.lastRequestDates || "Aucune"}</p>
+                    <p className="text-[10px] text-primary-200 font-black uppercase tracking-[0.2em]">Dernière demande</p>
+                  </div>
+                </Card>
 
-        {/* Détail de la dernière demande */}
-        {!loading && !error && stats && stats.lastRequestStatus && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Dernière Demande</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Statut:</span>
-                  <span className={`font-medium ${
-                    stats.lastRequestStatus === 'EN_ATTENTE' ? 'text-yellow-400' :
-                    stats.lastRequestStatus === 'VALIDE' ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {stats.lastRequestStatus === 'EN_ATTENTE' ? 'En attente' :
-                     stats.lastRequestStatus === 'VALIDE' ? 'Validée' : 'Refusée'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Date:</span>
-                  <span className="text-white">{stats.lastRequestDate}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Motif:</span>
-                  <span className="text-white">{stats.lastRequestMotif}</span>
-                </div>
+                <Card className="p-8 rounded-[2.5rem] bg-white border-surface-200 shadow-sm relative overflow-hidden group">
+                  <div className="flex items-center space-x-4 mb-8">
+                    <div className="p-3 bg-accent-50 rounded-2xl border border-accent-100 shadow-sm">
+                      <ChartPieIcon className="w-6 h-6 text-accent-600" />
+                    </div>
+                    <h3 className="text-sm font-black text-surface-900 uppercase tracking-widest">Réussite</h3>
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-5xl font-black text-surface-900 tracking-tighter">{stats.successRate}<span className="text-2xl text-surface-400">%</span></p>
+                    <p className="text-[10px] text-surface-400 font-black uppercase tracking-[0.2em]">Taux d'acceptation</p>
+                  </div>
+                  <div className="mt-8 w-full bg-surface-100 rounded-full h-2.5 overflow-hidden">
+                    <div 
+                      className="bg-accent-500 h-full rounded-full transition-all duration-1000 shadow-sm shadow-accent-500/30" 
+                      style={{ width: `${stats.successRate}%` }}
+                    ></div>
+                  </div>
+                </Card>
               </div>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Période Demandée</h3>
-              <div className="flex items-center">
-                <div className="text-2xl font-bold text-blue-400">{stats.lastRequestDates}</div>
-              </div>
-            </Card>
-
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-white mb-4">Taux de Réussite</h3>
-              <div className="flex items-center">
-                <div className="text-4xl font-bold text-purple-400">{stats.successRate}%</div>
-                <div className="ml-4 text-gray-300">
-                  <p>de vos demandes sont acceptées</p>
-                </div>
-              </div>
-            </Card>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </Layout>
+  );
+};
+
+const StatCard = ({ title, value, icon, color }) => {
+  const colorClasses = {
+    indigo: 'bg-primary-50 text-primary-600 border-primary-100',
+    teal: 'bg-accent-50 text-accent-600 border-accent-100',
+    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    red: 'bg-red-50 text-red-600 border-red-100',
+  };
+
+  return (
+    <Card className={`p-8 border shadow-sm group hover:shadow-lg transition-all duration-500 rounded-[2.5rem] ${colorClasses[color] || colorClasses.indigo}`}>
+      <div className="flex items-center justify-between">
+        <div className="space-y-3">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">{title}</p>
+          <h3 className="text-4xl font-black tracking-tight">{value}</h3>
+        </div>
+        <div className="p-4 rounded-2xl bg-white shadow-sm border border-black/5 group-hover:scale-110 transition-transform duration-500">
+          {icon}
+        </div>
+      </div>
+    </Card>
   );
 };
 

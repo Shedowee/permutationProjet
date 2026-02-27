@@ -43,3 +43,33 @@ export const confirmAccount = async ({ email, code }) => {
   );
   return response.data;
 };
+
+export const resendCode = async (email) => {
+  await getCsrfCookie();
+  const response = await api.post(
+    "/api/resend-code",
+    { email },
+    { withCredentials: true }
+  );
+  return response.data;
+};
+
+export const forgotPassword = async (email) => {
+  await getCsrfCookie();
+  const response = await api.post(
+    "/api/forgot-password",
+    { email },
+    { withCredentials: true }
+  );
+  return response.data;
+};
+
+export const resetPassword = async (data) => {
+  await getCsrfCookie();
+  const response = await api.post(
+    "/api/reset-password",
+    data,
+    { withCredentials: true }
+  );
+  return response.data;
+};

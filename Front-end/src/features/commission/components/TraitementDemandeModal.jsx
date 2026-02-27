@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../../../shared/components/Modal';
 import Button from '../../../shared/components/Button';
-import { CheckCircleIcon, XCircleIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { 
+  CheckCircleIcon, 
+  XCircleIcon, 
+  ChatBubbleLeftRightIcon,
+  MapPinIcon,
+  BuildingOfficeIcon,
+  DocumentTextIcon,
+  PaperClipIcon,
+  UserIcon,
+  CalendarIcon
+} from '@heroicons/react/24/outline';
 
 /**
  * Modal pour traiter une demande de permutation
- * 
- * Cette composante permet à la commission de :
- * - Valider ou refuser une demande
- * - Ajouter un commentaire de décision
- * - Voir les détails de la demande
  */
 const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
   const [decision, setDecision] = useState(''); // 'VALIDE' ou 'REFUSE'
@@ -26,11 +31,7 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
     }
   }, [isOpen]);
 
-  /**
-   * Gère la soumission du traitement
-   */
   const handleSubmit = async () => {
-    // Validation
     if (!decision) {
       setError('Veuillez sélectionner une décision (valider ou refuser)');
       return;
@@ -50,8 +51,6 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
         etat: decision,
         commentaire: commentaire.trim()
       });
-      
-      // Fermer la modal après succès
       onClose();
     } catch (err) {
       const message =
@@ -59,20 +58,9 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
           ? "Vous n'êtes pas autorisé à traiter cette demande."
           : (err && err.message) || 'Erreur lors du traitement de la demande';
       setError(message);
-      console.error('Erreur traitement:', err);
     } finally {
       setLoading(false);
     }
-  };
-
-  /**
-   * Annule le traitement et ferme la modal
-   */
-  const handleCancel = () => {
-    setDecision('');
-    setCommentaire('');
-    setError('');
-    onClose();
   };
 
   if (!demande) return null;
@@ -80,96 +68,124 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
   return (
     <Modal 
       isOpen={isOpen} 
-      onClose={handleCancel} 
-      title={`Traiter la demande #${demande.id}`}
-      size="lg"
+      onClose={onClose} 
+      title={`Dossier de Permutation #${demande.id}`}
+      size="xl"
     >
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Informations de la demande */}
-        <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
-          <h3 className="text-lg font-semibold text-white mb-3">Détails de la demande</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-gray-400">Demandeur:</span>
-              <p className="text-white font-medium">{demande.utilisateurNom}</p>
-              <p className="text-gray-300">{demande.utilisateurEmail}</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="space-y-6">
+            <div className="bg-surface-50 rounded-[2rem] p-6 border border-surface-100">
+              <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                <UserIcon className="h-4 w-4 mr-2" />
+                Informations du Demandeur
+              </h3>
+              <div className="space-y-1">
+                <p className="text-surface-900 font-bold text-lg">{demande.utilisateurNom}</p>
+                <p className="text-surface-500 text-sm font-medium">{demande.utilisateurEmail}</p>
+              </div>
             </div>
-            
-            <div>
-              <span className="text-gray-400">Dates demandées:</span>
-              <p className="text-white font-medium">
-                Du {demande.dateDebut} au {demande.dateFin}
+
+            <div className="bg-primary-50/50 rounded-[2rem] p-6 border border-primary-100">
+              <h3 className="text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-4 flex items-center">
+                <MapPinIcon className="h-4 w-4 mr-2" />
+                Destination Souhaitée
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-start space-x-3">
+                  <BuildingOfficeIcon className="h-5 w-5 text-primary-600 mt-0.5" />
+                  <div>
+                    <p className="text-surface-900 font-bold">{demande.etablissementSouhaite}</p>
+                    <p className="text-surface-500 text-xs font-medium uppercase tracking-widest mt-1">
+                      {demande.villeSouhaitee}, {demande.regionSouhaitee}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="bg-surface-50 rounded-[2rem] p-6 border border-surface-100 h-full flex flex-col">
+              <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                <DocumentTextIcon className="h-4 w-4 mr-2" />
+                Motif & Justificatif
+              </h3>
+              <p className="text-surface-700 italic text-sm leading-relaxed mb-6 flex-1">
+                "{demande.motif}"
               </p>
-            </div>
-            
-            <div className="md:col-span-2">
-              <span className="text-gray-400">Motif:</span>
-              <p className="text-white">{demande.motif}</p>
-            </div>
-            
-            <div>
-              <span className="text-gray-400">Date de demande:</span>
-              <p className="text-white">{demande.dateDemande}</p>
-            </div>
-            
-            <div>
-              <span className="text-gray-400">Statut actuel:</span>
-              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                demande.etat === 'EN_ATTENTE' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                demande.etat === 'VALIDE' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                'bg-red-500/20 text-red-300 border border-red-500/30'
-              }`}>
-                {demande.etat === 'EN_ATTENTE' ? 'En attente' :
-                 demande.etat === 'VALIDE' ? 'Validée' : 'Refusée'}
-              </span>
+              {demande.documentJoint && (
+                <a 
+                  href={`${import.meta.env.VITE_API_URL}/storage/${demande.documentJoint}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center justify-between p-4 bg-white rounded-2xl border border-surface-200 hover:border-primary-300 transition-all group"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-primary-50 rounded-xl text-primary-600 group-hover:scale-110 transition-transform">
+                      <PaperClipIcon className="h-5 w-5" />
+                    </div>
+                    <span className="text-xs font-black text-surface-900 uppercase tracking-widest">Voir la pièce jointe</span>
+                  </div>
+                  <CheckCircleIcon className="h-5 w-5 text-teal-500" />
+                </a>
+              )}
             </div>
           </div>
         </div>
 
         {/* Formulaire de décision */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-white flex items-center">
-            <ChatBubbleLeftRightIcon className="w-5 h-5 mr-2 text-blue-400" />
-            Votre décision
-          </h3>
+        <div className="pt-8 border-t border-surface-100 space-y-8">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-surface-900 uppercase tracking-[0.2em] flex items-center">
+              <ChatBubbleLeftRightIcon className="h-5 w-5 mr-3 text-primary-600" />
+              Décision de la Commission
+            </h3>
+            <div className="flex items-center space-x-2 text-[10px] font-black text-surface-400 uppercase tracking-widest">
+              <CalendarIcon className="h-4 w-4" />
+              <span>Soumis le {demande.dateDemande}</span>
+            </div>
+          </div>
           
-          {/* Choix de décision */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <button
               onClick={() => setDecision('VALIDE')}
-              className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+              className={`p-6 rounded-[2rem] border-2 transition-all duration-500 flex flex-col items-center text-center space-y-3 ${
                 decision === 'VALIDE' 
-                  ? 'border-green-500 bg-green-500/20 text-green-300 shadow-lg shadow-green-500/20' 
-                  : 'border-gray-700 bg-gray-800/50 text-gray-300 hover:border-green-500/50 hover:bg-green-500/10'
+                  ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-xl shadow-teal-500/10' 
+                  : 'border-surface-100 bg-surface-50 text-surface-400 hover:border-teal-200 hover:bg-teal-50/30'
               }`}
             >
-              <div className="flex flex-col items-center">
-                <CheckCircleIcon className="w-8 h-8 mb-2" />
-                <span className="font-medium">Valider</span>
-                <span className="text-xs opacity-80">Approuver la demande</span>
+              <div className={`p-4 rounded-2xl transition-all duration-500 ${decision === 'VALIDE' ? 'bg-teal-500 text-white shadow-lg' : 'bg-white text-surface-200 shadow-sm'}`}>
+                <CheckCircleIcon className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="font-black uppercase tracking-[0.2em] text-xs">Approuver</p>
+                <p className="text-[10px] font-medium mt-1 opacity-70">Valider la permutation</p>
               </div>
             </button>
             
             <button
               onClick={() => setDecision('REFUSE')}
-              className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+              className={`p-6 rounded-[2rem] border-2 transition-all duration-500 flex flex-col items-center text-center space-y-3 ${
                 decision === 'REFUSE' 
-                  ? 'border-red-500 bg-red-500/20 text-red-300 shadow-lg shadow-red-500/20' 
-                  : 'border-gray-700 bg-gray-800/50 text-gray-300 hover:border-red-500/50 hover:bg-red-500/10'
+                  ? 'border-red-500 bg-red-50 text-red-700 shadow-xl shadow-red-500/10' 
+                  : 'border-surface-100 bg-surface-50 text-surface-400 hover:border-red-200 hover:bg-red-50/30'
               }`}
             >
-              <div className="flex flex-col items-center">
-                <XCircleIcon className="w-8 h-8 mb-2" />
-                <span className="font-medium">Refuser</span>
-                <span className="text-xs opacity-80">Rejeter la demande</span>
+              <div className={`p-4 rounded-2xl transition-all duration-500 ${decision === 'REFUSE' ? 'bg-red-500 text-white shadow-lg' : 'bg-white text-surface-200 shadow-sm'}`}>
+                <XCircleIcon className="w-8 h-8" />
+              </div>
+              <div>
+                <p className="font-black uppercase tracking-[0.2em] text-xs">Rejeter</p>
+                <p className="text-[10px] font-medium mt-1 opacity-70">Refuser la demande</p>
               </div>
             </button>
           </div>
 
-          {/* Commentaire */}
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">
               Commentaire de décision *
             </label>
             <textarea
@@ -179,35 +195,27 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
                 if (error) setError('');
               }}
               rows="4"
-              className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              placeholder={
-                decision === 'VALIDE' 
-                  ? 'Expliquez pourquoi vous validez cette demande...' 
-                  : decision === 'REFUSE' 
-                    ? 'Expliquez en détail les raisons du refus...' 
-                    : 'Votre commentaire...'
-              }
+              className="w-full px-6 py-5 bg-surface-50 border border-surface-200 rounded-[2rem] text-surface-900 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all resize-none font-medium leading-relaxed"
+              placeholder="Expliquez en détail les raisons de cette décision..."
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Ce commentaire sera visible par le formateur
-            </p>
           </div>
 
-          {/* Message d'erreur */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30">
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="p-4 rounded-2xl bg-red-50 border border-red-100 flex items-center space-x-3 text-red-600 animate-fadeIn">
+              <XCircleIcon className="h-5 w-5 shrink-0" />
+              <p className="text-xs font-black uppercase tracking-widest">{error}</p>
             </div>
           )}
         </div>
 
         {/* Boutons d'action */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700/50">
+        <div className="flex justify-end space-x-4 pt-4">
           <Button 
             variant="secondary" 
-            onClick={handleCancel}
+            onClick={onClose}
             disabled={loading}
+            className="px-10 rounded-2xl py-4 uppercase tracking-widest text-[10px] font-black"
           >
             Annuler
           </Button>
@@ -215,23 +223,11 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
           <Button 
             variant="primary" 
             onClick={handleSubmit}
-            disabled={loading || !decision || !commentaire.trim()}
-            className="flex items-center"
+            loading={loading}
+            disabled={!decision || !commentaire.trim()}
+            className="px-12 rounded-2xl py-4 uppercase tracking-widest text-[10px] font-black shadow-xl shadow-primary-500/20"
           >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Traitement en cours...
-              </>
-            ) : (
-              <>
-                <ChatBubbleLeftRightIcon className="w-5 h-5 mr-2" />
-                Confirmer la décision
-              </>
-            )}
+            Confirmer la décision
           </Button>
         </div>
       </div>

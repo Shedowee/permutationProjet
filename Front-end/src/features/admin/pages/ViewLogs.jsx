@@ -4,15 +4,18 @@ import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
-import { DocumentTextIcon, ClockIcon, FunnelIcon, MagnifyingGlassIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ClockIcon, FunnelIcon, MagnifyingGlassIcon, ChevronUpDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { fetchLogs, selectLogs, LOG_ACTION_TYPES } from '../redux/logsSlice';
+import { selectSearchTerm } from '../../../shared/redux/searchSlice';
 
 const ViewLogs = () => {
   const dispatch = useDispatch();
+  const globalSearchTerm = useSelector(selectSearchTerm);
   const logsRaw = useSelector(selectLogs);
   const logs = useMemo(() => logsRaw || [], [logsRaw]);
   const { loading, error } = useSelector(state => state.logs);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearch, setActiveSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
@@ -26,9 +29,11 @@ const ViewLogs = () => {
   // Filter and sort logs
   const filteredLogs = useMemo(() => {
     let filtered = logs.filter(log => {
-      const matchesSearch = log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           log.ip.includes(searchTerm);
+      const searchToUse = activeSearch || globalSearchTerm;
+      const matchesSearch = !searchToUse ||
+                           log.user.toLowerCase().includes(searchToUse.toLowerCase()) ||
+                           log.action.toLowerCase().includes(searchToUse.toLowerCase()) ||
+                           log.ip.includes(searchToUse);
       const matchesType = !filterType || log.type === filterType;
       const matchesDate = !filterDate || log.date.startsWith(filterDate);
       
@@ -49,7 +54,19 @@ const ViewLogs = () => {
     }
 
     return filtered;
-  }, [logs, searchTerm, filterType, filterDate, sortConfig]);
+  }, [logs, activeSearch, globalSearchTerm, filterType, filterDate, sortConfig]);
+
+  // Reset search when input is cleared
+  useEffect(() => {
+    if (searchTerm === '') {
+      setActiveSearch('');
+    }
+  }, [searchTerm]);
+
+  const handleSearch = (e) => {
+    if (e) e.preventDefault();
+    setActiveSearch(searchTerm);
+  };
 
   // Pagination
   const indexOfLastLog = currentPage * logsPerPage;
@@ -176,7 +193,7 @@ const ViewLogs = () => {
         
         {/* Filters and Search */}
         <Card className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="md:col-span-2">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -185,10 +202,22 @@ const ViewLogs = () => {
                 <input
                   type="text"
                   placeholder="Rechercher par utilisateur, action ou IP..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-10 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setActiveSearch('');
+                    }}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                )}
               </div>
             </div>
             <div>
@@ -205,15 +234,23 @@ const ViewLogs = () => {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="flex space-x-2">
               <input
                 type="date"
-                className="w-full py-2 px-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 py-2 px-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
               />
+              <Button 
+                type="submit"
+                variant="primary"
+                className="px-3"
+                title="Rechercher"
+              >
+                <MagnifyingGlassIcon className="w-5 h-5" />
+              </Button>
             </div>
-          </div>
+          </form>
           
           <div className="flex justify-between items-center">
             <p className="text-gray-400">

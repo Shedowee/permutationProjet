@@ -20,13 +20,15 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 
 const Login = lazy(() => import("./auth/pages/Login"));
 const Signup = lazy(() => import("./auth/pages/Signup"));
+const ForgotPassword = lazy(() => import("./auth/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./auth/pages/ResetPassword"));
 
 const AdminDashboard = lazy(() => import("./features/admin/pages/AdminDashboard"));
 const UserManagement = lazy(() => import("./features/admin/pages/UserManagement"));
 const AssignRoles = lazy(() => import("./features/admin/pages/AssignRoles"));
-const ViewLogs = lazy(() => import("./features/admin/pages/ViewLogs"));
 const EtablissementManagement = lazy(() => import("./features/admin/pages/EtablissementManagement"));
 const Settings = lazy(() => import("./features/admin/pages/Settings"));
+const NotificationDetail = lazy(() => import("./features/admin/pages/NotificationDetail"));
 const Logout = lazy(() => import("./auth/pages/Logout"));
 
 const CommissionDashboard = lazy(() => import("./features/commission/pages/CommissionDashboard"));
@@ -69,6 +71,9 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/register" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           <Route
             path="/dashboard"
@@ -120,86 +125,11 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/admin/users"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <UserManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/users"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <UserManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/roles"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AssignRoles />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/roles"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AssignRoles />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/logs"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <ViewLogs />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/logs"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <ViewLogs />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/etablissements"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <EtablissementManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/etablissements"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <EtablissementManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/settings"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={["admin"]}><UserManagement /></ProtectedRoute>} />
+          <Route path="/admin/roles" element={<ProtectedRoute allowedRoles={["admin"]}><AssignRoles /></ProtectedRoute>} />
+          <Route path="/admin/etablissements" element={<ProtectedRoute allowedRoles={["admin"]}><EtablissementManagement /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={["admin"]}><Settings /></ProtectedRoute>} />
+          <Route path="/admin/notifications/:id" element={<ProtectedRoute allowedRoles={["admin"]}><NotificationDetail /></ProtectedRoute>} />
 
           <Route
             path="/commission"

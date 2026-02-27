@@ -12,8 +12,18 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import Button from "../../shared/components/Button";
+import Card from "../../shared/components/Card";
+import { 
+  UserIcon, 
+  LockClosedIcon, 
+  EyeIcon, 
+  EyeSlashIcon,
+  ExclamationCircleIcon,
+  ShieldCheckIcon
+} from "@heroicons/react/24/outline";
 
 function Login() {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -25,33 +35,24 @@ function Login() {
   const location = useLocation();
   const { login, loading, isAuthenticated, role } = useAuth();
 
-  /**
-   * Redirect to appropriate dashboard based on role
-   */
   const redirectToDashboard = useCallback((userRole) => {
     const from = location.state?.from?.pathname || "/";
-
     const dashboards = {
       admin: "/admin",
       commission: "/commission",
       formateur: "/formateur",
       employe: "/employe",
     };
-
     const path = dashboards[userRole] || from;
     navigate(path, { replace: true });
   }, [location.state?.from?.pathname, navigate]);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       redirectToDashboard(role);
     }
   }, [isAuthenticated, role, redirectToDashboard]);
 
-  /**
-   * Handle input change
-   */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -59,169 +60,135 @@ function Login() {
     setLoginError(null);
   };
 
-  /**
-   * Validate form
-   */
   const validate = () => {
     const newErrors = {};
-
     if (!form.username.trim()) {
-      newErrors.username = "Le nom d'utilisateur est requis";
-    } else if (form.username.length < 3) {
-      newErrors.username =
-        "Le nom d'utilisateur doit avoir au moins 3 caractères";
+      newErrors.username = "Email ou nom d'utilisateur requis";
     }
-
     if (!form.password) {
-      newErrors.password = "Le mot de passe est requis";
-    } else if (form.password.length < 6) {
-      newErrors.password = "Le mot de passe doit avoir au moins 6 caractères";
+      newErrors.password = "Mot de passe requis";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  /**
-   * Handle form submission
-   *
-   * Flow:
-   * 1. Get CSRF cookie
-   * 2. POST credentials to /api/login
-   * 3. Auth context calls /api/me to get user data
-   * 4. Redirect based on role (via useEffect above)
-   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     try {
       setLoginError(null);
-
-      // Call login from auth context
-      // This handles: CSRF cookie -> login -> fetch /api/me
       await login({
-        email: form.username, // Using username as email
+        email: form.username,
         password: form.password,
       });
-
-      // Redirect will happen via useEffect when auth state updates
     } catch (err) {
-      setLoginError(err.message || "Login failed. Please try again.");
-      console.error("Login error:", err);
+      setLoginError(err.message || "Échec de l'authentification. Veuillez vérifier vos identifiants.");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-200">
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white/90 backdrop-blur p-10 rounded-xl shadow-xl w-full max-w-md border border-slate-200"
-      >
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-slate-800">Connexion</h2>
-          <p className="text-sm text-slate-600 mt-1">
-            Application de gestion des permutations
-          </p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-surface-50 px-4 py-12 relative overflow-hidden font-sans">
+      {/* Background decoration */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-200 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-100 rounded-full blur-[120px]"></div>
+      </div>
 
-        {/* Error Message */}
-        {loginError && (
-          <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-600">{loginError}</p>
+      <div className="w-full max-w-md relative z-10">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-white shadow-sm border border-surface-200 mb-6">
+            <ShieldCheckIcon className="h-10 w-10 text-primary-600" />
           </div>
-        )}
-
-        {/* Username */}
-        <div className="mb-5">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Nom d'utilisateur
-          </label>
-          <input
-            type="text"
-            name="username"
-            value={form.username}
-            onChange={handleChange}
-            placeholder="Ex : h.benali"
-            className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-              ${errors.username ? "border-red-500" : "border-slate-300"}`}
-            disabled={loading}
-          />
-          <p className="text-red-500 text-sm mt-1 min-h-[1.25rem]">
-            {errors.username || "\u00A0"}
-          </p>
+          <h1 className="text-4xl font-black text-surface-900 tracking-tighter mb-2">Bienvenue</h1>
+          <p className="text-surface-500 font-medium">Connectez-vous à votre espace Permutations</p>
         </div>
 
-        {/* Password */}
-        <div className="mb-7 relative">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Mot de passe
-          </label>
-          <input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            value={form.password}
-            onChange={handleChange}
-            placeholder="••••••••"
-            className={`w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-              ${errors.password ? "border-red-500" : "border-slate-300"}`}
-            disabled={loading}
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-3 top-8 text-sm text-blue-600 hover:text-blue-700"
-            disabled={loading}
-          >
-            {showPassword ? "Cacher" : "Voir"}
-          </button>
-          <p className="text-red-500 text-sm mt-1 min-h-[1.25rem]">
-            {errors.password || "\u00A0"}
-          </p>
-        </div>
-
-        {/* Submit button */}
-        <button
-          type="submit"
-          className="w-full flex justify-center items-center bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition disabled:opacity-70 disabled:cursor-not-allowed"
-          disabled={loading}
-        >
-          {loading && (
-            <svg
-              className="animate-spin h-5 w-5 mr-2 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-              ></path>
-            </svg>
+        <Card className="p-10 shadow-2xl border-surface-200/60 bg-white/80 backdrop-blur-xl rounded-[2.5rem]">
+          {loginError && (
+            <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center space-x-3 text-red-600 animate-fadeIn">
+              <ExclamationCircleIcon className="h-5 w-5 shrink-0" />
+              <p className="text-sm font-bold">{loginError}</p>
+            </div>
           )}
-          {loading ? "Connexion..." : "Se connecter"}
-        </button>
 
-        <p className="text-sm text-center text-slate-600 mt-4">
-          Vous n'avez pas de compte ?{" "}
-          <a href="/signup" className="text-blue-600 hover:text-blue-700">S'inscrire</a>
-        </p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Identifiant</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <UserIcon className="h-5 w-5 text-surface-300 group-focus-within:text-primary-500 transition-colors" />
+                </div>
+                <input
+                  type="text"
+                  name="username"
+                  autoComplete="username"
+                  required
+                  value={form.username}
+                  onChange={handleChange}
+                  className={`block w-full pl-12 pr-4 py-4 bg-surface-50 border ${errors.username ? 'border-red-300' : 'border-surface-200'} rounded-2xl text-surface-900 placeholder:text-surface-300 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all font-medium`}
+                  placeholder="Email ou matricule"
+                />
+              </div>
+              {errors.username && <p className="text-[10px] font-bold text-red-500 ml-1 uppercase tracking-wider">{errors.username}</p>}
+            </div>
 
-        {/* Footer */}
-        <p className="text-xs text-center text-slate-500 mt-6">
-          © OFPPT – Accès sécurisé
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Mot de passe</label>
+                <Link to="/forgot-password" className="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest transition-colors">
+                  Oublié ?
+                </Link>
+              </div>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <LockClosedIcon className="h-5 w-5 text-surface-300 group-focus-within:text-primary-500 transition-colors" />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete="current-password"
+                  required
+                  value={form.password}
+                  onChange={handleChange}
+                  className={`block w-full pl-12 pr-12 py-4 bg-surface-50 border ${errors.password ? 'border-red-300' : 'border-surface-200'} rounded-2xl text-surface-900 placeholder:text-surface-300 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all font-medium`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-surface-300 hover:text-surface-500 transition-colors"
+                >
+                  {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                </button>
+              </div>
+              {errors.password && <p className="text-[10px] font-bold text-red-500 ml-1 uppercase tracking-wider">{errors.password}</p>}
+            </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              className="w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-500/20 mt-4"
+              loading={loading}
+            >
+              Connexion
+            </Button>
+          </form>
+
+          <div className="mt-10 pt-8 border-t border-surface-100 text-center">
+            <p className="text-sm text-surface-500 font-medium">
+              Pas encore de compte ?{' '}
+              <Link to="/register" className="text-primary-600 font-black hover:text-primary-700 transition-colors">
+                Créer un profil
+              </Link>
+            </p>
+          </div>
+        </Card>
+
+        <p className="mt-8 text-center text-[10px] font-bold text-surface-400 uppercase tracking-[0.3em]">
+          &copy; {new Date().getFullYear()} OFPPT Permutations • Production Ready
         </p>
-      </form>
+      </div>
     </div>
   );
 }

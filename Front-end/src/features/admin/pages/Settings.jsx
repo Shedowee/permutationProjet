@@ -1,21 +1,468 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "../../../shared/layouts/Layout";
 import Card from "../../../shared/components/Card";
-import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import Button from "../../../shared/components/Button";
+import Table from "../../../shared/components/Table";
+import Modal from "../../../shared/components/Modal";
+import { 
+  PlusIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  CheckCircleIcon, 
+  XCircleIcon,
+  ArrowPathIcon,
+  AdjustmentsHorizontalIcon,
+  TagIcon,
+  Bars3BottomLeftIcon,
+  HashtagIcon,
+  MapPinIcon
+} from "@heroicons/react/24/outline";
+import { listParametres, updateParametre, createParametre, deleteParametre } from "../../../services/paramService";
 
+/**
+ * Page de gestion des paramètres de l'application (Admin)
+ * Permet de configurer les régions, villes, grades, etc.
+ */
 const Settings = () => {
+  const [parametres, setParametres] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState("create"); // create, edit, delete
+  const [selectedParam, setSelectedParam] = useState(null);
+  const [formData, setFormData] = useState({
+    type: "",
+    code: "",
+    libelle: "",
+    actif: true,
+    ordre: 0,
+    parent_id: ""
+  });
+  const [filterType, setFilterType] = useState("");
+  const [message, setMessage] = useState({ text: "", type: "success" });
+
+  const types = [
+    { value: "", label: "Tous les types" },
+    { value: "REGION", label: "Régions" },
+    { value: "VILLE", label: "Villes" },
+    { value: "ETAT", label: "États de demande" },
+    { value: "STATUT_USER", label: "Statuts Utilisateur" },
+    { value: "GRADE", label: "Grades" }
+  ];
+
+  const regions = parametres.filter(p => p.type === "REGION");
+
+  const loadParametres = async () => {
+    try {
+      setLoading(true);
+      const data = await listParametres({ include_inactive: true });
+      setParametres(data);
+    } catch (err) {
+      console.error(err);
+      setMessage({ text: "Erreur lors du chargement des paramètres", type: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadParametres();
+  }, []);
+
+  const handleOpenCreate = () => {
+    setModalType("create");
+    setFormData({ type: "REGION", code: "", libelle: "", actif: true, ordre: 0, parent_id: "" });
+    setShowModal(true);
+  };
+
+  const handleOpenEdit = (param) => {
+    setModalType("edit");
+    setSelectedParam(param);
+    setFormData({
+      type: param.type,
+      code: param.code,
+      libelle: param.libelle,
+      actif: !!param.actif,
+      ordre: param.ordre || 0,
+      parent_id: param.parent_id || ""
+    });
+    setShowModal(true);
+  };
+
+  const handleOpenDelete = (param) => {
+    setModalType("delete");
+    setSelectedParam(param);
+    setShowModal(true);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (modalType === "create") {
+        await createParametre(formData);
+        setMessage({ text: "Paramètre créé avec succès", type: "success" });
+      } else if (modalType === "edit") {
+        await updateParametre(selectedParam.id, formData);
+        setMessage({ text: "Paramètre mis à jour avec succès", type: "success" });
+      } else if (modalType === "delete") {
+        await deleteParametre(selectedParam.id);
+        setMessage({ text: "Paramètre supprimé avec succès", type: "success" });
+      }
+      setShowModal(false);
+      loadParametres();
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage({ text: "", type: "success" }), 3000);
+    } catch (err) {
+      setMessage({ text: err.response?.data?.message || "Une erreur est survenue", type: "error" });
+    }
+  };
+
+  const filteredParams = parametres.filter(p => !filterType || p.type === filterType);
+
+  const columns = [
+    { 
+      header: "Type & Catégorie", 
+      key: "type", 
+      render: (val, row) => (
+        <div className="flex flex-col space-y-1">
+          <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest bg-primary-50 px-2 py-0.5 rounded-md w-fit">
+            {val}
+          </span>
+          {val === "VILLE" && row.parent_id && (
+            <div className="flex items-center text-[10px] text-surface-400 font-bold uppercase tracking-tighter">
+              <MapPinIcon className="h-3 w-3 mr-1" />
+              Région: {parametres.find(p => p.id === row.parent_id)?.libelle || "—"}
+            </div>
+          )}
+        </div>
+      ) 
+    },
+    { 
+      header: "Code Système", 
+      key: "code",
+      render: (val) => (
+        <code className="text-[11px] font-mono bg-surface-50 text-surface-600 px-2 py-1 rounded-lg border border-surface-100">
+          {val}
+        </code>
+      )
+    },
+    { 
+      header: "Libellé Affiché", 
+      key: "libelle",
+      render: (val) => <span className="font-bold text-surface-900">{val}</span>
+    },
+    { 
+      header: "Ordre", 
+      key: "ordre",
+      render: (val) => (
+        <div className="flex items-center space-x-2 text-surface-400 font-medium">
+          <Bars3BottomLeftIcon className="h-4 w-4" />
+          <span>{val}</span>
+        </div>
+      )
+    },
+    { 
+      header: "État", 
+      key: "actif", 
+      render: (val) => (
+        <div className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+          val ? "bg-teal-50 text-teal-600 border border-teal-100" : "bg-rose-50 text-rose-600 border border-rose-100"
+        }`}>
+          <div className={`w-1.5 h-1.5 rounded-full mr-2 ${val ? "bg-teal-500 animate-pulse" : "bg-rose-500"}`}></div>
+          {val ? "Actif" : "Inactif"}
+        </div>
+      ) 
+    },
+    {
+      header: "Actions",
+      key: "actions",
+      render: (_, row) => (
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => handleOpenEdit(row)} 
+            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-400 hover:text-primary-600 hover:border-primary-200 hover:shadow-sm transition-all group"
+            title="Modifier"
+          >
+            <PencilIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          </button>
+          <button 
+            onClick={() => handleOpenDelete(row)} 
+            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-400 hover:text-rose-600 hover:border-rose-200 hover:shadow-sm transition-all group"
+            title="Supprimer"
+          >
+            <TrashIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          </button>
+        </div>
+      )
+    }
+  ];
+
   return (
     <Layout>
-      <div className="space-y-6">
-        <div className="flex items-center space-x-3">
-          <Cog6ToothIcon className="w-6 h-6 text-indigo-400" />
-          <h1 className="text-3xl font-bold text-white">Paramètres</h1>
+      <div className="space-y-8 animate-fadeIn pb-12">
+        {/* En-tête de page */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-4 bg-white rounded-[1.5rem] shadow-sm border border-surface-100">
+              <AdjustmentsHorizontalIcon className="w-8 h-8 text-primary-600" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2 text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-1">
+                <TagIcon className="h-3.5 w-3.5" />
+                <span>Administration</span>
+              </div>
+              <h1 className="text-3xl font-black text-surface-900 tracking-tight">Configuration <span className="text-primary-600">Système</span></h1>
+              <p className="text-surface-500 text-sm font-medium">Gérez les constantes et référentiels de l'application</p>
+            </div>
+          </div>
+          <Button 
+            variant="primary" 
+            onClick={handleOpenCreate} 
+            className="flex items-center space-x-3 px-8 py-4 rounded-2xl shadow-xl shadow-primary-500/20 group"
+          >
+            <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+            <span className="font-black uppercase tracking-widest text-[10px]">Nouveau Paramètre</span>
+          </Button>
         </div>
-        <Card className="p-6">
-          <p className="text-gray-300">
-            Page de paramètres administrateur. Vous pourrez configurer les paramètres globaux ici.
-          </p>
-        </Card>
+
+        {/* Messages de retour */}
+        {message.text && (
+          <div className={`p-5 rounded-[1.5rem] border-2 flex items-center space-x-4 animate-slideUp ${
+            message.type === 'success' 
+              ? 'bg-teal-50 border-teal-100 text-teal-700' 
+              : 'bg-rose-50 border-rose-100 text-rose-700'
+          }`}>
+            <div className={`p-2 rounded-xl ${message.type === 'success' ? 'bg-teal-500 text-white' : 'bg-rose-500 text-white'}`}>
+              {message.type === 'success' ? <CheckCircleIcon className="h-5 w-5" /> : <XCircleIcon className="h-5 w-5" />}
+            </div>
+            <p className="text-xs font-black uppercase tracking-[0.1em]">{message.text}</p>
+          </div>
+        )}
+
+        {/* Filtres et Tableau */}
+        <div className="bg-white rounded-[2.5rem] p-8 border border-surface-100 shadow-sm space-y-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center space-x-4">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <AdjustmentsHorizontalIcon className="h-4 w-4 text-surface-400 group-focus-within:text-primary-500 transition-colors" />
+                </div>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="bg-surface-50 border border-surface-100 rounded-2xl pl-11 pr-10 py-3.5 text-xs font-black uppercase tracking-widest text-surface-600 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none appearance-none cursor-pointer"
+                >
+                  {types.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+
+              <button 
+                onClick={loadParametres} 
+                className="p-3.5 rounded-2xl bg-surface-50 border border-surface-100 text-surface-400 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-all group"
+                title="Actualiser les données"
+              >
+                <ArrowPathIcon className={`w-5 h-5 group-hover:rotate-180 transition-transform duration-500 ${loading ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+            
+            <div className="flex items-center space-x-2 px-4 py-2 bg-surface-50 rounded-xl border border-surface-100">
+              <HashtagIcon className="h-4 w-4 text-surface-400" />
+              <span className="text-[10px] font-black text-surface-500 uppercase tracking-widest">
+                {filteredParams.length} entrées trouvées
+              </span>
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] overflow-hidden border border-surface-50">
+            <Table 
+              columns={columns} 
+              data={filteredParams} 
+              loading={loading}
+              emptyMessage="Aucun paramètre configuré dans cette catégorie"
+            />
+          </div>
+        </div>
+
+        {/* Modal de Création/Édition */}
+        <Modal
+          isOpen={showModal && modalType !== "delete"}
+          onClose={() => setShowModal(false)}
+          title={modalType === "create" ? "Nouveau Paramètre" : "Modifier Paramètre"}
+          size="lg"
+        >
+          <form onSubmit={handleSubmit} className="space-y-8 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Catégorie / Type *</label>
+                <div className="relative group">
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                    required
+                  >
+                    {types.filter(t => t.value !== "").map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Code Système Unique *</label>
+                <input
+                  type="text"
+                  name="code"
+                  value={formData.code}
+                  onChange={handleInputChange}
+                  className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  placeholder="EX: REG_CASABLANCA"
+                  required
+                  disabled={modalType === "edit"}
+                />
+              </div>
+            </div>
+
+            {formData.type === "VILLE" && (
+              <div className="space-y-3 animate-slideDown">
+                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Région de rattachement *</label>
+                <div className="relative group">
+                  <select
+                    name="parent_id"
+                    value={formData.parent_id}
+                    onChange={handleInputChange}
+                    className="w-full bg-primary-50 border border-primary-100 rounded-2xl px-6 py-4 text-primary-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                    required={formData.type === "VILLE"}
+                  >
+                    <option value="">Sélectionnez une région</option>
+                    {regions.map(r => <option key={r.id} value={r.id}>{r.libelle}</option>)}
+                  </select>
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-primary-400">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Libellé d'affichage *</label>
+              <input
+                type="text"
+                name="libelle"
+                value={formData.libelle}
+                onChange={handleInputChange}
+                className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-300"
+                placeholder="Le nom tel qu'il apparaîtra dans les menus"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Priorité d'affichage</label>
+                <input
+                  type="number"
+                  name="ordre"
+                  value={formData.ordre}
+                  onChange={handleInputChange}
+                  className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all"
+                  required
+                />
+              </div>
+              
+              <div className="flex items-center space-x-4 pt-6">
+                <div className="relative inline-flex items-center cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    id="actif"
+                    name="actif"
+                    checked={formData.actif}
+                    onChange={handleInputChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-14 h-7 bg-surface-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500 transition-colors"></div>
+                  <label htmlFor="actif" className="ml-4 text-[10px] font-black text-surface-500 uppercase tracking-widest cursor-pointer select-none">
+                    Statut Actif
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-8 flex justify-end space-x-4 border-t border-surface-50">
+              <Button 
+                type="button" 
+                variant="secondary" 
+                onClick={() => setShowModal(false)}
+                className="px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+              >
+                Annuler
+              </Button>
+              <Button 
+                type="submit" 
+                variant="primary" 
+                className="px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary-500/20"
+              >
+                {modalType === "create" ? "Créer l'entrée" : "Enregistrer les modifications"}
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Modal de Confirmation de Suppression */}
+        <Modal
+          isOpen={showModal && modalType === "delete"}
+          onClose={() => setShowModal(false)}
+          title="Confirmer la suppression"
+        >
+          <div className="space-y-8 py-4">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="p-4 bg-rose-50 text-rose-500 rounded-full border-4 border-rose-100 animate-bounce">
+                <TrashIcon className="w-10 h-10" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-surface-900 font-bold text-lg">Suppression irréversible</p>
+                <p className="text-surface-500 text-sm leading-relaxed">
+                  Êtes-vous absolument certain de vouloir supprimer le paramètre <br />
+                  <span className="text-rose-600 font-black uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-md text-[10px]">
+                    "{selectedParam?.libelle}"
+                  </span> ?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-4 pt-4 border-t border-surface-50">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowModal(false)}
+                className="px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+              >
+                Garder
+              </Button>
+              <Button 
+                variant="danger" 
+                onClick={handleSubmit} 
+                className="px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-rose-500/20"
+              >
+                Oui, Supprimer
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
     </Layout>
   );

@@ -1,18 +1,21 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
 import Modal from '../../../shared/components/Modal';
 import { STATUS_BADGES, ACTION_BUTTON_STYLES } from '../../../shared/constants/constants';
-import { MagnifyingGlassIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PlusIcon, EyeIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { listRoles } from '../../../services/adminService';
 import { listUserStatuses } from '../../../services/paramService';
 import { listUsers } from '../../../services/usersService';
 import { deleteUser as apiDeleteUser } from '../../../services/usersService';
 import { useToast } from '../../../shared/context/useToast';
+import { selectSearchTerm } from '../../../shared/redux/searchSlice';
 
 const UserManagement = () => {
+  const globalSearchTerm = useSelector(selectSearchTerm);
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [statuses, setStatuses] = useState([]);
@@ -44,14 +47,15 @@ const UserManagement = () => {
   // Filtered users based on search and filters
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      const searchToUse = searchTerm || globalSearchTerm;
+      const matchesSearch = user.name.toLowerCase().includes(searchToUse.toLowerCase()) || 
+                           user.email.toLowerCase().includes(searchToUse.toLowerCase());
       const matchesRole = !filterRole || user.role === filterRole;
       const matchesStatus = !filterStatus || String(user.status).toLowerCase() === String(filterStatus).toLowerCase();
       
       return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [users, searchTerm, filterRole, filterStatus]);
+  }, [users, searchTerm, globalSearchTerm, filterRole, filterStatus]);
 
   const handleDeleteUser = async (userId) => {
     try {
@@ -155,11 +159,20 @@ const UserManagement = () => {
                 </div>
                 <input
                   type="text"
-                  className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
+                  className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
                   placeholder="Rechercher par nom ou email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                  >
+                    <XMarkIcon className="h-5 w-5" />
+                  </button>
+                )}
               </div>
               
               {/* Filters */}

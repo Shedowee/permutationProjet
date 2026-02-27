@@ -10,6 +10,7 @@ import adminReducer from "../features/admin/redux/adminSlice";
 import commissionReducer from "../features/commission/redux/commissionSlice";
 import formateurReducer from "../features/formateur/redux/formateurSlice";
 import logsReducer from "../features/admin/redux/logsSlice";
+import searchReducer from "../shared/redux/searchSlice";
 
 /**
  * Configuration du store Redux central
@@ -38,6 +39,9 @@ const store = configureStore({
 
     // Slice pour les logs admin
     logs: logsReducer,
+
+    // Slice pour la recherche globale
+    search: searchReducer,
 
     // NOTE: Auth state is now managed by AuthContext (React Context)
     // not by Redux - see src/auth/context/AuthContext.jsx

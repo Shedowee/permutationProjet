@@ -1,14 +1,27 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
 import Modal from '../../../shared/components/Modal';
 import { OFPPT_ENTITY_TYPES, VALIDATION_MESSAGES } from '../../../shared/constants/constants';
-import { BuildingOffice2Icon, PencilIcon, PlusIcon, TrashIcon, BookOpenIcon, UserGroupIcon, AcademicCapIcon } from '@heroicons/react/24/outline';
+import { 
+  BuildingOffice2Icon, 
+  PencilIcon, 
+  PlusIcon, 
+  TrashIcon, 
+  BookOpenIcon, 
+  UserGroupIcon, 
+  AcademicCapIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
 import api from '../../../services/api';
+import { selectSearchTerm } from '../../../shared/redux/searchSlice';
 
 const OFPPTManagement = () => {
+  const globalSearchTerm = useSelector(selectSearchTerm);
   const [establishments, setEstablishments] = useState([]);
   const [fields, setFields] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -53,12 +66,13 @@ const OFPPTManagement = () => {
   // Filtered entities
   const filteredEntities = useMemo(() => {
     return currentEntities.filter(entity => {
+      const searchToUse = searchTerm || globalSearchTerm;
       const entityValues = Object.values(entity);
       return entityValues.some(value => 
-        value && value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        value && value.toString().toLowerCase().includes(searchToUse.toLowerCase())
       );
     });
-  }, [currentEntities, searchTerm]);
+  }, [currentEntities, searchTerm, globalSearchTerm]);
 
   // Handle adding a new entity
   const handleAddEntity = () => {
@@ -381,15 +395,25 @@ const OFPPTManagement = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="relative flex-1 max-w-md">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <BuildingOffice2Icon className="h-5 w-5 text-gray-400" />
+                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 type="text"
-                className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
+                className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
                 placeholder={`Rechercher dans les ${entityLabels[activeTab].plural.toLowerCase()}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                  title="Effacer"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              )}
             </div>
             
             <Button variant="primary" size="md" onClick={handleAddEntity}>

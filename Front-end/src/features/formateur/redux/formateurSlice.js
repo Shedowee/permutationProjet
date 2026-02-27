@@ -32,6 +32,10 @@ export const fetchDemandes = createAsyncThunk(
         etat: d.etat?.code ?? ETAT_DEMANDE.EN_ATTENTE,
         commentaire: d.commentaire_commission ?? '',
         dateValidation: d.date_traitement ?? null,
+        regionSouhaitee: d.region_souhaitee?.libelle ?? '—',
+        villeSouhaitee: d.ville_souhaitee?.libelle ?? '—',
+        etablissementSouhaite: d.etablissement_souhaite?.nom ?? '—',
+        documentJoint: d.document_joint ?? null,
       }));
       return mapped;
     } catch (error) {
@@ -43,13 +47,9 @@ export const fetchDemandes = createAsyncThunk(
 // Async thunk pour créer une demande
 export const createDemande = createAsyncThunk(
   'formateur/createDemande',
-  async (demandeData, { rejectWithValue }) => {
+  async (formData, { rejectWithValue }) => {
     try {
-      const created = await demandesApi.createDemande({
-        motif: demandeData.motif,
-        regionSouhaiteeId: demandeData.regionSouhaiteeId,
-        etablissementSouhaiteId: demandeData.etablissementSouhaiteId,
-      });
+      const created = await demandesApi.createDemande(formData);
       return {
         id: created.id,
         utilisateurId: created.employe_id,

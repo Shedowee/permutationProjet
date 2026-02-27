@@ -32,6 +32,10 @@ export const fetchDemandes = createAsyncThunk(
         etat: d.etat?.code ?? ETAT_DEMANDE.EN_ATTENTE,
         commentaire: d.commentaire_commission ?? '',
         dateValidation: d.date_traitement ?? null,
+        regionSouhaitee: d.region_souhaitee?.libelle ?? '—',
+        villeSouhaitee: d.ville_souhaitee?.libelle ?? '—',
+        etablissementSouhaite: d.etablissement_souhaite?.nom ?? '—',
+        documentJoint: d.document_joint ?? null,
       }));
       return mapped;
     } catch (error) {
