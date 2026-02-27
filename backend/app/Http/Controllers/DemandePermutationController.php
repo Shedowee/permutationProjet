@@ -20,6 +20,7 @@ class DemandePermutationController extends Controller
             'employe.user',
             'etat',
             'regionSouhaitee',
+            'villeSouhaitee',
             'etablissementSouhaite',
         ])->orderByDesc('date_soumission');
 
@@ -39,23 +40,49 @@ class DemandePermutationController extends Controller
 
     public function store(Request $request)
     {
-        $this->authorize('create', DemandePermutation::class);
-
-        $request->validate([
-            'motif' => 'required|string',
-            'region_souhaitee_id' => 'required|exists:parametres,id',
-            'etablissement_souhaite_id' => 'required|exists:etablissements,id',
-        ]);
-
         $user = $request->user();
         $employe = Employe::where('user_id', $user->id)->first();
+        
         if (!$employe) {
-            return response()->json(['message' => 'Employe not found'], 422);
+            return response()->json(['message' => 'Profil employé non trouvé. Veuillez contacter l\'administrateur.'], 422);
+        }
+
+        $this->authorize('create', DemandePermutation::class);
+
+        // Vérifier si une demande est déjà en cours
+        $existingPending = DemandePermutation::where('employe_id', $employe->id)
+            ->whereHas('etat', function($q) {
+                $q->where('code', 'EN_ATTENTE');
+            })->first();
+
+        if ($existingPending) {
+            return response()->json(['message' => 'Vous avez déjà une demande en attente de traitement.'], 422);
+        }
+
+        $request->validate([
+            'motif' => 'required|string|min:10',
+            'region_souhaitee_id' => 'required|exists:parametres,id',
+            'ville_souhaitee_id' => 'required|exists:parametres,id',
+            'etablissement_souhaite_id' => 'required|exists:etablissements,id',
+            'document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ], [
+            'motif.required' => 'Le motif est obligatoire.',
+            'motif.min' => 'Le motif doit faire au moins 10 caractères.',
+            'region_souhaitee_id.required' => 'La région souhaitée est obligatoire.',
+            'ville_souhaitee_id.required' => 'La ville souhaitée est obligatoire.',
+            'etablissement_souhaite_id.required' => 'L\'établissement souhaité est obligatoire.',
+            'document.mimes' => 'Le document doit être au format PDF, JPG ou PNG.',
+            'document.max' => 'Le document ne doit pas dépasser 5 Mo.',
+        ]);
+
+        $documentPath = null;
+        if ($request->hasFile('document')) {
+            $documentPath = $request->file('document')->store('demandes', 'public');
         }
 
         $etatEnAttente = Parametre::where('type', 'ETAT')->where('code', 'EN_ATTENTE')->first();
         if (!$etatEnAttente) {
-            return response()->json(['message' => 'Etat EN_ATTENTE not configured'], 500);
+            return response()->json(['message' => 'Configuration du système incomplète (Etat EN_ATTENTE manquant)'], 500);
         }
 
         $demande = DemandePermutation::create([
@@ -63,7 +90,10 @@ class DemandePermutationController extends Controller
             'etat_id' => $etatEnAttente->id,
             'employe_id' => $employe->id,
             'region_souhaitee_id' => $request->region_souhaitee_id,
+            'ville_souhaitee_id' => $request->ville_souhaitee_id,
             'etablissement_souhaite_id' => $request->etablissement_souhaite_id,
+            'document_joint' => $documentPath,
+            'date_soumission' => now(),
         ]);
 
         LogAction::create([

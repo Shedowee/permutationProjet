@@ -15,6 +15,9 @@ use App\Http\Controllers\LogsController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/signup', [AuthController::class, 'signup']);
 Route::post('/confirm', [AuthController::class, 'confirm']);
+Route::post('/resend-code', [AuthController::class, 'resendCode']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 // Protected endpoints - require authentication
 Route::middleware('auth:sanctum')->group(function () {
@@ -25,6 +28,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('check.role')->group(function () {
         // Parametres
         Route::get('/parametres', [ParametreController::class, 'index']);
+        Route::post('/parametres', [ParametreController::class, 'store']);
+        Route::put('/parametres/{parametre}', [ParametreController::class, 'update']);
+        Route::delete('/parametres/{parametre}', [ParametreController::class, 'destroy']);
 
         // Etablissements
         Route::get('/etablissements', [EtablissementController::class, 'index']);
@@ -44,11 +50,19 @@ Route::middleware('auth:sanctum')->group(function () {
         // Users
         Route::get('/users', [UtilisateursController::class, 'index']);
         Route::post('/users', [UtilisateursController::class, 'store']);
+        Route::get('/users/{id}', [UtilisateursController::class, 'show']);
         Route::put('/users/{user}', [UtilisateursController::class, 'update']);
         Route::delete('/users/{user}', [UtilisateursController::class, 'destroy']);
 
+        // Profile & Documents
+        Route::post('/user/profile-picture', [UtilisateursController::class, 'updateProfilePicture']);
+        Route::get('/user/documents', [UtilisateursController::class, 'listDocuments']);
+        Route::post('/user/documents', [UtilisateursController::class, 'uploadDocument']);
+        Route::delete('/user/documents/{document}', [UtilisateursController::class, 'deleteDocument']);
+
         // Logs
         Route::get('/logs', [LogsController::class, 'index']);
+        Route::get('/logs/{log}', [LogsController::class, 'show']);
     });
 });
 

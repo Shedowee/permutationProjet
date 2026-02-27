@@ -52,5 +52,33 @@ class LogsController extends Controller
 
         return response()->json(['data' => $data]);
     }
-}
 
+    public function show(LogAction $log)
+    {
+        $log->load('user');
+        
+        $mapType = function ($action) {
+            $a = mb_strtolower($action);
+            if (str_contains($a, 'connexion')) return 'login';
+            if (str_contains($a, 'déconnexion') || str_contains($a, 'deconnexion')) return 'logout';
+            if (str_contains($a, 'création') || str_contains($a, 'creation')) return 'create';
+            if (str_contains($a, 'suppression')) return 'delete';
+            if (str_contains($a, 'mise à jour') || str_contains($a, 'validation') || str_contains($a, 'mise a jour')) return 'update';
+            if (str_contains($a, 'blocage')) return 'block';
+            return 'view';
+        };
+
+        return response()->json([
+            'data' => [
+                'id' => $log->id,
+                'user' => $log->user ? ($log->user->nom ?? '—') : '—',
+                'user_email' => $log->user ? $log->user->email : '—',
+                'action' => $log->action ?? '',
+                'type' => $mapType($log->action ?? ''),
+                'date' => optional($log->date_action)->format('Y-m-d H:i:s'),
+                'ip' => $log->adresse_ip ?? '',
+                'details' => $log->description ?? 'Aucun détail supplémentaire',
+            ]
+        ]);
+    }
+}

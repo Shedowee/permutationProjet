@@ -12,7 +12,8 @@ class DemandePermutation extends Model
     protected $fillable = [
         'date_soumission', 'motif', 'date_traitement', 'commentaire_commission',
         'etat_id', 'employe_id', 'traite_par_utilisateur_id',
-        'region_souhaitee_id', 'etablissement_souhaite_id'
+        'region_souhaitee_id', 'ville_souhaitee_id', 'etablissement_souhaite_id',
+        'document_joint'
     ];
 
     protected $casts = [
@@ -38,6 +39,11 @@ class DemandePermutation extends Model
     public function regionSouhaitee()
     {
         return $this->belongsTo(Parametre::class, 'region_souhaitee_id');
+    }
+
+    public function villeSouhaitee()
+    {
+        return $this->belongsTo(Parametre::class, 'ville_souhaitee_id');
     }
 
     public function etablissementSouhaite()

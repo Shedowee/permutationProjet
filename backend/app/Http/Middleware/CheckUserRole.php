@@ -17,14 +17,19 @@ class CheckUserRole
     {
         $user = $request->user();
 
-        if ($user && $user->role && strtoupper($user->role->code) === 'USER') {
-            $allowedRoutes = ['me', 'logout'];
-            $currentRoute = $request->route()->getName() ?: explode('/', $request->path())[1] ?? '';
+        if ($user) {
+            $isUserRole = $user->role && strtoupper($user->role->code) === 'USER';
+            $isInactive = !$user->actif;
 
-            if (!in_array($currentRoute, $allowedRoutes) && !$request->is('api/me') && !$request->is('api/logout')) {
-                return response()->json([
-                    'message' => 'Accès restreint. Votre compte est en attente d\'activation par un administrateur.'
-                ], 403);
+            if ($isUserRole || $isInactive) {
+                $allowedRoutes = ['me', 'logout'];
+                $currentRoute = $request->route()->getName() ?: explode('/', $request->path())[1] ?? '';
+
+                if (!in_array($currentRoute, $allowedRoutes) && !$request->is('api/me') && !$request->is('api/logout')) {
+                    return response()->json([
+                        'message' => 'Accès restreint. Votre compte est en attente d\'activation par un administrateur.'
+                    ], 403);
+                }
             }
         }
 

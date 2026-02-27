@@ -6,8 +6,85 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+use Illuminate\Support\Facades\Storage;
+
 class UtilisateursController extends Controller
 {
+    /**
+     * Update profile picture
+     */
+    public function updateProfilePicture(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        $user = $request->user();
+
+        if ($user->profile_picture) {
+            Storage::disk('public')->delete($user->profile_picture);
+        }
+
+        $path = $request->file('image')->store('profile_pictures', 'public');
+        $user->update(['profile_picture' => $path]);
+
+        return response()->json([
+            'message' => 'Photo de profil mise à jour',
+            'url' => asset('storage/' . $path)
+        ]);
+    }
+
+    /**
+     * Upload professional document
+     */
+    public function uploadDocument(Request $request)
+    {
+        $request->validate([
+            'document' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:5120',
+            'title' => 'required|string|max:255',
+        ]);
+
+        $user = $request->user();
+        $file = $request->file('document');
+        $path = $file->store('user_documents/' . $user->id, 'public');
+
+        $document = $user->documents()->create([
+            'title' => $request->title,
+            'file_path' => $path,
+            'file_type' => $file->getClientOriginalExtension(),
+            'file_size' => $file->getSize(),
+        ]);
+
+        return response()->json([
+            'message' => 'Document ajouté avec succès',
+            'document' => $document
+        ]);
+    }
+
+    /**
+     * List user documents
+     */
+    public function listDocuments(Request $request)
+    {
+        $documents = $request->user()->documents()->latest()->get();
+        return response()->json(['data' => $documents]);
+    }
+
+    /**
+     * Delete user document
+     */
+    public function deleteDocument(Request $request, \App\Models\UserDocument $document)
+    {
+        if ($document->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Non autorisé'], 403);
+        }
+
+        Storage::disk('public')->delete($document->file_path);
+        $document->delete();
+
+        return response()->json(['message' => 'Document supprimé']);
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -80,9 +157,10 @@ class UtilisateursController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(User $utilisateurs)
+    public function show($id)
     {
-        //
+        $user = User::with(['role', 'documents', 'employe.grade', 'employe.region', 'employe.etablissement'])->findOrFail($id);
+        return response()->json(['data' => $user]);
     }
 
     /**

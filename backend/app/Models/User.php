@@ -21,7 +21,13 @@ class User extends Authenticatable
         'role_id',
         'actif',
         'date_derniere_connexion',
+        'profile_picture',
     ];
+
+    public function documents()
+    {
+        return $this->hasMany(UserDocument::class);
+    }
 
     protected $casts = [
         'date_derniere_connexion' => 'datetime',
