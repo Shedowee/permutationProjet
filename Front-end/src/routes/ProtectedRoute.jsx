@@ -11,9 +11,10 @@
  * - No token logic - all auth from backend via cookies
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/hooks/useAuth";
+import { useToast } from "../shared/context/useToast";
 
 /**
  * ProtectedRoute component
@@ -28,7 +29,14 @@ import { useAuth } from "../auth/hooks/useAuth";
 const ProtectedRoute = ({ children, allowedRoles }) => {
   // Get auth state from context (not Redux)
   const { user, role, loading, isAuthenticated } = useAuth();
+  const { info } = useToast();
   const location = useLocation();
+
+  useEffect(() => {
+    if (!loading && (!isAuthenticated || !user)) {
+      info("Veuillez vous connecter pour accéder à cette page.");
+    }
+  }, [loading, isAuthenticated, user, info]);
 
   // Wait for initial auth check to complete
   if (loading) {

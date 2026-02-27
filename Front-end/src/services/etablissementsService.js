@@ -1,7 +1,7 @@
 import api from "./api";
 
-export const listEtablissements = async () => {
-  const res = await api.get("/api/etablissements", { withCredentials: true });
+export const listEtablissementsByCity = async (cityId) => {
+  const res = await api.get(`/api/etablissements/cities/${cityId}`, { withCredentials: true });
   return res.data.data;
 };
 

@@ -17,7 +17,9 @@ import { lazy, Suspense } from "react";
 import { useAuth } from "./auth/hooks/useAuth";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
+import GuestRoute from "./routes/GuestRoute";
 
+const Landing = lazy(() => import("./pages/Landing"));
 const Login = lazy(() => import("./auth/pages/Login"));
 const Signup = lazy(() => import("./auth/pages/Signup"));
 const ForgotPassword = lazy(() => import("./auth/pages/ForgotPassword"));
@@ -37,7 +39,8 @@ const CommissionDemandesManagement = lazy(() => import("./features/commission/pa
 const FormateurDashboard = lazy(() => import("./features/formateur/pages/FormateurDashboard"));
 const FormateurDemandesManagement = lazy(() => import("./features/formateur/pages/DemandesManagement"));
 const CreateDemande = lazy(() => import("./features/formateur/pages/CreateDemande"));
-const Profile = lazy(() => import("./auth/pages/Profile"));
+const Profile = lazy(() => import("./shared/pages/Profile"));
+const VerifyEmail = lazy(() => import("./shared/pages/VerifyEmail"));
 
 const App = () => {
   // Auth is managed by AuthContext, not Redux
@@ -69,11 +72,12 @@ const App = () => {
         }
       >
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/register" element={<Signup />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+          <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
+          <Route path="/register" element={<GuestRoute><Signup /></GuestRoute>} />
+          <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+          <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           <Route
             path="/dashboard"
@@ -238,23 +242,17 @@ const App = () => {
             }
           />
 
-          <Route
-            path="/"
-            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
-          />
+          <Route path="/" element={<Landing />} />
           <Route
             path="/profile"
             element={
-              <ProtectedRoute allowedRoles={["admin","commission","formateur","employe"]}>
+              <ProtectedRoute allowedRoles={["admin", "commission", "formateur", "employe"]}>
                 <Profile />
               </ProtectedRoute>
             }
           />
           <Route path="/logout" element={<Logout />} />
-          <Route
-            path="*"
-            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
-          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     </Router>

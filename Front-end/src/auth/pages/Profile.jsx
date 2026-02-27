@@ -278,7 +278,7 @@ const Profile = () => {
                   <DetailItem icon={<BuildingOfficeIcon className="h-5 w-5" />} label="Établissement" value={employe.etablissement?.nom} />
                 </div>
               ) : (
-                <p className="text-gray-500 italic text-center py-10">Aucun détail professionnel trouvé.</p>
+                <p className="text-surface-400 italic text-center py-10">Aucun détail professionnel trouvé.</p>
               )}
             </Card>
 
@@ -306,7 +306,7 @@ const Profile = () => {
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-white truncate">{doc.title}</p>
-                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{doc.file_type} • {(doc.file_size / 1024).toFixed(1)} KB</p>
+                        <p className="text-[10px] font-bold text-surface-400 uppercase tracking-tighter">{doc.file_type} • {(doc.file_size / 1024).toFixed(1)} KB</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -321,7 +321,7 @@ const Profile = () => {
                 ))}
                 {documents.length === 0 && !uploadingDoc && (
                   <div className="sm:col-span-2 py-10 text-center border-2 border-dashed border-gray-800 rounded-3xl">
-                    <p className="text-gray-500 text-sm font-medium">Aucun document téléchargé</p>
+                    <p className="text-surface-400 text-sm font-medium">Aucun document téléchargé</p>
                   </div>
                 )}
                 {uploadingDoc && (
@@ -347,7 +347,7 @@ const Profile = () => {
       >
         <form onSubmit={handleDocSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Titre du document</label>
+            <label className="text-xs font-bold text-surface-400 uppercase tracking-widest ml-1">Titre du document</label>
             <input
               type="text"
               required
@@ -359,7 +359,7 @@ const Profile = () => {
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest ml-1">Fichier (PDF, Image)</label>
+            <label className="text-xs font-bold text-surface-400 uppercase tracking-widest ml-1">Fichier (PDF, Image)</label>
             <div 
               onClick={() => docInputRef.current.click()}
               className="w-full p-8 border-2 border-dashed border-gray-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500/50 hover:bg-primary-500/5 transition-all group"

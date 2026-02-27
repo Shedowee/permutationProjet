@@ -314,16 +314,24 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $user = Auth::user();
+        $user = $request->user();
 
-        Auth::logout();
+        // 1. Clear Sanctum tokens if used
+        if ($user instanceof User) {
+            $user->tokens()->delete();
+        }
+
+        // 2. Clear Session and Auth state
+        Auth::guard('web')->logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Manually expire cookies
-        $cookie = cookie(config('session.cookie'), '', -1);
-        $xsrfCookie = cookie('XSRF-TOKEN', '', -1);
+        // 3. Clear Remember Token if used
+        if ($user instanceof User) {
+            $user->setRememberToken(null);
+            $user->save();
+        }
 
         if ($user) {
             event(new UserActionOccurred(
@@ -335,6 +343,6 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Logged out successfully'
-        ])->withCookie($cookie)->withCookie($xsrfCookie);
+        ]);
     }
 }

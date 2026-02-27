@@ -88,7 +88,7 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-50 px-4 py-12 relative overflow-hidden font-sans">
+    <div className="min-h-screen flex items-center justify-center gradient-bg px-4 py-12 relative overflow-hidden font-sans">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-200 rounded-full blur-[120px]"></div>
@@ -100,8 +100,9 @@ function Login() {
           <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-white shadow-sm border border-surface-200 mb-6">
             <ShieldCheckIcon className="h-10 w-10 text-primary-600" />
           </div>
-          <h1 className="text-4xl font-black text-surface-900 tracking-tighter mb-2">Bienvenue</h1>
-          <p className="text-surface-500 font-medium">Connectez-vous à votre espace Permutations</p>
+          <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Bienvenue</h1>
+          <p className="text-surface-300 font-medium">Connectez-vous à votre espace Permutations</p>
+          <div className="mx-auto h-1 w-24 bg-gradient-to-r from-primary-400 to-accent-400 rounded-full mt-4"></div>
         </div>
 
         <Card className="p-10 shadow-2xl border-surface-200/60 bg-white/80 backdrop-blur-xl rounded-[2.5rem]">

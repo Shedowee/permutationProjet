@@ -15,7 +15,6 @@ export const login = async ({ email, password }) => {
 };
 
 export const logout = async () => {
-  await getCsrfCookie();
   await api.post("/api/logout", {}, { withCredentials: true });
 };
 
@@ -61,6 +60,16 @@ export const forgotPassword = async (email) => {
     { email },
     { withCredentials: true }
   );
+  return response.data;
+};
+
+export const resendVerificationEmail = async () => {
+  const response = await api.post("/api/email/resend", {}, { withCredentials: true });
+  return response.data;
+};
+
+export const verifyEmailOtp = async (code) => {
+  const response = await api.post("/api/email/verify", { code }, { withCredentials: true });
   return response.data;
 };
 

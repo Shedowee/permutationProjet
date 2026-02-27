@@ -28,4 +28,18 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 403 && error.response?.data?.email_verification_required) {
+      // Avoid infinite loops if already on verify page
+      if (!window.location.pathname.includes('/verify-email')) {
+        sessionStorage.setItem('verification_required', 'true');
+        window.location.href = '/verify-email';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;

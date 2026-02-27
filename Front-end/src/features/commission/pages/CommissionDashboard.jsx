@@ -43,12 +43,13 @@ const CommissionDashboard = () => {
       <div className="space-y-10 pb-12 max-w-[1600px] mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-4xl font-black text-surface-900 tracking-tight">Espace Commission</h1>
-            <p className="text-surface-500 mt-1 font-medium">Supervision et traitement des demandes de permutation</p>
+            <h1 className="text-4xl font-black text-white tracking-tight">Espace Commission</h1>
+            <p className="text-surface-300 mt-1 font-medium">Supervision et traitement des demandes de permutation</p>
+            <div className="h-1 w-24 bg-gradient-to-r from-primary-400 to-accent-400 rounded-full mt-3"></div>
           </div>
           <button 
             onClick={handleRefresh}
-            className="flex items-center space-x-2 px-6 py-3 bg-white hover:bg-surface-50 text-surface-700 rounded-2xl border border-surface-200 shadow-sm transition-all text-xs font-black uppercase tracking-widest group"
+            className="flex items-center space-x-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-2xl border border-white/10 shadow-sm transition-all text-xs font-black uppercase tracking-widest group"
           >
             <ArrowPathIcon className={`w-4 h-4 transition-transform group-hover:rotate-180 duration-500 ${loading ? 'animate-spin' : ''}`} />
             <span>Actualiser</span>
@@ -92,7 +93,7 @@ const CommissionDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <Card className="p-10 lg:col-span-1 flex flex-col items-center justify-center text-center space-y-6 rounded-[2.5rem] bg-white border-surface-200 shadow-sm relative overflow-hidden group">
+              <Card variant="dark" className="p-10 lg:col-span-1 flex flex-col items-center justify-center text-center space-y-6 rounded-[2.5rem] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary-50 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
                 
                 <div className="relative inline-flex items-center justify-center">
@@ -119,48 +120,48 @@ const CommissionDashboard = () => {
                       cy="80"
                     />
                   </svg>
-                  <span className="absolute text-3xl font-black text-surface-900 tracking-tighter">{stats.processingRate}%</span>
+                  <span className="absolute text-3xl font-black text-white tracking-tighter">{stats.processingRate}%</span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-surface-900 uppercase tracking-widest">Taux de Traitement</h3>
+                  <h3 className="text-lg font-black text-white uppercase tracking-widest">Taux de Traitement</h3>
                   <p className="text-xs text-surface-400 mt-2 font-bold uppercase tracking-[0.2em]">Progression globale</p>
                 </div>
               </Card>
 
               <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Card className="p-8 rounded-[2.5rem] border-surface-200 shadow-sm hover:shadow-md transition-all group">
+                <Card variant="dark" className="p-8 rounded-[2.5rem] transition-all group">
                   <div className="flex items-center space-x-4 mb-8">
-                    <div className="p-3 bg-primary-50 rounded-2xl border border-primary-100 group-hover:scale-110 transition-transform">
-                      <BoltIcon className="w-6 h-6 text-primary-600" />
+                    <div className="p-3 bg-white/10 rounded-2xl border border-white/10 group-hover:scale-110 transition-transform">
+                      <BoltIcon className="w-6 h-6 text-primary-300" />
                     </div>
-                    <h3 className="text-sm font-black text-surface-900 uppercase tracking-widest">Performance</h3>
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Performance</h3>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-4xl font-black text-surface-900 tracking-tight">{stats.avgProcessingTime}</p>
+                    <p className="text-4xl font-black text-white tracking-tight">{stats.avgProcessingTime}</p>
                     <p className="text-[10px] text-surface-400 font-black uppercase tracking-[0.2em]">Temps moyen de réponse</p>
                   </div>
-                  <div className="mt-10 pt-6 border-t border-surface-100 flex items-center justify-between">
+                  <div className="mt-10 pt-6 border-t border-white/10 flex items-center justify-between">
                     <span className="text-[10px] text-surface-400 font-black uppercase tracking-widest">Dernière action</span>
-                    <span className="text-[10px] text-primary-600 font-black px-3 py-1 bg-primary-50 border border-primary-100 rounded-lg uppercase tracking-widest">Il y a 24h</span>
+                    <span className="text-[10px] text-primary-300 font-black px-3 py-1 bg-white/10 border border-white/10 rounded-lg uppercase tracking-widest">Il y a 24h</span>
                   </div>
                 </Card>
 
-                <Card className="p-8 rounded-[2.5rem] border-surface-200 shadow-sm hover:shadow-md transition-all group">
+                <Card variant="dark" className="p-8 rounded-[2.5rem] transition-all group">
                   <div className="flex items-center space-x-4 mb-8">
-                    <div className="p-3 bg-accent-50 rounded-2xl border border-accent-100 group-hover:scale-110 transition-transform">
-                      <ChartBarIcon className="w-6 h-6 text-accent-600" />
+                    <div className="p-3 bg-white/10 rounded-2xl border border-white/10 group-hover:scale-110 transition-transform">
+                      <ChartBarIcon className="w-6 h-6 text-accent-300" />
                     </div>
-                    <h3 className="text-sm font-black text-surface-900 uppercase tracking-widest">Activité</h3>
+                    <h3 className="text-sm font-black text-white uppercase tracking-widest">Activité</h3>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-4xl font-black text-surface-900 tracking-tight truncate max-w-full" title={stats.lastProcessedRequest}>
+                    <p className="text-4xl font-black text-white tracking-tight truncate max-w-full" title={stats.lastProcessedRequest}>
                       {stats.lastProcessedRequest.length > 15 ? stats.lastProcessedRequest.substring(0, 15) + '...' : stats.lastProcessedRequest}
                     </p>
                     <p className="text-[10px] text-surface-400 font-black uppercase tracking-[0.2em]">Dernier dossier traité</p>
                   </div>
-                  <div className="mt-10 pt-6 border-t border-surface-100 flex items-center justify-between">
+                  <div className="mt-10 pt-6 border-t border-white/10 flex items-center justify-between">
                     <span className="text-[10px] text-surface-400 font-black uppercase tracking-widest">Statut global</span>
-                    <span className="text-[10px] text-teal-600 font-black px-3 py-1 bg-teal-50 border border-teal-100 rounded-lg uppercase tracking-widest">OPÉRATIONNEL</span>
+                    <span className="text-[10px] text-teal-300 font-black px-3 py-1 bg-white/10 border border-white/10 rounded-lg uppercase tracking-widest">OPÉRATIONNEL</span>
                   </div>
                 </Card>
               </div>
@@ -174,20 +175,20 @@ const CommissionDashboard = () => {
 
 const StatCard = ({ title, value, icon, color }) => {
   const colorClasses = {
-    indigo: 'bg-primary-50 text-primary-600 border-primary-100',
-    teal: 'bg-accent-50 text-accent-600 border-accent-100',
-    amber: 'bg-amber-50 text-amber-600 border-amber-100',
-    red: 'bg-red-50 text-red-600 border-red-100',
+    indigo: 'bg-primary-500/10 text-primary-300 border-primary-500/20',
+    teal: 'bg-accent-500/10 text-accent-300 border-accent-500/20',
+    amber: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
+    red: 'bg-red-500/10 text-red-300 border-red-500/20',
   };
 
   return (
     <Card className={`p-8 border shadow-sm group hover:shadow-lg transition-all duration-500 rounded-[2.5rem] ${colorClasses[color] || colorClasses.indigo}`}>
       <div className="flex items-center justify-between">
         <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">{title}</p>
-          <h3 className="text-4xl font-black tracking-tight">{value}</h3>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-300">{title}</p>
+          <h3 className="text-4xl font-black tracking-tight text-white">{value}</h3>
         </div>
-        <div className="p-4 rounded-2xl bg-white shadow-sm border border-black/5 group-hover:scale-110 transition-transform duration-500">
+        <div className="p-4 rounded-2xl bg-white/10 text-white shadow-sm border border-white/10 group-hover:scale-110 transition-transform duration-500">
           {icon}
         </div>
       </div>

@@ -8,6 +8,13 @@ export const listParametres = async ({ type, include_inactive } = {}) => {
   return res.data?.data ?? [];
 };
 
+export const listCitiesByRegion = async (regionId) => {
+  if (!regionId) return [];
+  const params = { type: "VILLE", parent_id: regionId };
+  const res = await api.get("/api/parametres", { params, withCredentials: true });
+  return res.data?.data ?? [];
+};
+
 export const createParametre = async (data) => {
   const res = await api.post("/api/parametres", data, { withCredentials: true });
   return res.data;
@@ -30,4 +37,3 @@ export const listUserStatuses = async () => {
     label: p.libelle || p.code || "",
   }));
 };
-

@@ -55,7 +55,7 @@ const NotificationDetail = () => {
             <InformationCircleIcon className="h-12 w-12 text-red-500" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-4">Erreur</h1>
-          <p className="text-gray-400 mb-8">{error || "Notification introuvable."}</p>
+          <p className="text-surface-300 mb-8">{error || "Notification introuvable."}</p>
           <Button variant="secondary" onClick={() => navigate(-1)}>Retour</Button>
         </div>
       </Layout>
@@ -75,7 +75,7 @@ const NotificationDetail = () => {
             </button>
             <div>
               <h1 className="text-3xl font-bold text-white tracking-tight">Détails de la Notification</h1>
-              <p className="text-gray-400 mt-1">Informations complètes sur l'événement système</p>
+              <p className="text-surface-300 mt-1">Informations complètes sur l'événement système</p>
             </div>
           </div>
           <div className={`p-3 rounded-2xl border ${
@@ -105,7 +105,7 @@ const NotificationDetail = () => {
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-[0.2em] ml-1">Détails Techniques</h3>
+                <h3 className="text-xs font-bold text-surface-400 uppercase tracking-[0.2em] ml-1">Détails Techniques</h3>
                 <div className="p-6 bg-gray-950/50 rounded-2xl border border-gray-800 font-mono text-sm text-gray-400 leading-relaxed">
                   {log.details}
                 </div>
@@ -149,7 +149,7 @@ const NotificationDetail = () => {
             </Card>
 
             <Card className="p-6 border-blue-500/10 bg-blue-500/5">
-              <p className="text-xs text-gray-500 italic text-center">
+              <p className="text-xs text-surface-400 italic text-center">
                 Ce log est généré automatiquement par le système d'audit et ne peut pas être modifié.
               </p>
             </Card>

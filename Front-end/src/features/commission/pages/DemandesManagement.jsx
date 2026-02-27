@@ -109,11 +109,12 @@ const DemandesManagement = () => {
           <h1 className="text-3xl font-bold text-white">
             Gestion des Demandes
           </h1>
-          <p className="text-gray-400 mt-2">
+          <p className="text-surface-300 mt-2">
             {userRole === "commission"
               ? "Traiter les demandes de permutation"
               : "Suivre vos demandes de permutation"}
           </p>
+          <div className="h-1 w-20 bg-gradient-to-r from-primary-400 to-accent-400 rounded-full mt-3"></div>
         </div>
 
         {loading && (

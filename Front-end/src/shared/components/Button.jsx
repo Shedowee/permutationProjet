@@ -10,22 +10,22 @@ const Button = ({
   onClick,
   ...props 
 }) => {
-  const baseClasses = 'font-semibold rounded-xl transition-all duration-300 focus:outline-none active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center';
+  const baseClasses = 'font-semibold rounded-lg transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center';
   
   const variants = {
-    primary: 'bg-accent-500 text-white hover:bg-accent-600 shadow-sm shadow-accent-500/20',
-    secondary: 'bg-white text-surface-700 hover:bg-surface-50 border border-surface-200 shadow-sm',
-    accent: 'bg-accent-500 text-white hover:bg-accent-600 shadow-sm shadow-accent-500/20',
-    danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-500/20',
-    success: 'bg-green-600 text-white hover:bg-green-700 shadow-sm shadow-green-500/20',
-    ghost: 'bg-transparent text-surface-500 hover:bg-surface-100 hover:text-surface-900',
-    outline: 'bg-transparent border border-surface-200 text-surface-600 hover:border-primary-500 hover:text-primary-600 hover:bg-primary-50',
+    primary: 'bg-primary-500 text-white shadow-sm hover:bg-primary-600 hover:shadow-md',
+    secondary: 'bg-secondary-500 text-white shadow-sm hover:bg-secondary-600 hover:shadow-md',
+    accent: 'bg-secondary-500 text-white shadow-sm hover:bg-secondary-600 hover:shadow-md',
+    danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-600/20',
+    success: 'bg-primary-500 text-white hover:bg-primary-600 shadow-sm shadow-primary-600/20',
+    ghost: 'bg-transparent text-secondary-700 hover:bg-secondary-50 hover:text-secondary-900',
+    outline: 'bg-transparent border border-secondary-200 text-secondary-700 hover:bg-secondary-50 hover:border-secondary-400',
   };
   
   const sizes = {
-    xs: 'px-2 py-1 text-xs',
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-5 py-2.5 text-sm',
+    xs: 'px-3 py-1.5 text-xs',
+    sm: 'px-4 py-2 text-sm',
+    md: 'px-6 py-2.5 text-sm',
     lg: 'px-8 py-3 text-base',
   };
   

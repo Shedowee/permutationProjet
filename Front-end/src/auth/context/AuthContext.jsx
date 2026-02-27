@@ -10,9 +10,7 @@ export const AuthProvider = ({ children }) => {
 
   const normalizeRole = (r) => {
     if (!r) return null;
-    const v = String(r).toLowerCase();
-    if (v === "comission") return "commission";
-    return v;
+    return String(r).toLowerCase();
   };
 
   useEffect(() => {
@@ -30,6 +28,16 @@ export const AuthProvider = ({ children }) => {
       setRole(null);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      const data = await authService.getCurrentUser();
+      setUser(data.user);
+      setRole(data.user?.actif ? normalizeRole(data.user?.role) : null);
+    } catch (err) {
+      console.error("Failed to refresh user", err);
     }
   };
 
@@ -76,6 +84,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated: !!user,
         login,
         logout,
+        refreshUser,
       }}
     >
       {children}
