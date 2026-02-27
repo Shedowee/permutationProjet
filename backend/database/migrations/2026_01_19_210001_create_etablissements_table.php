@@ -10,9 +10,11 @@ return new class extends Migration
     {
         Schema::create('etablissements', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 20)->unique()->nullable();
+            $table->string('code', 50)->unique()->nullable();
             $table->string('nom', 150);
             $table->string('adresse')->nullable();
+            $table->foreignId('ville_id')->nullable()->constrained('parametres')->nullOnDelete();
+            $table->foreignId('region_id')->nullable()->constrained('parametres')->nullOnDelete();
             $table->boolean('actif')->default(true);
             $table->timestamps();
         });

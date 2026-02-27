@@ -18,7 +18,9 @@ return new class extends Migration
             $table->foreignId('employe_id')->constrained('employes')->cascadeOnDelete();
             $table->foreignId('traite_par_utilisateur_id')->nullable()->constrained('utilisateurs')->nullOnDelete();
             $table->foreignId('region_souhaitee_id')->nullable()->constrained('parametres')->nullOnDelete();
+            $table->foreignId('ville_souhaitee_id')->nullable()->constrained('parametres')->nullOnDelete();
             $table->foreignId('etablissement_souhaite_id')->nullable()->constrained('etablissements')->nullOnDelete();
+            $table->string('document_joint')->nullable();
             $table->timestamps();
         });
     }

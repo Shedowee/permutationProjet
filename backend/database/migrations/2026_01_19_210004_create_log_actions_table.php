@@ -15,7 +15,7 @@ return new class extends Migration
             $table->unsignedBigInteger('entite_id')->nullable();
             $table->dateTime('date_action')->useCurrent();
             $table->string('adresse_ip', 45)->nullable();
-            $table->foreignId('user_id')->constrained('utilisateurs')->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained('utilisateurs')->cascadeOnDelete();
             $table->timestamps();
         });
     }

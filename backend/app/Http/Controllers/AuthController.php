@@ -6,9 +6,18 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use App\Services\EmailVerificationService;
+use App\Events\UserActionOccurred;
 
 class AuthController extends Controller
 {
+    protected EmailVerificationService $emailVerificationService;
+
+    public function __construct(EmailVerificationService $emailVerificationService)
+    {
+        $this->emailVerificationService = $emailVerificationService;
+    }
+
     public function signup(Request $request)
     {
         $validated = $request->validate([
@@ -19,26 +28,25 @@ class AuthController extends Controller
 
         $role = \App\Models\Role::where('code', 'USER')->first();
 
-        $user = \App\Models\User::create([
+        $user = User::create([
             'nom' => $validated['nom'],
             'email' => $validated['email'],
             'mot_de_passe' => Hash::make($validated['password']),
             'role_id' => $role?->id,
             'actif' => false,
+            'email_verified' => false,
         ]);
 
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        \Illuminate\Support\Facades\Cache::put('email_verif:' . $validated['email'], $code, now()->addMinutes(15));
+        $code = $this->emailVerificationService->sendOtp($validated['email']);
         
+        // Mocking email sending for now as per sendVerificationEmail logic
         $this->sendVerificationEmail($validated['email'], $code);
 
-        \App\Models\LogAction::record(
+        event(new UserActionOccurred(
             $user->id,
-            'Création compte utilisateur',
-            'utilisateurs',
-            $user->id,
-            $request->ip()
-        );
+            'registration',
+            "Nouvel utilisateur enregistré: {$user->email}"
+        ));
 
         return response()->json([
             'message' => 'Compte créé. Un code a été envoyé à votre email.',
@@ -52,23 +60,23 @@ class AuthController extends Controller
             'code' => 'required|string',
         ]);
 
-        $user = \App\Models\User::where('email', $validated['email'])->first();
-        $expected = \Illuminate\Support\Facades\Cache::get('email_verif:' . $validated['email']);
-        if (!$user || !$expected || $expected !== $validated['code']) {
-            return response()->json(['message' => 'Code de confirmation invalide'], 422);
+        $user = User::where('email', $validated['email'])->first();
+        
+        if (!$user || !$this->emailVerificationService->verifyOtp($validated['email'], $validated['code'])) {
+            return response()->json(['message' => 'Code de confirmation invalide ou expiré'], 422);
         }
 
-        $user->update(['actif' => true]);
+        $user->update([
+            'actif' => true,
+            'email_verified' => true,
+            'email_verified_at' => now()
+        ]);
 
-        \Illuminate\Support\Facades\Cache::forget('email_verif:' . $validated['email']);
-
-        \App\Models\LogAction::record(
+        event(new UserActionOccurred(
             $user->id,
-            'Confirmation de compte',
-            'utilisateurs',
-            $user->id,
-            $request->ip()
-        );
+            'email_verified',
+            "Email vérifié pour l'utilisateur: {$user->email}"
+        ));
 
         return response()->json([
             'message' => 'Compte confirmé. Vous pouvez maintenant vous connecter.',
@@ -86,13 +94,11 @@ class AuthController extends Controller
             return response()->json(['message' => 'Utilisateur non trouvé'], 404);
         }
 
-        if ($user->actif) {
-            return response()->json(['message' => 'Compte déjà activé'], 422);
+        if ($user->email_verified) {
+            return response()->json(['message' => 'Email déjà vérifié'], 422);
         }
 
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        \Illuminate\Support\Facades\Cache::put('email_verif:' . $validated['email'], $code, now()->addMinutes(15));
-        
+        $code = $this->emailVerificationService->sendOtp($validated['email']);
         $this->sendVerificationEmail($validated['email'], $code);
 
         return response()->json(['message' => 'Nouveau code envoyé']);
@@ -155,6 +161,57 @@ class AuthController extends Controller
         return response()->json(['message' => 'Mot de passe réinitialisé avec succès.']);
     }
 
+    public function resendVerification(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->email_verified_at) {
+            return response()->json(['message' => 'Email déjà vérifié'], 422);
+        }
+
+        $code = $this->emailVerificationService->sendOtp($user->email, 'email_verification');
+        $this->sendVerificationEmail($user->email, $code);
+
+        event(new UserActionOccurred(
+            $user->id,
+            'otp_resend',
+            "Nouveau code de vérification envoyé à: {$user->email}"
+        ));
+
+        return response()->json(['message' => 'Un nouveau code a été envoyé.']);
+    }
+
+    public function verifyOtp(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'code' => 'required|string',
+        ]);
+
+        if ($user->email_verified_at) {
+            return response()->json(['message' => 'Email déjà vérifié'], 422);
+        }
+
+        if (!$this->emailVerificationService->verifyOtp($user->email, $request->code, 'email_verification')) {
+            return response()->json(['message' => 'Code de vérification invalide ou expiré'], 422);
+        }
+
+        $user->update([
+            'actif' => true,
+            'email_verified' => true,
+            'email_verified_at' => now()
+        ]);
+
+        event(new UserActionOccurred(
+            $user->id,
+            'email_verified',
+            "Email vérifié avec succès pour: {$user->email}"
+        ));
+
+        return response()->json(['message' => 'Email vérifié avec succès.']);
+    }
+
     private function sendVerificationEmail($email, $code)
     {
         try {
@@ -191,25 +248,17 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if (!$user->actif) {
-            return response()->json([
-                'message' => 'Votre compte n\'est pas encore activé. Veuillez vérifier votre email.'
-            ], 403);
-        }
-
         // Log in user via session
         Auth::login($user);
 
         // Regenerate session to prevent fixation attacks
         $request->session()->regenerate();
 
-        \App\Models\LogAction::record(
+        event(new UserActionOccurred(
             $user->id,
-            'Connexion',
-            'utilisateurs',
-            $user->id,
-            $request->ip()
-        );
+            'login',
+            "Connexion réussie: {$user->email}"
+        ));
 
         // Return safe user info to frontend
         return response()->json([
@@ -221,6 +270,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'role'    => $user->role ? strtolower($user->role->code) : null,
                 'actif'   => $user->actif,
+                'email_verified_at' => $user->email_verified_at,
             ]
         ]);
     }
@@ -251,6 +301,7 @@ class AuthController extends Controller
                 'role_id' => $user->role_id,
                 'role'    => $user->role ? strtolower($user->role->code) : null,
                 'actif'   => $user->actif,
+                'email_verified_at' => $user->email_verified_at,
             ]
         ]);
     }
@@ -263,6 +314,8 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = Auth::user();
+
         Auth::logout();
 
         $request->session()->invalidate();
@@ -272,14 +325,12 @@ class AuthController extends Controller
         $cookie = cookie(config('session.cookie'), '', -1);
         $xsrfCookie = cookie('XSRF-TOKEN', '', -1);
 
-        if ($request->user()) {
-            \App\Models\LogAction::record(
-                $request->user()->id,
-                'Déconnexion',
-                'utilisateurs',
-                $request->user()->id,
-                $request->ip()
-            );
+        if ($user) {
+            event(new UserActionOccurred(
+                $user->id,
+                'logout',
+                "Déconnexion réussie: {$user->email}"
+            ));
         }
 
         return response()->json([

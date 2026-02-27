@@ -9,7 +9,18 @@ class LogAction extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['action', 'entite', 'entite_id', 'date_action', 'adresse_ip', 'user_id'];
+    protected $fillable = [
+        'user_id',
+        'action_type',
+        'description',
+        'ip_address',
+        'user_agent',
+        'action', // existing
+        'entite', // existing
+        'entite_id', // existing
+        'date_action', // existing
+        'adresse_ip', // existing
+    ];
     
     protected $casts = [
         'date_action' => 'datetime',

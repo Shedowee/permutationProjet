@@ -31,7 +31,7 @@ class DemandePermutationController extends Controller
             } else {
                 $query->whereRaw('1 = 0');
             }
-        } elseif (!in_array($roleCode, ['COMISSION', 'ADMIN'])) {
+        } elseif (!in_array($roleCode, ['COMMISSION', 'ADMIN'])) {
             $query->whereRaw('1 = 0');
         }
 
@@ -96,14 +96,6 @@ class DemandePermutationController extends Controller
             'date_soumission' => now(),
         ]);
 
-        LogAction::create([
-            'action' => 'CREATE_DEMANDE',
-            'entite' => 'DemandePermutation',
-            'entite_id' => $demande->id,
-            'adresse_ip' => $request->ip(),
-            'user_id' => $user->id,
-        ]);
-
         return response()->json(['data' => $demande], 201);
     }
 
@@ -127,14 +119,6 @@ class DemandePermutationController extends Controller
             'commentaire_commission' => $request->commentaire_commission,
             'date_traitement' => now(),
             'traite_par_utilisateur_id' => $user->id,
-        ]);
-
-        LogAction::create([
-            'action' => 'TRAITER_DEMANDE',
-            'entite' => 'DemandePermutation',
-            'entite_id' => $demande->id,
-            'adresse_ip' => $request->ip(),
-            'user_id' => $user->id,
         ]);
 
         return response()->json(['data' => $demande->fresh(['etat'])]);

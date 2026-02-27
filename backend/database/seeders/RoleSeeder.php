@@ -15,7 +15,7 @@ class RoleSeeder extends Seeder
 
         Role::firstOrCreate(['code' => 'ADMIN'], ['libelle' => 'Admin', 'role_category_id' => $adminCat?->id]);
         Role::firstOrCreate(['code' => 'EMPLOYE'], ['libelle' => 'Employé', 'role_category_id' => $metierCat?->id]);
-        Role::firstOrCreate(['code' => 'COMISSION'], ['libelle' => 'Commission', 'role_category_id' => $metierCat?->id]);
+        Role::firstOrCreate(['code' => 'COMMISSION'], ['libelle' => 'Commission', 'role_category_id' => $metierCat?->id]);
         Role::firstOrCreate(['code' => 'USER'], ['libelle' => 'Utilisateur standard', 'role_category_id' => $metierCat?->id]);
     }
 }

@@ -22,20 +22,23 @@ class User extends Authenticatable
         'actif',
         'date_derniere_connexion',
         'profile_picture',
+        'age',
+        'phone',
+        'address',
+        'email_verified_at',
+        'email_verified',
     ];
-
-    public function documents()
-    {
-        return $this->hasMany(UserDocument::class);
-    }
 
     protected $casts = [
         'date_derniere_connexion' => 'datetime',
         'actif' => 'boolean',
+        'email_verified' => 'boolean',
+        'email_verified_at' => 'datetime',
     ];
 
     protected $hidden = [
         'mot_de_passe',
+        'remember_token',
     ];
 
     protected static function booted()
@@ -53,18 +56,66 @@ class User extends Authenticatable
         return $this->mot_de_passe;
     }
 
+    /**
+     * Get the employee profile associated with the user.
+     */
+    public function employe()
+    {
+        return $this->hasOne(Employe::class, 'user_id');
+    }
+
+    /**
+     * Get the role associated with the user.
+     */
     public function role()
     {
         return $this->belongsTo(Role::class);
     }
 
-    public function employe()
+    /**
+     * Check if the user has a specific role.
+     */
+    public function hasRole(string $roleCode): bool
     {
-        return $this->hasOne(Employe::class);
+        return $this->role && strtoupper($this->role->code) === strtoupper($roleCode);
+    }
+
+    /**
+     * Check if user is an administrator.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('ADMIN');
+    }
+
+    /**
+     * Check if user is a commission member.
+     */
+    public function isCommission(): bool
+    {
+        return $this->hasRole('COMMISSION');
+    }
+
+    /**
+     * Check if user is an employee.
+     */
+    public function isEmployee(): bool
+    {
+        return $this->hasRole('EMPLOYE') || $this->hasRole('FORMATEUR');
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
     }
 
     public function logs()
     {
         return $this->hasMany(LogAction::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(UserDocument::class);
     }
 }

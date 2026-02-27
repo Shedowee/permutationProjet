@@ -12,8 +12,6 @@ return new class extends Migration
             $table->id();
             $table->string('cin', 20)->unique()->nullable();
             $table->string('matricule', 20)->unique()->nullable();
-            $table->string('nom', 50);
-            $table->string('prenom', 50);
             $table->date('date_recrutement')->nullable();
             $table->foreignId('user_id')->constrained('utilisateurs')->cascadeOnDelete();
             $table->foreignId('grade_id')->nullable()->constrained('parametres')->nullOnDelete();

@@ -63,6 +63,17 @@ class ParametreController extends Controller
         ]);
     }
 
+    public function getCitiesByRegion(Request $request, $regionId)
+    {
+        $cities = Parametre::where('type', 'VILLE')
+            ->where('parent_id', $regionId)
+            ->where('actif', true)
+            ->orderBy('ordre')
+            ->get();
+
+        return response()->json(['data' => $cities]);
+    }
+
     public function destroy(Parametre $parametre)
     {
         $parametre->delete();

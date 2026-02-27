@@ -23,17 +23,32 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::post('/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:3,60');
+    Route::post('/email/verify', [AuthController::class, 'verifyOtp']);
 
-    // Routes restricted for 'USER' role
-    Route::middleware('check.role')->group(function () {
+    // Profile & Notifications (Always accessible if authenticated)
+    Route::get('/notifications', [UtilisateursController::class, 'getNotifications']);
+    Route::put('/notifications/{notification}/read', [UtilisateursController::class, 'markNotificationRead']);
+    Route::get('/notifications/unread-count', [UtilisateursController::class, 'getUnreadNotificationsCount']);
+    
+    Route::put('/user/profile', [UtilisateursController::class, 'updateProfile']);
+    Route::put('/user/password', [UtilisateursController::class, 'updatePassword']);
+    Route::put('/user/email', [UtilisateursController::class, 'updateEmail']);
+    Route::post('/user/email/verify', [UtilisateursController::class, 'verifyNewEmail']);
+    Route::post('/user/profile-picture', [UtilisateursController::class, 'updateProfilePicture']);
+
+    // Routes restricted for 'USER' role and verified users
+    Route::middleware(['check.role', 'verified'])->group(function () {
         // Parametres
         Route::get('/parametres', [ParametreController::class, 'index']);
+        Route::get('/parametres/regions/{regionId}/cities', [ParametreController::class, 'getCitiesByRegion']);
         Route::post('/parametres', [ParametreController::class, 'store']);
         Route::put('/parametres/{parametre}', [ParametreController::class, 'update']);
         Route::delete('/parametres/{parametre}', [ParametreController::class, 'destroy']);
 
         // Etablissements
         Route::get('/etablissements', [EtablissementController::class, 'index']);
+        Route::get('/etablissements/cities/{cityId}', [EtablissementController::class, 'getByCity']);
         Route::put('/etablissements/{etablissement}', [EtablissementController::class, 'update']);
 
         // Employe
@@ -54,8 +69,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/users/{user}', [UtilisateursController::class, 'update']);
         Route::delete('/users/{user}', [UtilisateursController::class, 'destroy']);
 
-        // Profile & Documents
-        Route::post('/user/profile-picture', [UtilisateursController::class, 'updateProfilePicture']);
         Route::get('/user/documents', [UtilisateursController::class, 'listDocuments']);
         Route::post('/user/documents', [UtilisateursController::class, 'uploadDocument']);
         Route::delete('/user/documents/{document}', [UtilisateursController::class, 'deleteDocument']);

@@ -17,6 +17,16 @@ class EtablissementController extends Controller
         return response()->json(['data' => $etabs]);
     }
 
+    public function getByCity(Request $request, $cityId)
+    {
+        $etabs = Etablissement::where('ville_id', $cityId)
+            ->where('actif', true)
+            ->orderBy('nom')
+            ->get();
+
+        return response()->json(['data' => $etabs]);
+    }
+
     public function update(Request $request, Etablissement $etablissement)
     {
         $validated = $request->validate([
