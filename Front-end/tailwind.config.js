@@ -18,17 +18,17 @@ export default {
           950: '#1e1b4b',
         },
         accent: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#14b8a6', // Teal 500
-          600: '#0d9488',
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-          950: '#042f2e',
+          50: '#FFFBEB',
+          100: '#FEF3C7',
+          200: '#FDE68A',
+          300: '#FCD34D',
+          400: '#FACC15', // Soft highlight
+          500: '#EAB308', // Brand yellow
+          600: '#F59E0B', // Deeper accent for hover
+          700: '#B45309',
+          800: '#92400E',
+          900: '#78350F',
+          950: '#451A03',
         },
         surface: {
           50: '#f8fafc',

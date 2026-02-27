@@ -61,7 +61,7 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
   };
 
   return (
-    <header className={`fixed top-0 right-0 z-[50] h-20 flex items-center justify-between px-4 md:px-8 bg-white/80 backdrop-blur-xl border-b border-surface-200 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] ${isSidebarOpen ? "left-72" : "left-20" } lg:left-auto ${isSidebarOpen ? "lg:left-72" : "lg:left-20" }`}>
+    <header className="sticky top-0 inset-x-0 z-[50] h-20 flex items-center justify-between px-4 md:px-8 bg-white/80 backdrop-blur-xl border-b border-surface-200 shadow-sm">
       <div className="flex items-center">
         <button
           onClick={onMenuClick}

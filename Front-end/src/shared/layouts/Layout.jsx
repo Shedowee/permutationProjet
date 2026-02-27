@@ -17,7 +17,7 @@ const Layout = ({ children }) => {
   }, [sidebarOpen]);
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] text-surface-900 overflow-hidden relative">
+    <div className="flex min-h-screen bg-[#F8FAFC] text-surface-900 overflow-hidden relative">
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute -top-[10%] -right-[5%] w-[40%] h-[40%] rounded-full bg-primary-100/30 blur-[120px]"></div>
@@ -30,14 +30,14 @@ const Layout = ({ children }) => {
         userRole={userRole}
       />
 
-      <div className="flex flex-col flex-1 w-full transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10">
+      <div className="flex flex-col flex-1 w-full min-w-0 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10 overflow-hidden">
         <Navbar
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           userRole={userRole}
           isSidebarOpen={sidebarOpen}
         />
 
-        <main className="flex-1 overflow-y-auto pt-20">
+        <main className="flex-1 overflow-y-auto">
           <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto w-full relative">
             {children}
           </div>

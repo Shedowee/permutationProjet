@@ -115,15 +115,15 @@ const Sidebar = ({ isOpen, onClose, userRole }) => {
                   group flex items-center rounded-xl text-sm font-semibold transition-all duration-300 relative overflow-hidden
                   ${isOpen ? "px-4 py-3.5" : "p-3.5 justify-center"}
                   ${active 
-                    ? "bg-primary-50 text-primary-600 border border-primary-100 shadow-sm" 
+                    ? "bg-accent-50 text-accent-700 border border-accent-100 shadow-sm" 
                     : "text-surface-500 hover:text-surface-900 hover:bg-surface-50 border border-transparent"
                   }
                 `}
                 title={!isOpen ? item.name : ""}
                 onClick={() => window.innerWidth < 1024 && onClose()}
               >
-                {active && <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-primary-500 rounded-r-full"></div>}
-                <Icon className={`w-5 h-5 transition-colors shrink-0 ${isOpen ? "mr-3" : ""} ${active ? "text-primary-600" : "group-hover:text-primary-600"}`} />
+                {active && <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-accent-500 rounded-r-full"></div>}
+                <Icon className={`w-5 h-5 transition-colors shrink-0 ${isOpen ? "mr-3" : ""} ${active ? "text-accent-700" : "group-hover:text-accent-600"}`} />
                 {isOpen && <span className="animate-fadeIn truncate">{item.name}</span>}
               </Link>
             );

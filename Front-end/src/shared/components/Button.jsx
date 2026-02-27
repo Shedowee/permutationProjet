@@ -13,7 +13,7 @@ const Button = ({
   const baseClasses = 'font-semibold rounded-xl transition-all duration-300 focus:outline-none active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 flex items-center justify-center';
   
   const variants = {
-    primary: 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm shadow-primary-500/20',
+    primary: 'bg-accent-500 text-white hover:bg-accent-600 shadow-sm shadow-accent-500/20',
     secondary: 'bg-white text-surface-700 hover:bg-surface-50 border border-surface-200 shadow-sm',
     accent: 'bg-accent-500 text-white hover:bg-accent-600 shadow-sm shadow-accent-500/20',
     danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-500/20',
