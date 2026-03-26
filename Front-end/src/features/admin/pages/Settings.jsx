@@ -39,6 +39,10 @@ const Settings = () => {
   });
   const [filterType, setFilterType] = useState("");
   const [message, setMessage] = useState({ text: "", type: "success" });
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
 
   const types = [
     { value: "", label: "Tous les types" },
@@ -67,6 +71,11 @@ const Settings = () => {
   useEffect(() => {
     loadParametres();
   }, []);
+
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType]);
 
   const handleOpenCreate = () => {
     setModalType("create");
@@ -126,6 +135,14 @@ const Settings = () => {
   };
 
   const filteredParams = parametres.filter(p => !filterType || p.type === filterType);
+  
+  // Calculate pagination
+  const totalItems = filteredParams.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const paginatedParams = filteredParams.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const columns = [
     { 
@@ -137,7 +154,7 @@ const Settings = () => {
             {val}
           </span>
           {val === "VILLE" && row.parent_id && (
-            <div className="flex items-center text-[10px] text-surface-400 font-bold uppercase tracking-tighter">
+            <div className="flex items-center text-[10px] text-surface-500 font-bold uppercase tracking-tighter">
               <MapPinIcon className="h-3 w-3 mr-1" />
               Région: {parametres.find(p => p.id === row.parent_id)?.libelle || "—"}
             </div>
@@ -149,7 +166,7 @@ const Settings = () => {
       header: "Code Système", 
       key: "code",
       render: (val) => (
-        <code className="text-[11px] font-mono bg-surface-50 text-surface-600 px-2 py-1 rounded-lg border border-surface-100">
+        <code className="text-[11px] font-mono bg-surface-50 text-surface-700 px-2 py-1 rounded-lg border border-surface-100">
           {val}
         </code>
       )
@@ -163,7 +180,7 @@ const Settings = () => {
       header: "Ordre", 
       key: "ordre",
       render: (val) => (
-        <div className="flex items-center space-x-2 text-surface-400 font-medium">
+        <div className="flex items-center space-x-2 text-surface-500 font-bold">
           <Bars3BottomLeftIcon className="h-4 w-4" />
           <span>{val}</span>
         </div>
@@ -188,14 +205,14 @@ const Settings = () => {
         <div className="flex items-center space-x-2">
           <button 
             onClick={() => handleOpenEdit(row)} 
-            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-400 hover:text-primary-600 hover:border-primary-200 hover:shadow-sm transition-all group"
+            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-primary-600 hover:border-primary-200 hover:shadow-sm transition-all group"
             title="Modifier"
           >
             <PencilIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
           </button>
           <button 
             onClick={() => handleOpenDelete(row)} 
-            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-400 hover:text-rose-600 hover:border-rose-200 hover:shadow-sm transition-all group"
+            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-rose-600 hover:border-rose-200 hover:shadow-sm transition-all group"
             title="Supprimer"
           >
             <TrashIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -220,7 +237,7 @@ const Settings = () => {
                 <span>Administration</span>
               </div>
               <h1 className="text-3xl font-black text-surface-900 tracking-tight">Configuration <span className="text-primary-600">Système</span></h1>
-              <p className="text-surface-500 text-sm font-medium">Gérez les constantes et référentiels de l'application</p>
+              <p className="text-surface-600 text-sm font-bold">Gérez les constantes et référentiels de l'application</p>
             </div>
           </div>
           <Button 
@@ -248,22 +265,22 @@ const Settings = () => {
         )}
 
         {/* Filtres et Tableau */}
-        <div className="bg-white rounded-[2.5rem] p-8 border border-surface-100 shadow-sm space-y-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center space-x-4">
-              <div className="relative group">
+        <div className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-8 border border-surface-100 shadow-sm space-y-6 sm:space-y-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex items-center space-x-3 sm:space-x-4 overflow-x-auto pb-2 sm:pb-0">
+              <div className="relative group shrink-0">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                  <AdjustmentsHorizontalIcon className="h-4 w-4 text-surface-400 group-focus-within:text-primary-500 transition-colors" />
+                  <AdjustmentsHorizontalIcon className="h-4 w-4 text-surface-600 group-focus-within:text-primary-500 transition-colors" />
                 </div>
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="bg-surface-50 border border-surface-100 rounded-2xl pl-11 pr-10 py-3.5 text-xs font-black uppercase tracking-widest text-surface-600 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none appearance-none cursor-pointer"
+                  className="bg-surface-50 border border-surface-100 rounded-xl sm:rounded-2xl pl-11 pr-10 py-3 text-[10px] sm:text-xs font-black uppercase tracking-widest text-surface-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none appearance-none cursor-pointer"
                 >
                   {types.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
                 <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                  <svg className="h-4 w-4 text-surface-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-4 w-4 text-surface-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
@@ -271,27 +288,35 @@ const Settings = () => {
 
               <button 
                 onClick={loadParametres} 
-                className="p-3.5 rounded-2xl bg-surface-50 border border-surface-100 text-surface-400 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-all group"
+                className="p-3 rounded-xl sm:rounded-2xl bg-surface-50 border border-surface-100 text-surface-600 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-all group shrink-0"
                 title="Actualiser les données"
               >
-                <ArrowPathIcon className={`w-5 h-5 group-hover:rotate-180 transition-transform duration-500 ${loading ? "animate-spin" : ""}`} />
+                <ArrowPathIcon className={`w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-180 transition-transform duration-500 ${loading ? "animate-spin" : ""}`} />
               </button>
             </div>
             
-            <div className="flex items-center space-x-2 px-4 py-2 bg-surface-50 rounded-xl border border-surface-100">
-              <HashtagIcon className="h-4 w-4 text-surface-400" />
-              <span className="text-[10px] font-black text-surface-500 uppercase tracking-widest">
+            <div className="flex items-center space-x-2 px-4 py-2 bg-surface-50 rounded-xl border border-surface-100 self-start sm:self-auto">
+              <HashtagIcon className="h-4 w-4 text-surface-600" />
+              <span className="text-[10px] font-black text-surface-700 uppercase tracking-widest">
                 {filteredParams.length} entrées trouvées
               </span>
             </div>
           </div>
 
-          <div className="rounded-[2rem] overflow-hidden border border-surface-50">
+          <div className="overflow-hidden rounded-xl sm:rounded-2xl">
             <Table 
               columns={columns} 
-              data={filteredParams} 
+              data={paginatedParams} 
               loading={loading}
               emptyMessage="Aucun paramètre configuré dans cette catégorie"
+              className="max-h-[calc(100vh-28rem)] min-h-[400px]"
+              pagination={{
+                currentPage,
+                totalPages,
+                onPageChange: setCurrentPage,
+                totalItems,
+                pageSize
+              }}
             />
           </div>
         </div>
@@ -306,7 +331,7 @@ const Settings = () => {
           <form onSubmit={handleSubmit} className="space-y-8 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Catégorie / Type *</label>
+                <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1">Catégorie / Type *</label>
                 <div className="relative group">
                   <select
                     name="type"
@@ -317,20 +342,20 @@ const Settings = () => {
                   >
                     {types.filter(t => t.value !== "").map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
-                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-500">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </div>
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Code Système Unique *</label>
+                <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1">Code Système Unique *</label>
                 <input
                   type="text"
                   name="code"
                   value={formData.code}
                   onChange={handleInputChange}
-                  className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="EX: REG_CASABLANCA"
                   required
                   disabled={modalType === "edit"}
@@ -340,7 +365,7 @@ const Settings = () => {
 
             {formData.type === "VILLE" && (
               <div className="space-y-3 animate-slideDown">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Région de rattachement *</label>
+                <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1">Région de rattachement *</label>
                 <div className="relative group">
                   <select
                     name="parent_id"
@@ -352,7 +377,7 @@ const Settings = () => {
                     <option value="">Sélectionnez une région</option>
                     {regions.map(r => <option key={r.id} value={r.id}>{r.libelle}</option>)}
                   </select>
-                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-primary-400">
+                  <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-primary-600">
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                   </div>
                 </div>
@@ -360,13 +385,13 @@ const Settings = () => {
             )}
 
             <div className="space-y-3">
-              <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Libellé d'affichage *</label>
+              <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1">Libellé d'affichage *</label>
               <input
                 type="text"
                 name="libelle"
                 value={formData.libelle}
                 onChange={handleInputChange}
-                className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-300"
+                className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400"
                 placeholder="Le nom tel qu'il apparaîtra dans les menus"
                 required
               />
@@ -374,7 +399,7 @@ const Settings = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Priorité d'affichage</label>
+                <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1">Priorité d'affichage</label>
                 <input
                   type="number"
                   name="ordre"
@@ -395,8 +420,8 @@ const Settings = () => {
                     onChange={handleInputChange}
                     className="sr-only peer"
                   />
-                  <div className="w-14 h-7 bg-surface-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500 transition-colors"></div>
-                  <label htmlFor="actif" className="ml-4 text-[10px] font-black text-surface-500 uppercase tracking-widest cursor-pointer select-none">
+                  <div className="w-14 h-7 bg-surface-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500 transition-colors"></div>
+                  <label htmlFor="actif" className="ml-4 text-[10px] font-black text-surface-700 uppercase tracking-widest cursor-pointer select-none">
                     Statut Actif
                   </label>
                 </div>
@@ -436,7 +461,7 @@ const Settings = () => {
               </div>
               <div className="space-y-2">
                 <p className="text-surface-900 font-bold text-lg">Suppression irréversible</p>
-                <p className="text-surface-500 text-sm leading-relaxed">
+                <p className="text-surface-700 text-sm leading-relaxed font-medium">
                   Êtes-vous absolument certain de vouloir supprimer le paramètre <br />
                   <span className="text-rose-600 font-black uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-md text-[10px]">
                     "{selectedParam?.libelle}"

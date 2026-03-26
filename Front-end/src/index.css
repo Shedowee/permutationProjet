@@ -4,51 +4,55 @@
 
 @layer base {
   body {
-    @apply bg-surface-50 text-surface-800 antialiased;
+    @apply bg-surface-50 text-surface-900 antialiased selection:bg-primary-100 selection:text-primary-900;
     font-family: 'Inter', 'Poppins', 'Open Sans', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight text-surface-900;
   }
 }
 
 @layer utilities {
-  @keyframes scanline {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100vh); }
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-soft;
   }
-  .animate-scanline {
-    animation: scanline 8s linear infinite;
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-secondary-600;
   }
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  @apply bg-surface-100;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  @apply bg-neutral-300 rounded-full hover:bg-neutral-400 transition-colors;
+  
+  .transition-standard {
+    @apply transition-all duration-300 ease-in-out;
+  }
 }
 
 @layer components {
+  .input-field {
+    @apply w-full px-4 py-2.5 bg-white border border-surface-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-standard outline-none placeholder:text-surface-400 text-sm;
+  }
+  
+  .label-text {
+    @apply block text-xs font-bold text-surface-600 uppercase tracking-widest mb-2;
+  }
+
   .btn-primary {
-    @apply bg-primary-500 text-white shadow-sm hover:bg-primary-600 hover:shadow-md active:scale-[0.98] transition-all duration-300 rounded-lg font-semibold;
+    @apply bg-primary-500 text-white shadow-primary hover:bg-primary-600 active:scale-[0.98] transition-standard rounded-xl px-6 py-2.5 font-bold text-sm flex items-center justify-center gap-2;
   }
   
   .btn-secondary {
-    @apply bg-secondary-500 text-white shadow-sm hover:bg-secondary-600 hover:shadow-md active:scale-[0.98] transition-all duration-300 rounded-lg font-semibold;
+    @apply bg-secondary-500 text-white shadow-secondary hover:bg-secondary-600 active:scale-[0.98] transition-standard rounded-xl px-6 py-2.5 font-bold text-sm flex items-center justify-center gap-2;
   }
 
   .btn-outline {
-    @apply bg-transparent border border-secondary-200 text-secondary-700 hover:bg-secondary-50 hover:border-secondary-400 active:scale-[0.98] transition-all duration-300 rounded-lg font-semibold;
+    @apply bg-transparent border border-surface-200 text-surface-700 hover:bg-surface-50 hover:border-surface-300 active:scale-[0.98] transition-standard rounded-xl px-6 py-2.5 font-bold text-sm flex items-center justify-center gap-2;
   }
   
-  .card-institutional {
-    @apply bg-white border border-neutral-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300;
+  .card-base {
+    @apply bg-white border border-surface-100 rounded-2xl shadow-soft hover:shadow-medium transition-standard overflow-hidden;
   }
 
   .section-title {
-    @apply text-2xl font-bold text-surface-800 mb-6 border-b-2 border-primary-500 pb-2 inline-block;
+    @apply text-2xl font-black text-surface-900 mb-6 flex items-center gap-3;
   }
 }

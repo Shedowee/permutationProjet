@@ -31,6 +31,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Silence 401 noise for the check-auth endpoint
+    if (error.response?.status === 401 && error.config.url.includes('/api/me')) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 403 && error.response?.data?.email_verification_required) {
       // Avoid infinite loops if already on verify page
       if (!window.location.pathname.includes('/verify-email')) {

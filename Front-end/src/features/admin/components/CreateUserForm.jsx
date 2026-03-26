@@ -136,156 +136,164 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
   };
 
   return (
-    <Card className="p-8 max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-8 py-4">
       {successMessage && (
-        <div className="mb-6 p-4 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center">
-          <CheckCircleIcon className="w-5 h-5 text-green-400 mr-3" />
-          <span className="text-green-400">{successMessage}</span>
+        <div className="p-4 rounded-2xl bg-teal-50 border border-teal-100 flex items-center animate-slideDown">
+          <CheckCircleIcon className="w-5 h-5 text-teal-600 mr-3" />
+          <span className="text-xs font-black text-teal-700 uppercase tracking-widest">{successMessage}</span>
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Nom complet
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
+              Nom complet *
             </label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              className={`w-full px-4 py-3 bg-gray-800/50 border ${
-                errors.name ? 'border-red-500' : 'border-gray-700'
-              } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200`}
+              className={`w-full bg-surface-50 border ${
+                errors.name ? 'border-rose-500' : 'border-surface-200'
+              } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
               placeholder="Entrez le nom complet"
             />
             {errors.name && (
-              <p className="mt-1 text-sm text-red-400 flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1" />
+              <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 flex items-center">
+                <ExclamationCircleIcon className="w-4 h-4 mr-1.5" />
                 {errors.name}
               </p>
             )}
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Email
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
+              Email Professionnel *
             </label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleInputChange}
-              className={`w-full px-4 py-3 bg-gray-800/50 border ${
-                errors.email ? 'border-red-500' : 'border-gray-700'
-              } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200`}
-              placeholder="Entrez l'adresse email"
+              className={`w-full bg-surface-50 border ${
+                errors.email ? 'border-rose-500' : 'border-surface-200'
+              } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
+              placeholder="utilisateur@ofppt.ma"
             />
             {errors.email && (
-              <p className="mt-1 text-sm text-red-400 flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1" />
+              <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 flex items-center">
+                <ExclamationCircleIcon className="w-4 h-4 mr-1.5" />
                 {errors.email}
               </p>
             )}
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Mot de passe
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
+              Mot de passe *
             </label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              className={`w-full px-4 py-3 bg-gray-800/50 border ${
-                errors.password ? 'border-red-500' : 'border-gray-700'
-              } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200`}
-              placeholder="Entrez le mot de passe"
+              className={`w-full bg-surface-50 border ${
+                errors.password ? 'border-rose-500' : 'border-surface-200'
+              } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
+              placeholder="Min. 6 caractères"
             />
             {errors.password && (
-              <p className="mt-1 text-sm text-red-400 flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1" />
+              <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 flex items-center">
+                <ExclamationCircleIcon className="w-4 h-4 mr-1.5" />
                 {errors.password}
               </p>
             )}
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Rôle
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
+              Rôle Système *
             </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleInputChange}
-              className={`w-full px-4 py-3 bg-gray-800/50 border ${
-                errors.role ? 'border-red-500' : 'border-gray-700'
-              } rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200`}
-            >
-              <option value="">Sélectionnez un rôle</option>
-              {roles.map(role => (
-                <option key={role.value} value={role.value}>{role.label}</option>
-              ))}
-            </select>
+            <div className="relative group">
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                className={`w-full bg-surface-50 border ${
+                  errors.role ? 'border-rose-500' : 'border-surface-200'
+                } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer`}
+              >
+                <option value="">Sélectionnez un rôle</option>
+                {roles.map(role => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            </div>
             {errors.role && (
-              <p className="mt-1 text-sm text-red-400 flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1" />
+              <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 flex items-center">
+                <ExclamationCircleIcon className="w-4 h-4 mr-1.5" />
                 {errors.role}
               </p>
             )}
           </div>
           
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-400 mb-2">
-              Statut
+          <div className="md:col-span-2 space-y-3">
+            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
+              Statut Initial
             </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
-            >
-              {statuses.map(status => (
-                <option key={status.value} value={status.value}>{status.label}</option>
-              ))}
-            </select>
+            <div className="relative group">
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleInputChange}
+                className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+              >
+                {statuses.map(status => (
+                  <option key={status.value} value={status.value}>{status.label}</option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            </div>
           </div>
         </div>
         
-        <div className="pt-4 flex justify-end space-x-4">
+        <div className="pt-8 flex flex-col sm:flex-row justify-end gap-4 border-t border-surface-50">
           <Button 
             type="button" 
             variant="secondary" 
             onClick={onCancel}
+            className="px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
           >
             Annuler
           </Button>
           <Button 
             type="submit" 
             variant="primary" 
-            className="w-full md:w-auto flex items-center justify-center"
+            className="px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary-500/20 flex items-center justify-center group"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Création en cours...
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-3"></div>
+                <span>Création...</span>
               </>
             ) : (
               <>
-                <UserPlusIcon className="w-5 h-5 mr-2" />
-                Créer le compte
+                <UserPlusIcon className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
+                <span>Créer le compte</span>
               </>
             )}
           </Button>
         </div>
       </form>
-    </Card>
+    </div>
   );
 };
 

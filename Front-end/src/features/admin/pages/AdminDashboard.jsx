@@ -2,10 +2,12 @@ import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
+import Button from '../../../shared/components/Button';
 import { fetchAdminStats } from '../redux/adminSlice';
+import { motion } from 'framer-motion';
 
 import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+  PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 import { 
@@ -19,8 +21,6 @@ import {
   ArrowPathIcon,
   PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
-
-const COLORS = ['#6366f1', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
@@ -40,8 +40,10 @@ const AdminDashboard = () => {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-          <p className="text-secondary-600 font-bold uppercase tracking-widest text-xs">Chargement du tableau de bord...</p>
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-4 border-primary-100 border-t-primary-500 animate-spin"></div>
+          </div>
+          <p className="text-surface-600 font-black uppercase tracking-widest text-[10px]">Chargement du tableau de bord...</p>
         </div>
       </Layout>
     );
@@ -49,20 +51,33 @@ const AdminDashboard = () => {
 
   return (
     <Layout>
-      <div className="space-y-10 pb-12 max-w-[1600px] mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-4xl font-black text-surface-800 tracking-tight">Tableau de bord</h1>
-            <p className="text-secondary-700 mt-1 font-medium italic">Vue d'ensemble de l'activité du système de permutation</p>
-            <div className="h-1.5 w-24 bg-primary-500 rounded-full mt-4"></div>
-          </div>
-          <button 
-            onClick={() => dispatch(fetchAdminStats())}
-            className="flex items-center space-x-2 px-6 py-3 bg-white hover:bg-secondary-50 text-secondary-700 rounded-xl border border-secondary-200 shadow-sm transition-all text-xs font-black uppercase tracking-widest group"
+      <div className="space-y-12 pb-12 max-w-[1600px] mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <ArrowPathIcon className={`w-4 h-4 transition-transform group-hover:rotate-180 duration-500 ${loading ? 'animate-spin' : ''}`} />
-            <span>Actualiser</span>
-          </button>
+            <h1 className="text-4xl font-black text-surface-900 tracking-tight uppercase">Tableau de bord</h1>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="h-1 w-12 bg-primary-500 rounded-full"></span>
+              <p className="text-surface-600 font-black uppercase tracking-widest text-[10px]">Vue d'ensemble de l'activité</p>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Button 
+              variant="outline"
+              onClick={() => dispatch(fetchAdminStats())}
+              icon={ArrowPathIcon}
+              className={loading ? 'animate-spin' : ''}
+            >
+              Actualiser
+            </Button>
+          </motion.div>
         </div>
         
         {/* Main Stats Cards */}
@@ -72,7 +87,7 @@ const AdminDashboard = () => {
             value={stats?.totalUsers || 0}
             subValue={`${stats?.activeUsers || 0} actifs`}
             icon={<UserGroupIcon className="w-6 h-6" />}
-            color="blue"
+            color="primary"
             percentage={stats?.totalUsers ? (stats.activeUsers / stats.totalUsers) * 100 : 0}
           />
           <StatCard 
@@ -80,7 +95,7 @@ const AdminDashboard = () => {
             value={stats?.validatedRequests || 0}
             subValue="Toutes périodes"
             icon={<CheckBadgeIcon className="w-6 h-6" />}
-            color="green"
+            color="success"
             percentage={stats?.validatedRequests && stats?.pendingRequests ? (stats.validatedRequests / (stats.validatedRequests + stats.pendingRequests)) * 100 : 0}
           />
           <StatCard 
@@ -88,38 +103,38 @@ const AdminDashboard = () => {
             value={stats?.pendingRequests || 0}
             subValue="Nécessite action"
             icon={<ExclamationCircleIcon className="w-6 h-6" />}
-            color="amber"
+            color="accent"
           />
           <StatCard 
             title="Établissements" 
             value={stats?.totalEstablishments || 0}
             subValue="Inscrits"
             icon={<BuildingOffice2Icon className="w-6 h-6" />}
-            color="blue"
+            color="secondary"
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Chart Section */}
           <div className="lg:col-span-2 space-y-8">
-            <Card variant="institutional" className="p-8 rounded-2xl border-secondary-100">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4 border-b border-secondary-100 pb-6">
-                <h2 className="text-lg font-black text-surface-800 flex items-center uppercase tracking-widest">
-                  <PresentationChartLineIcon className="w-6 h-6 mr-3 text-primary-500" />
+            <Card className="p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-10 gap-4 border-b border-surface-50 pb-6">
+                <h2 className="text-[10px] font-black text-surface-900 flex items-center uppercase tracking-[0.2em]">
+                  <PresentationChartLineIcon className="w-5 h-5 mr-3 text-primary-500" />
                   Activité du Système
                 </h2>
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center">
-                    <span className="w-2.5 h-2.5 rounded-full bg-primary-500 mr-2 shadow-sm shadow-primary-500/50"></span>
-                    <span className="text-[10px] font-black text-secondary-500 uppercase tracking-widest">Connexions</span>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-primary-500 shadow-primary"></span>
+                    <span className="text-[10px] font-black text-surface-600 uppercase tracking-widest">Connexions</span>
                   </div>
-                  <div className="flex items-center">
-                    <span className="w-2.5 h-2.5 rounded-full bg-secondary-500 mr-2 shadow-sm shadow-secondary-500/50"></span>
-                    <span className="text-[10px] font-black text-secondary-500 uppercase tracking-widest">Inscriptions</span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-secondary-500 shadow-secondary"></span>
+                    <span className="text-[10px] font-black text-surface-600 uppercase tracking-widest">Inscriptions</span>
                   </div>
                 </div>
               </div>
-              <div className="h-[380px] w-full">
+              <div className="h-[400px] w-full min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={monthlyActivityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
@@ -132,7 +147,7 @@ const AdminDashboard = () => {
                         <stop offset="95%" stopColor="#0072BC" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis 
                       dataKey="month" 
                       axisLine={false} 
@@ -148,13 +163,13 @@ const AdminDashboard = () => {
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: '#fff', 
-                        border: '1px solid #e2e8f0',
+                        border: 'none',
                         borderRadius: '1rem',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
                         padding: '12px'
                       }}
                       itemStyle={{ fontSize: '12px', fontWeight: 700 }}
-                      labelStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: '#64748b', marginBottom: '8px' }}
+                      labelStyle={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: '#334155', marginBottom: '8px' }}
                     />
                     <Area 
                       type="monotone" 
@@ -180,69 +195,60 @@ const AdminDashboard = () => {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Card variant="institutional" className="p-8 rounded-2xl border-secondary-100">
-                <h2 className="text-sm font-black text-surface-800 mb-8 flex items-center uppercase tracking-widest border-b border-secondary-50 pb-4">
+              <Card className="p-8">
+                <h2 className="text-[10px] font-black text-surface-900 mb-8 flex items-center uppercase tracking-[0.2em] border-b border-surface-50 pb-4">
                   <MapPinIcon className="w-5 h-5 mr-3 text-primary-500" />
-                  Top Régions (Demandes)
+                  Top Régions
                 </h2>
                 <div className="space-y-6">
                   {regionStats.length > 0 ? regionStats.map((item, idx) => (
                     <div key={idx} className="space-y-3">
-                      <div className="flex justify-between text-xs font-black uppercase tracking-widest">
-                        <span className="text-secondary-700">{item.region}</span>
-                        <span className="text-surface-800">{item.users} <span className="text-secondary-400 font-bold lowercase">demandes</span></span>
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                        <span className="text-surface-600">{item.region}</span>
+                        <span className="text-surface-900">{item.users} demandes</span>
                       </div>
-                      <div className="w-full bg-secondary-100 rounded-full h-3 overflow-hidden">
-                        <div 
-                          className="bg-primary-500 h-full rounded-full transition-all duration-1000 shadow-sm" 
-                          style={{ width: item.growth }}
-                        ></div>
+                      <div className="w-full bg-surface-100 rounded-full h-2.5 overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: item.growth }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className="bg-primary-500 h-full rounded-full shadow-primary" 
+                        ></motion.div>
                       </div>
                     </div>
                   )) : (
-                    <div className="py-12 text-center">
-                      <p className="text-secondary-400 text-xs font-black uppercase tracking-widest italic">Aucune donnée disponible</p>
-                    </div>
+                    <p className="text-center py-10 text-xs font-bold text-surface-400 uppercase tracking-widest">Aucune donnée</p>
                   )}
                 </div>
               </Card>
 
-              <Card variant="institutional" className="p-8 rounded-2xl border-secondary-100">
-                <h2 className="text-sm font-black text-surface-800 mb-8 flex items-center uppercase tracking-widest border-b border-secondary-50 pb-4">
+              <Card className="p-8">
+                <h2 className="text-[10px] font-black text-surface-900 mb-8 flex items-center uppercase tracking-[0.2em] border-b border-surface-50 pb-4">
                   <ClockIcon className="w-5 h-5 mr-3 text-secondary-500" />
-                  Activités Récentes
+                  Dernières Actions
                 </h2>
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {recentActions.length > 0 ? recentActions.map((action, idx) => (
-                    <div key={idx} className="flex items-center space-x-4 p-4 rounded-xl bg-secondary-50/50 hover:bg-secondary-50 transition-all border border-secondary-100 group">
-                      <div className={`shrink-0 w-2.5 h-2.5 rounded-full ring-4 ${
-                        action.type === 'create' ? 'bg-primary-500 ring-primary-100' : 
-                        action.type === 'delete' ? 'bg-red-500 ring-red-100' : 'bg-secondary-500 ring-secondary-100'
-                      }`}></div>
+                    <div key={idx} className="flex items-start gap-4 group">
+                      <div className="w-2 h-2 rounded-full bg-secondary-400 mt-1.5 group-hover:scale-150 transition-standard"></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-surface-800 font-bold truncate group-hover:text-primary-600 transition-colors">{action.action}</p>
-                        <div className="flex items-center mt-1 text-[10px] font-black uppercase tracking-widest text-secondary-500 space-x-2">
-                          <span className="text-primary-600">{action.user}</span>
-                          <span className="text-secondary-200">•</span>
-                          <span className="italic">{new Date(action.time).toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'})}</span>
-                        </div>
+                        <p className="text-xs font-bold text-surface-800 leading-relaxed truncate">{action.action}</p>
+                        <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mt-1">{action.time}</p>
                       </div>
                     </div>
                   )) : (
-                    <div className="py-12 text-center">
-                      <p className="text-secondary-400 text-xs font-black uppercase tracking-widest italic">Aucun log récent</p>
-                    </div>
+                    <p className="text-center py-10 text-xs font-bold text-surface-400 uppercase tracking-widest">Aucun historique</p>
                   )}
                 </div>
               </Card>
             </div>
           </div>
 
-          {/* Sidebar Section */}
+          {/* Sidebar Info */}
           <div className="space-y-8">
-            <Card variant="institutional" className="p-8 rounded-2xl border-secondary-100 bg-white shadow-sm">
-              <h2 className="text-sm font-black text-surface-800 mb-8 uppercase tracking-widest border-b border-secondary-50 pb-4">Répartition Rôles</h2>
-              <div className="h-[280px]">
+            <Card className="p-8">
+              <h2 className="text-[10px] font-black text-surface-900 mb-8 uppercase tracking-[0.2em] border-b border-surface-50 pb-4">Répartition Rôles</h2>
+              <div className="h-[280px] min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -259,59 +265,61 @@ const AdminDashboard = () => {
                         <Cell 
                           key={`cell-${index}`} 
                           fill={[ '#009245', '#0072BC', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]}
-                          className="hover:opacity-80 transition-opacity cursor-pointer focus:outline-none"
+                          className="hover:opacity-80 transition-standard cursor-pointer focus:outline-none"
                         />
                       ))}
                     </Pie>
                     <Tooltip 
                       contentStyle={{ 
                         backgroundColor: '#fff', 
-                        border: '1px solid #e2e8f0',
+                        border: 'none',
                         borderRadius: '1rem',
-                        boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
                       }}
-                      itemStyle={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                      itemStyle={{ fontSize: '12px', fontBold: true, textTransform: 'uppercase' }}
                     />
                     <Legend 
                       verticalAlign="bottom" 
                       height={36}
                       iconType="circle"
-                      formatter={(value) => <span className="text-[10px] font-black text-secondary-500 uppercase tracking-widest ml-1">{value}</span>}
+                      formatter={(value) => <span className="text-[10px] font-black text-surface-500 uppercase tracking-widest ml-1">{value}</span>}
                     />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
             </Card>
 
-            <Card className="p-8 rounded-2xl bg-primary-500 border-none shadow-xl shadow-primary-500/20 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-              <h2 className="text-sm font-black text-white mb-2 uppercase tracking-[0.2em] relative z-10">
-                À Vérifier
+            <Card variant="dark" className="p-8 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-standard">
+                <UserGroupIcon className="w-32 h-32" />
+              </div>
+              <h2 className="text-[10px] font-black text-white/50 mb-8 uppercase tracking-[0.2em] flex items-center">
+                <CheckBadgeIcon className="w-5 h-5 mr-3 text-primary-400" />
+                Validations en attente
               </h2>
-              <p className="text-xs text-primary-100 font-medium mb-8 relative z-10 leading-relaxed italic">
-                Comptes en attente de validation ou sans rôle attribué.
-              </p>
               <div className="space-y-4 relative z-10">
                 {stats?.pendingUsers?.slice(0, 3).map((user, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-4 bg-white/15 backdrop-blur-md rounded-xl border border-white/20 hover:bg-white/25 transition-all group">
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-white truncate">{user.name}</p>
-                      <p className="text-[10px] text-primary-100 font-medium truncate mt-0.5">{user.email}</p>
+                  <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-standard">
+                    <div className="min-w-0 pr-4">
+                      <p className="text-sm font-black text-white truncate">{user.name}</p>
+                      <p className="text-[10px] text-white/50 font-bold truncate mt-1 uppercase tracking-widest">{user.email}</p>
                     </div>
-                    <span className="shrink-0 px-3 py-1 rounded-lg text-[9px] font-black bg-white text-primary-700 uppercase tracking-widest shadow-sm">
+                    <span className="shrink-0 px-3 py-1.5 rounded-xl text-[9px] font-black bg-primary-500 text-white uppercase tracking-widest shadow-primary">
                       {user.status}
                     </span>
                   </div>
                 )) || (
-                  <div className="py-6 text-center">
-                    <CheckBadgeIcon className="h-8 w-8 text-white/20 mx-auto mb-2" />
-                    <p className="text-white/40 text-[10px] font-black uppercase tracking-widest">Tout est en ordre</p>
+                  <div className="py-10 text-center">
+                    <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckBadgeIcon className="h-6 w-6 text-white/20" />
+                    </div>
+                    <p className="text-white/30 text-[10px] font-black uppercase tracking-widest">Tout est à jour</p>
                   </div>
                 )}
                 {stats?.pendingUsers?.length > 3 && (
-                  <button className="w-full py-3 text-[10px] font-black text-white hover:bg-white/10 rounded-xl transition-all uppercase tracking-widest border border-white/10">
+                  <Button variant="ghost" size="sm" className="w-full text-white/60 hover:text-white hover:bg-white/5">
                     Voir les {stats.pendingUsers.length - 3} autres
-                  </button>
+                  </Button>
                 )}
               </div>
             </Card>
@@ -323,35 +331,37 @@ const AdminDashboard = () => {
 };
 
 const StatCard = ({ title, value, subValue, icon, color, percentage }) => {
-  const colorClasses = {
-    blue: 'bg-white text-secondary-600 border-secondary-100 hover:border-secondary-300',
-    green: 'bg-white text-primary-600 border-primary-100 hover:border-primary-300',
-    amber: 'bg-white text-amber-600 border-amber-100 hover:border-amber-300',
+  const colorStyles = {
+    primary: 'border-primary-100 bg-primary-50/10 text-primary-600',
+    secondary: 'border-secondary-100 bg-secondary-50/10 text-secondary-600',
+    success: 'border-green-100 bg-green-50/10 text-green-600',
+    accent: 'border-amber-100 bg-amber-50/10 text-amber-600',
   };
 
-  const iconColors = {
-    blue: 'bg-secondary-50 text-secondary-600',
-    green: 'bg-primary-50 text-primary-600',
-    amber: 'bg-amber-50 text-amber-600',
+  const iconStyles = {
+    primary: 'bg-primary-500 text-white shadow-primary',
+    secondary: 'bg-secondary-500 text-white shadow-secondary',
+    success: 'bg-green-500 text-white shadow-soft',
+    accent: 'bg-amber-500 text-white shadow-soft',
   };
 
   return (
-    <Card variant="institutional" className={`p-8 border-2 group hover:translate-y-[-4px] transition-all duration-300 ${colorClasses[color] || colorClasses.blue}`}>
+    <Card className="p-6 group hover:shadow-hard transition-all cursor-pointer border-surface-50 overflow-hidden relative">
       <div className="flex items-start justify-between">
         <div className="space-y-4">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-400">{title}</p>
-          <div className="flex items-baseline space-x-3">
-            <h3 className="text-4xl font-black tracking-tight text-surface-800">{value}</h3>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-surface-600">{title}</p>
+          <div className="flex items-baseline gap-3">
+            <h3 className="text-4xl font-black tracking-tight text-surface-900">{value}</h3>
             {percentage !== undefined && (
-              <div className={`flex items-center px-2 py-1 rounded-lg border shadow-sm ${iconColors[color]}`}>
-                <ArrowTrendingUpIcon className="w-3 h-3 mr-1" />
-                <span className="text-[10px] font-black">{Math.round(percentage)}%</span>
+              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white shadow-soft text-[10px] font-black text-primary-600">
+                <ArrowTrendingUpIcon className="w-3 h-3" />
+                <span>{Math.round(percentage)}%</span>
               </div>
             )}
           </div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-secondary-400 italic">{subValue}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-surface-500 italic">{subValue}</p>
         </div>
-        <div className={`p-4 rounded-xl shadow-sm border border-transparent group-hover:scale-110 transition-transform duration-500 ${iconColors[color] || iconColors.blue}`}>
+        <div className={`p-4 rounded-2xl transition-standard group-hover:scale-110 ${iconStyles[color] || iconStyles.primary}`}>
           {icon}
         </div>
       </div>

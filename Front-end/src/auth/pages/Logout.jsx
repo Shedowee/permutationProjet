@@ -12,15 +12,12 @@ const Logout = () => {
     (async () => {
       try {
         await logout();
-        success("Logout successful");
+        success("Déconnexion réussie");
         navigate("/login", { replace: true });
-      } finally {
+      } catch (e) {
+        error("La déconnexion a échoué, veuillez réessayer");
       }
-    })().catch(() => {
-      error("Logout failed, please try again");
-      {
-      }
-    });
+    })();
   }, [logout, navigate, success, error]);
 
   return null;

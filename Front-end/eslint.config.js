@@ -24,7 +24,7 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['warn', { 
-        varsIgnorePattern: '^[A-Z_]|^err$',
+        varsIgnorePattern: '^[A-Z_]|^err$|^motion$',
         argsIgnorePattern: '^_'
       }],
       'react-hooks/preserve-manual-memoization': 'warn',

@@ -9,6 +9,7 @@ import Modal from "../../../shared/components/Modal";
 import { fetchDemandes } from "../redux/formateurSlice";
 import { useAuth } from "../../../auth/hooks/useAuth";
 import { selectSearchTerm } from "../../../shared/redux/searchSlice";
+import { motion } from "framer-motion";
 import {
   EyeIcon,
   ClockIcon,
@@ -18,17 +19,12 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   PaperClipIcon,
+  MapPinIcon,
+  InboxIcon,
+  FunnelIcon,
+  PlusIcon
 } from "@heroicons/react/24/outline";
 
-/**
- * Page de gestion des demandes pour les formateurs
- *
- * Fonctionnalités :
- * - Liste des demandes personnelles
- * - Vue détaillée de chaque demande
- * - Statistiques personnelles
- * - Navigation intuitive
- */
 const DemandesManagement = () => {
   const dispatch = useDispatch();
   const globalSearchTerm = useSelector(selectSearchTerm);
@@ -37,11 +33,12 @@ const DemandesManagement = () => {
   const loading = useSelector((state) => state.formateur.demandes.loading);
   const error = useSelector((state) => state.formateur.demandes.error);
 
-  // Filtrer pour n'afficher que les demandes de l'utilisateur courant
-  const demandes =
-    userRole === "formateur"
+  const demandes = useMemo(() => {
+    if (!allDemandes) return [];
+    return userRole === "formateur"
       ? allDemandes.filter((d) => d.utilisateurId === currentUser?.id)
       : allDemandes;
+  }, [allDemandes, userRole, currentUser]);
 
   const [selectedDemande, setSelectedDemande] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -54,8 +51,8 @@ const DemandesManagement = () => {
       return (
         demande.motif?.toLowerCase().includes(searchToUse) ||
         demande.etat?.toLowerCase().includes(searchToUse) ||
-        demande.dateDebut?.toLowerCase().includes(searchToUse) ||
-        demande.dateFin?.toLowerCase().includes(searchToUse)
+        demande.etablissementSouhaite?.toLowerCase().includes(searchToUse) ||
+        demande.villeSouhaitee?.toLowerCase().includes(searchToUse)
       );
     });
   }, [demandes, searchTerm, globalSearchTerm]);
@@ -64,156 +61,142 @@ const DemandesManagement = () => {
     dispatch(fetchDemandes());
   }, [dispatch]);
 
-  /**
-   * Affiche le détail d'une demande dans une modal
-   */
   const handleViewDetail = (demande) => {
     setSelectedDemande(demande);
     setShowDetailModal(true);
   };
 
-  /**
-   * Ferme la modal de détail
-   */
   const handleCloseDetail = () => {
     setShowDetailModal(false);
     setSelectedDemande(null);
   };
 
-  /**
-   * Retourne le badge de statut avec style approprié
-   */
   const getStatusBadge = (etat) => {
     const baseClasses = "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border";
 
     switch (etat) {
       case "EN_ATTENTE":
         return (
-          <span
-            className={`${baseClasses} bg-amber-50 text-amber-700 border-amber-200`}
-          >
+          <span className={`${baseClasses} bg-amber-50 text-amber-700 border-amber-200`}>
             En attente
           </span>
         );
       case "VALIDE":
         return (
-          <span
-            className={`${baseClasses} bg-primary-50 text-primary-700 border-primary-200`}
-          >
+          <span className={`${baseClasses} bg-primary-50 text-primary-700 border-primary-200`}>
             Validée
           </span>
         );
       case "REFUSE":
         return (
-          <span
-            className={`${baseClasses} bg-red-50 text-red-700 border-red-200`}
-          >
+          <span className={`${baseClasses} bg-red-50 text-red-700 border-red-200`}>
             Refusée
           </span>
         );
       default:
         return (
-          <span
-            className={`${baseClasses} bg-secondary-50 text-secondary-700 border-secondary-200`}
-          >
+          <span className={`${baseClasses} bg-surface-50 text-surface-700 border-surface-200`}>
             Inconnu
           </span>
         );
     }
   };
 
-  // Calcul des statistiques
-  const stats = {
+  const stats = useMemo(() => ({
     total: demandes.length,
     enAttente: demandes.filter((d) => d.etat === "EN_ATTENTE").length,
     validees: demandes.filter((d) => d.etat === "VALIDE").length,
     refusees: demandes.filter((d) => d.etat === "REFUSE").length,
-  };
+  }), [demandes]);
 
   return (
     <Layout>
-      <div className="space-y-8 max-w-[1600px] mx-auto pb-12">
-        {/* En-tête */}
-        <div>
-          <h1 className="text-4xl font-black text-surface-800 tracking-tight">
-            Mes Demandes de Permutation
-          </h1>
-          <p className="text-secondary-700 mt-2 font-medium italic">
-            Suivez l'état de vos demandes de permutation professionnelle.
-          </p>
-          <div className="h-1.5 w-24 bg-primary-500 rounded-full mt-4"></div>
+      <div className="space-y-12 pb-12 max-w-[1600px] mx-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <h1 className="text-4xl font-black text-surface-900 tracking-tight uppercase">
+              Mes Demandes
+            </h1>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="h-1 w-12 bg-primary-500 rounded-full"></span>
+              <p className="text-surface-500 font-bold uppercase tracking-widest text-[10px]">
+                Historique et suivi de vos dossiers de permutation
+              </p>
+            </div>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+          >
+            <Button 
+              variant="primary" 
+              size="lg" 
+              icon={PlusIcon}
+              onClick={() => {
+                const path = userRole === 'employe' ? '/employe/demandes/create' : '/formateur/demandes/create';
+                window.location.href = path;
+              }}
+            >
+              Nouvelle Demande
+            </Button>
+          </motion.div>
         </div>
 
-        {/* Indicateur de chargement */}
-        {loading && (
-          <div className="flex flex-col justify-center items-center h-64 space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-            <p className="text-secondary-600 font-bold uppercase tracking-widest text-xs">Chargement de vos demandes...</p>
-          </div>
-        )}
-
-        {/* Message d'erreur */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700 flex items-center space-x-4">
-            <XCircleIcon className="w-8 h-8 shrink-0" />
-            <p className="font-bold uppercase tracking-widest text-sm">Erreur: {error}</p>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 border border-red-100 rounded-2xl p-6 flex items-start gap-4 text-red-700"
+          >
+            <XCircleIcon className="h-6 w-6 shrink-0" />
+            <p className="text-sm font-bold uppercase tracking-widest">Erreur: {error}</p>
+          </motion.div>
         )}
 
-        {/* Contenu principal */}
-        {!loading && !error && (
-          <div className="space-y-10">
-            {/* Statistiques personnelles */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard 
-                title="Total" 
-                value={stats.total} 
-                icon={<CalendarIcon className="w-6 h-6" />}
-                color="blue"
-              />
-              <StatCard 
-                title="En attente" 
-                value={stats.enAttente} 
-                icon={<ClockIcon className="w-6 h-6" />}
-                color="amber"
-              />
-              <StatCard 
-                title="Validées" 
-                value={stats.validees} 
-                icon={<CheckCircleIcon className="w-6 h-6" />}
-                color="green"
-              />
-              <StatCard 
-                title="Refusées" 
-                value={stats.refusees} 
-                icon={<XCircleIcon className="w-6 h-6" />}
-                color="red"
-              />
+        {loading && !allDemandes ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-4">
+            <div className="w-12 h-12 rounded-full border-4 border-primary-100 border-t-primary-500 animate-spin"></div>
+            <p className="text-xs font-black text-surface-400 uppercase tracking-widest">Chargement de vos dossiers...</p>
+          </div>
+        ) : (
+          <div className="space-y-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <StatItem label="En Attente" value={stats.enAttente} icon={ClockIcon} color="accent" />
+              <StatItem label="Validées" value={stats.validees} icon={CheckCircleIcon} color="success" />
+              <StatItem label="Refusées" value={stats.refusees} icon={XCircleIcon} color="danger" />
+              <StatItem label="Total" value={stats.total} icon={InboxIcon} color="primary" />
             </div>
 
-            {/* Liste des demandes */}
             {demandes.length > 0 ? (
-              <Card variant="institutional" className="p-8 border-secondary-100">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                  <h2 className="text-xl font-black text-surface-800 uppercase tracking-widest border-b-2 border-primary-500 pb-2">
-                    Historique de mes demandes
-                  </h2>
-                  <div className="relative w-full md:w-80">
+              <Card className="p-0 overflow-hidden">
+                <div className="p-8 border-b border-surface-50 bg-surface-50/30 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary-500 text-white rounded-xl shadow-primary">
+                      <FunnelIcon className="w-5 h-5" />
+                    </div>
+                    <h2 className="text-xs font-black text-surface-900 uppercase tracking-widest">
+                      Historique des demandes
+                    </h2>
+                  </div>
+                  
+                  <div className="relative w-full md:w-96 group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <MagnifyingGlassIcon className="h-5 w-5 text-secondary-400" />
+                      <MagnifyingGlassIcon className="h-5 w-5 text-surface-400 group-focus-within:text-primary-500 transition-standard" />
                     </div>
                     <input
                       type="text"
-                      className="block w-full rounded-xl border border-secondary-200 bg-secondary-50/50 py-3 pl-12 pr-12 text-surface-800 placeholder:text-secondary-400 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 font-bold transition-all text-sm"
-                      placeholder="Rechercher une demande..."
+                      className="input-field pl-12 pr-12"
+                      placeholder="Rechercher une destination, un motif..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     {searchTerm && (
                       <button
-                        type="button"
                         onClick={() => setSearchTerm("")}
-                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-secondary-400 hover:text-primary-600 transition-colors"
+                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-surface-400 hover:text-surface-600"
                       >
                         <XMarkIcon className="h-5 w-5" />
                       </button>
@@ -225,24 +208,24 @@ const DemandesManagement = () => {
                   data={filteredDemandes}
                   columns={[
                     {
-                      header: "Destination",
-                      key: "regionSouhaitee",
+                      header: "Destination Souhaitée",
+                      key: "etablissementSouhaite",
                       render: (value, row) => (
-                        <div className="space-y-1">
-                          <div className="font-black text-surface-800">{row.etablissementSouhaite}</div>
-                          <div className="text-[10px] font-black text-secondary-400 uppercase tracking-widest flex items-center">
-                            <MapPinIcon className="h-3 w-3 mr-1" />
-                            {row.villeSouhaitee}, {value}
+                        <div>
+                          <div className="font-black text-surface-900">{value}</div>
+                          <div className="text-[10px] font-bold text-primary-600 uppercase tracking-widest mt-0.5 flex items-center gap-1.5">
+                            <MapPinIcon className="h-3 w-3" />
+                            {row.villeSouhaitee}, {row.regionSouhaitee}
                           </div>
                         </div>
                       ),
                     },
                     {
-                      header: "Motif",
+                      header: "Motif & Justificatif",
                       key: "motif",
                       render: (value, row) => (
-                        <div className="space-y-3">
-                          <div className="max-w-xs truncate text-secondary-700 font-medium italic text-sm" title={value}>
+                        <div className="flex flex-col gap-2">
+                          <div className="max-w-xs truncate text-surface-600 font-medium italic" title={value}>
                             "{value}"
                           </div>
                           {row.documentJoint && (
@@ -250,22 +233,22 @@ const DemandesManagement = () => {
                               href={`${import.meta.env.VITE_API_URL}/storage/${row.documentJoint}`} 
                               target="_blank" 
                               rel="noreferrer"
-                              className="inline-flex items-center text-[9px] font-black text-primary-600 hover:text-white hover:bg-primary-600 uppercase tracking-widest bg-primary-50 border border-primary-100 px-3 py-1 rounded-lg transition-all"
+                              className="inline-flex items-center gap-1.5 text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest bg-primary-50 px-2 py-1 rounded-lg transition-standard w-fit"
                             >
-                              <PaperClipIcon className="h-3 w-3 mr-1" />
-                              Justificatif
+                              <PaperClipIcon className="h-3.5 w-3.5" />
+                              Voir le justificatif
                             </a>
                           )}
                         </div>
                       ),
                     },
                     {
-                      header: "Date Demande",
+                      header: "Date de création",
                       key: "dateDemande",
                       render: (value) => (
-                        <div className="flex items-center text-surface-800 font-bold text-sm">
-                          <CalendarIcon className="h-4 w-4 mr-2 text-secondary-400" />
-                          {value}
+                        <div className="flex items-center gap-2 text-surface-500 font-bold">
+                          <CalendarIcon className="w-4 h-4 text-surface-300" />
+                          <span className="text-xs">{value}</span>
                         </div>
                       ),
                     },
@@ -279,46 +262,47 @@ const DemandesManagement = () => {
                       key: "actions",
                       render: (value, row) => (
                         <Button
-                          variant="primary"
-                          size="sm"
+                          variant="outline"
+                          size="xs"
                           onClick={() => handleViewDetail(row)}
-                          className="flex items-center px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm hover:shadow-md"
+                          icon={EyeIcon}
                         >
-                          <EyeIcon className="w-4 h-4 mr-2" />
                           Détails
                         </Button>
                       ),
                     },
                   ]}
                 />
-                
+
                 {filteredDemandes.length === 0 && (
-                  <div className="py-20 text-center bg-secondary-50/30 rounded-2xl border-2 border-dashed border-secondary-100 mt-6">
-                    <MagnifyingGlassIcon className="w-16 h-16 text-secondary-200 mx-auto mb-4" />
-                    <h3 className="text-xl font-black text-surface-800 mb-2 uppercase tracking-tight">
+                  <div className="p-20 text-center">
+                    <div className="w-20 h-20 bg-surface-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <InboxIcon className="w-10 h-10 text-surface-200" />
+                    </div>
+                    <h3 className="text-sm font-black text-surface-900 uppercase tracking-widest mb-2">
                       Aucun résultat pour "{searchTerm}"
                     </h3>
-                    <p className="text-secondary-400 font-medium italic">
-                      Essayez d'ajuster vos critères de recherche ou de réinitialiser le filtre.
+                    <p className="text-xs font-bold text-surface-400 uppercase tracking-widest">
+                      Essayez d'ajuster vos critères de recherche.
                     </p>
                   </div>
                 )}
               </Card>
             ) : (
-              /* Message quand aucune demande */
-              <Card variant="institutional" className="p-20 text-center border-secondary-100">
-                <div className="p-6 bg-secondary-50 rounded-full inline-block mb-8">
-                  <CalendarIcon className="w-20 h-20 text-secondary-300 mx-auto" />
+              <Card className="p-20 text-center">
+                <div className="w-24 h-24 bg-surface-50 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+                  <InboxIcon className="w-12 h-12 text-surface-200" />
                 </div>
-                <h3 className="text-2xl font-black text-surface-800 mb-4 uppercase tracking-tight">
-                  Aucune demande encore soumise
+                <h3 className="text-2xl font-black text-surface-900 uppercase tracking-tight mb-4">
+                  Aucune demande soumise
                 </h3>
-                <p className="text-secondary-600 mb-10 font-medium italic max-w-md mx-auto">
-                  Vous n'avez pas encore soumis de demande de permutation professionnelle sur cette plateforme.
+                <p className="text-surface-500 font-bold italic max-w-md mx-auto mb-10 leading-relaxed">
+                  Vous n'avez pas encore formulé de demande de permutation. Cliquez sur le bouton ci-dessous pour commencer.
                 </p>
                 <Button
                   variant="primary"
-                  className="px-12 py-5 rounded-xl text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-primary-500/20"
+                  size="lg"
+                  icon={PlusIcon}
                   onClick={() => {
                     const path = userRole === 'employe' ? '/employe/demandes/create' : '/formateur/demandes/create';
                     window.location.href = path;
@@ -331,19 +315,14 @@ const DemandesManagement = () => {
           </div>
         )}
 
-        {/* Modal de détail de la demande */}
         <Modal
           isOpen={showDetailModal}
           onClose={handleCloseDetail}
-          title={
-            selectedDemande
-              ? `Détails de la demande #${selectedDemande.id}`
-              : ""
-          }
+          title={selectedDemande ? `Détails de la demande #${selectedDemande.id}` : ""}
           size="xl"
         >
           {selectedDemande && (
-            <div className="max-h-[75vh] overflow-y-auto custom-scrollbar p-2">
+            <div className="max-h-[75vh] overflow-y-auto custom-scrollbar">
               <DetailDemande demande={selectedDemande} />
             </div>
           )}
@@ -353,30 +332,30 @@ const DemandesManagement = () => {
   );
 };
 
-const StatCard = ({ title, value, icon, color }) => {
-  const colorClasses = {
-    blue: 'bg-white text-secondary-600 border-secondary-100 hover:border-secondary-300',
-    green: 'bg-white text-primary-600 border-primary-100 hover:border-primary-300',
-    amber: 'bg-white text-amber-600 border-amber-100 hover:border-amber-300',
-    red: 'bg-white text-red-600 border-red-100 hover:border-red-300',
+const StatItem = ({ label, value, icon: Icon, color }) => {
+  const colorStyles = {
+    primary: 'border-primary-100 bg-primary-50/10 text-primary-600',
+    success: 'border-green-100 bg-green-50/10 text-green-600',
+    accent: 'border-amber-100 bg-amber-50/10 text-amber-600',
+    danger: 'border-red-100 bg-red-50/10 text-red-600',
   };
 
-  const iconColors = {
-    blue: 'bg-secondary-50 text-secondary-600',
-    green: 'bg-primary-50 text-primary-600',
-    amber: 'bg-amber-50 text-amber-600',
-    red: 'bg-red-50 text-red-600',
+  const iconStyles = {
+    primary: 'bg-primary-500 text-white shadow-primary',
+    success: 'bg-green-500 text-white shadow-soft',
+    accent: 'bg-amber-500 text-white shadow-soft',
+    danger: 'bg-red-500 text-white shadow-soft',
   };
 
   return (
-    <Card variant="institutional" className={`p-6 border-2 group hover:translate-y-[-4px] transition-all duration-300 ${colorClasses[color] || colorClasses.blue}`}>
+    <Card className={`p-6 border-2 transition-standard ${colorStyles[color] || colorStyles.primary}`}>
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-secondary-400">{title}</p>
-          <h3 className="text-3xl font-black tracking-tight text-surface-800">{value}</h3>
+          <p className="text-[10px] font-black uppercase tracking-widest text-surface-400">{label}</p>
+          <h3 className="text-3xl font-black tracking-tight text-surface-900">{value}</h3>
         </div>
-        <div className={`p-4 rounded-xl shadow-sm border border-transparent group-hover:scale-110 transition-transform duration-500 ${iconColors[color] || iconColors.blue}`}>
-          {icon}
+        <div className={`p-3 rounded-xl transition-standard group-hover:scale-110 ${iconStyles[color] || iconStyles.primary}`}>
+          <Icon className="w-5 h-5" />
         </div>
       </div>
     </Card>

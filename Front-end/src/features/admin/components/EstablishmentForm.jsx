@@ -79,12 +79,12 @@ const EstablishmentForm = ({ establishment, onSubmit, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 gap-6">
+    <form onSubmit={handleSubmit} className="space-y-8 py-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Code */}
-        <div>
-          <label htmlFor="code" className="block text-sm font-medium text-gray-300 mb-2">
-            Code *
+        <div className="space-y-3">
+          <label htmlFor="code" className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
+            Code Système Unique *
           </label>
           <input
             type="text"
@@ -92,20 +92,20 @@ const EstablishmentForm = ({ establishment, onSubmit, onCancel }) => {
             name="code"
             value={formData.code}
             onChange={handleChange}
-            className={`w-full px-4 py-2 rounded-lg bg-gray-800 border ${
-              errors.code ? 'border-red-500' : 'border-gray-700'
-            } text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            placeholder="Entrez le code de l'établissement"
+            className={`w-full bg-surface-50 border ${
+              errors.code ? 'border-rose-500' : 'border-surface-200'
+            } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
+            placeholder="EX: EST_CASABLANCA"
           />
           {errors.code && (
-            <p className="mt-1 text-sm text-red-400">{errors.code}</p>
+            <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1">{errors.code}</p>
           )}
         </div>
 
         {/* Nom */}
-        <div>
-          <label htmlFor="nom" className="block text-sm font-medium text-gray-300 mb-2">
-            Nom *
+        <div className="space-y-3">
+          <label htmlFor="nom" className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
+            Nom de l'établissement *
           </label>
           <input
             type="text"
@@ -113,77 +113,70 @@ const EstablishmentForm = ({ establishment, onSubmit, onCancel }) => {
             name="nom"
             value={formData.nom}
             onChange={handleChange}
-            className={`w-full px-4 py-2 rounded-lg bg-gray-800 border ${
-              errors.nom ? 'border-red-500' : 'border-gray-700'
-            } text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            placeholder="Entrez le nom de l'établissement"
+            className={`w-full bg-surface-50 border ${
+              errors.nom ? 'border-rose-500' : 'border-surface-200'
+            } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
+            placeholder="Entrez le nom complet"
           />
           {errors.nom && (
-            <p className="mt-1 text-sm text-red-400">{errors.nom}</p>
+            <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1">{errors.nom}</p>
           )}
         </div>
+      </div>
 
-        {/* Adresse */}
-        <div>
-          <label htmlFor="adresse" className="block text-sm font-medium text-gray-300 mb-2">
-            Adresse *
-          </label>
-          <textarea
-            id="adresse"
-            name="adresse"
-            value={formData.adresse}
+      {/* Adresse */}
+      <div className="space-y-3">
+        <label htmlFor="adresse" className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
+          Adresse Complète *
+        </label>
+        <textarea
+          id="adresse"
+          name="adresse"
+          value={formData.adresse}
+          onChange={handleChange}
+          rows="3"
+          className={`w-full bg-surface-50 border ${
+            errors.adresse ? 'border-rose-500' : 'border-surface-200'
+          } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
+          placeholder="Entrez l'adresse physique de l'établissement"
+        />
+        {errors.adresse && (
+          <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1">{errors.adresse}</p>
+        )}
+      </div>
+
+      {/* Statut actif */}
+      <div className="flex items-center space-x-4 pt-4">
+        <div className="relative inline-flex items-center cursor-pointer group">
+          <input
+            type="checkbox"
+            id="actif"
+            name="actif"
+            checked={formData.actif}
             onChange={handleChange}
-            rows="3"
-            className={`w-full px-4 py-2 rounded-lg bg-gray-800 border ${
-              errors.adresse ? 'border-red-500' : 'border-gray-700'
-            } text-white focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            placeholder="Entrez l'adresse de l'établissement"
+            className="sr-only peer"
           />
-          {errors.adresse && (
-            <p className="mt-1 text-sm text-red-400">{errors.adresse}</p>
-          )}
-        </div>
-
-        {/* Statut actif */}
-        <div className="flex items-center">
-          <label className="flex items-center cursor-pointer">
-            <div className="relative">
-              <input
-                type="checkbox"
-                id="actif"
-                name="actif"
-                checked={formData.actif}
-                onChange={handleChange}
-                className="sr-only"
-              />
-              <div className={`block w-14 h-8 rounded-full ${
-                formData.actif ? 'bg-blue-600' : 'bg-gray-600'
-              }`}></div>
-              <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${
-                formData.actif ? 'transform translate-x-6' : ''
-              }`}></div>
-            </div>
-            <div className="ml-3 text-gray-300">
-              {formData.actif ? 'Établissement actif' : 'Établissement inactif'}
-            </div>
+          <div className="w-14 h-7 bg-surface-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500 transition-colors"></div>
+          <label htmlFor="actif" className="ml-4 text-[10px] font-black text-surface-700 uppercase tracking-widest cursor-pointer select-none">
+            {formData.actif ? 'Établissement actif' : 'Établissement inactif'}
           </label>
         </div>
       </div>
 
       {/* Boutons */}
-      <div className="flex justify-end space-x-4 pt-4">
+      <div className="pt-8 flex justify-end space-x-4 border-t border-surface-50">
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors duration-200"
+          className="px-8 py-4 bg-white border-2 border-surface-200 text-surface-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-surface-50 hover:border-surface-300 transition-all"
         >
           Annuler
         </button>
         <button
           type="submit"
-          className="px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200"
+          className="px-12 py-4 bg-primary-600 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary-500/20 hover:bg-primary-700 transition-all"
         >
-          {establishment ? 'Modifier' : 'Créer'}
+          {establishment ? 'Enregistrer les modifications' : 'Créer l\'établissement'}
         </button>
       </div>
     </form>

@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { useAuth } from "../hooks/useAuth";
 import Button from "../../shared/components/Button";
 import Card from "../../shared/components/Card";
@@ -83,103 +84,124 @@ function Login() {
         password: form.password,
       });
     } catch (err) {
-      setLoginError(err.message || "Échec de l'authentification. Veuillez vérifier vos identifiants.");
+      setLoginError("Identifiants incorrects");
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center gradient-bg px-4 py-12 relative overflow-hidden font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-surface-50 px-4 py-12 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-200 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-100 rounded-full blur-[120px]"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-100 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary-100 rounded-full blur-[120px]"></div>
       </div>
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-white shadow-sm border border-surface-200 mb-6">
-            <ShieldCheckIcon className="h-10 w-10 text-primary-600" />
-          </div>
-          <h1 className="text-4xl font-black text-white tracking-tighter mb-2">Bienvenue</h1>
-          <p className="text-surface-300 font-medium">Connectez-vous à votre espace Permutations</p>
-          <div className="mx-auto h-1 w-24 bg-gradient-to-r from-primary-400 to-accent-400 rounded-full mt-4"></div>
+          <motion.div 
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="inline-flex items-center justify-center p-4 rounded-3xl bg-white shadow-soft border border-surface-100 mb-6"
+          >
+            <ShieldCheckIcon className="h-10 w-10 text-primary-500" />
+          </motion.div>
+          <motion.h1 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="text-3xl font-black text-surface-900 tracking-tight uppercase"
+          >
+            Bienvenue
+          </motion.h1>
+          <motion.p 
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="text-surface-500 font-bold uppercase tracking-[0.2em] text-[10px] mt-2"
+          >
+            Portail de Permutations OFPPT
+          </motion.p>
         </div>
 
-        <Card className="p-10 shadow-2xl border-surface-200/60 bg-white/80 backdrop-blur-xl rounded-[2.5rem]">
+        <Card hover={false} className="shadow-hard border-surface-50">
           {loginError && (
-            <div className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center space-x-3 text-red-600 animate-fadeIn">
-              <ExclamationCircleIcon className="h-5 w-5 shrink-0" />
-              <p className="text-sm font-bold">{loginError}</p>
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3"
+            >
+              <ExclamationCircleIcon className="w-5 h-5 text-red-500 shrink-0" />
+              <p className="text-xs font-bold text-red-700 leading-relaxed">{loginError}</p>
+            </motion.div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-1">Identifiant</label>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <UserIcon className="h-5 w-5 text-surface-300 group-focus-within:text-primary-500 transition-colors" />
-                </div>
+              <label className="label-text" htmlFor="username">Identifiant</label>
+              <div className="relative">
+                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
-                  type="text"
+                  id="username"
                   name="username"
+                  type="text"
                   autoComplete="username"
-                  required
+                  className={`input-field pl-12 ${errors.username ? 'border-red-300 ring-red-50' : ''}`}
+                  placeholder="Email ou matricule"
                   value={form.username}
                   onChange={handleChange}
-                  className={`block w-full pl-12 pr-4 py-4 bg-surface-50 border ${errors.username ? 'border-red-300' : 'border-surface-200'} rounded-2xl text-surface-900 placeholder:text-surface-300 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all font-medium`}
-                  placeholder="Email ou matricule"
                 />
               </div>
-              {errors.username && <p className="text-[10px] font-bold text-red-500 ml-1 uppercase tracking-wider">{errors.username}</p>}
+              {errors.username && (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.username}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Mot de passe</label>
-                <Link to="/forgot-password" className="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest transition-colors">
+              <div className="flex items-center justify-between">
+                <label className="label-text" htmlFor="password">Mot de passe</label>
+                <Link to="/forgot-password" size="xs" className="text-[10px] font-bold text-primary-600 uppercase tracking-widest hover:text-primary-700">
                   Oublié ?
                 </Link>
               </div>
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <LockClosedIcon className="h-5 w-5 text-surface-300 group-focus-within:text-primary-500 transition-colors" />
-                </div>
+              <div className="relative">
+                <LockClosedIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
                 <input
-                  type={showPassword ? "text" : "password"}
+                  id="password"
                   name="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  required
+                  className={`input-field pl-12 pr-12 ${errors.password ? 'border-red-300 ring-red-50' : ''}`}
+                  placeholder="••••••••"
                   value={form.password}
                   onChange={handleChange}
-                  className={`block w-full pl-12 pr-12 py-4 bg-surface-50 border ${errors.password ? 'border-red-300' : 'border-surface-200'} rounded-2xl text-surface-900 placeholder:text-surface-300 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all font-medium`}
-                  placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-surface-300 hover:text-surface-500 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
                 >
-                  {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                  {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
                 </button>
               </div>
-              {errors.password && <p className="text-[10px] font-bold text-red-500 ml-1 uppercase tracking-wider">{errors.password}</p>}
+              {errors.password && (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest ml-1">{errors.password}</p>
+              )}
             </div>
 
             <Button
               type="submit"
               variant="primary"
-              className="w-full py-4 rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-500/20 mt-4"
+              size="lg"
+              className="w-full"
               loading={loading}
             >
-              Connexion
+              Se connecter
             </Button>
           </form>
 
           <div className="mt-10 pt-8 border-t border-surface-100 text-center">
-            <p className="text-sm text-surface-500 font-medium">
+            <p className="text-sm font-bold text-surface-500">
               Pas encore de compte ?{' '}
-              <Link to="/register" className="text-primary-600 font-black hover:text-primary-700 transition-colors">
+              <Link to="/signup" className="text-primary-600 hover:text-primary-700 transition-standard">
                 Créer un profil
               </Link>
             </p>

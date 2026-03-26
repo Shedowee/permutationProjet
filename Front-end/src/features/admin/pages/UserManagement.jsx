@@ -47,6 +47,10 @@ const UserManagement = () => {
   const [statuses, setStatuses] = useState([]);
   const [uiSuccess, setUiSuccess] = useState('');
   const [uiError, setUiError] = useState('');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(4);
   
   useEffect(() => {
     dispatch(fetchUsers());
@@ -110,6 +114,19 @@ const UserManagement = () => {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchTerm, globalSearchTerm, filterRole, filterStatus]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, globalSearchTerm, filterRole, filterStatus]);
+
+  // Paginated users
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, currentPage, pageSize]);
   
   // Reset search when input is cleared
   useEffect(() => {
@@ -237,12 +254,12 @@ const UserManagement = () => {
     { 
       header: 'Nom', 
       key: 'name',
-      render: (value) => <span className="font-medium text-white">{value}</span>
+      render: (value) => <span className="font-bold text-surface-900 uppercase tracking-tight text-sm">{value}</span>
     },
     { 
       header: 'Email', 
       key: 'email',
-      render: (value) => <span className="text-gray-300">{value}</span>
+      render: (value) => <span className="text-surface-600 font-medium text-xs">{value}</span>
     },
     { 
       header: 'Rôle', 
@@ -250,7 +267,7 @@ const UserManagement = () => {
       render: (value) => {
         const roleLabel = roles.find(r => r.value === value)?.label || value;
         return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-white/5 text-gray-200 border border-white/10">
+          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary-50 text-primary-600 border border-primary-100">
             {roleLabel}
           </span>
         );
@@ -262,21 +279,24 @@ const UserManagement = () => {
       render: (value) => {
         const cls =
           value === 'actif'
-            ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+            ? 'bg-teal-50 text-teal-600 border-teal-100'
             : value === 'bloque'
-            ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-            : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30';
+            ? 'bg-rose-50 text-rose-600 border-rose-100'
+            : 'bg-amber-50 text-amber-600 border-amber-100';
         return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${cls}`}>
-            {value}
-          </span>
+          <div className="flex items-center">
+            <div className={`w-1.5 h-1.5 rounded-full mr-2 ${value === 'actif' ? 'bg-teal-500 animate-pulse' : 'bg-surface-400'}`}></div>
+            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${cls}`}>
+              {value}
+            </span>
+          </div>
         );
       }
     },
     { 
       header: 'Date création', 
       key: 'dateCreated',
-      render: (value) => <span className="text-gray-300">{value}</span>
+      render: (value) => <span className="text-surface-600 text-[10px] font-black uppercase tracking-widest">{value}</span>
     },
     { 
       header: 'Actions', 
@@ -285,21 +305,21 @@ const UserManagement = () => {
         <div className="flex space-x-2">
           <button 
             onClick={() => handleViewUser(row)}
-            className="p-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/30 transition-colors duration-200"
+            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-primary-600 hover:border-primary-200 hover:shadow-sm transition-all"
             title="Voir"
           >
             <EyeIcon className="w-4 h-4" />
           </button>
           <button 
             onClick={() => handleEditUser(row)}
-            className="p-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 transition-colors duration-200"
+            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-indigo-600 hover:border-indigo-200 hover:shadow-sm transition-all"
             title="Modifier"
           >
             <PencilIcon className="w-4 h-4" />
           </button>
           <button 
             onClick={() => handleDeleteUser(row)}
-            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 transition-colors duration-200"
+            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-rose-600 hover:border-rose-200 hover:shadow-sm transition-all"
             title="Supprimer"
           >
             <TrashIcon className="w-4 h-4" />
@@ -314,8 +334,8 @@ const UserManagement = () => {
       <div className="space-y-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-white">Gestion des Utilisateurs</h1>
-            <p className="text-gray-400 mt-2">Gérer les comptes utilisateurs et leurs permissions</p>
+            <h1 className="text-3xl font-bold text-surface-900">Gestion des Utilisateurs</h1>
+            <p className="text-surface-600 mt-2 font-medium">Gérer les comptes utilisateurs et leurs permissions</p>
           </div>
           <Button 
             variant="primary" 
@@ -328,27 +348,25 @@ const UserManagement = () => {
         </div>
         
         {/* Filters and Search */}
-        <Card className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-6 bg-white border border-surface-100 rounded-[2rem] shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="md:col-span-2">
               <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-surface-400 group-focus-within:text-primary-500 transition-colors">
+                  <MagnifyingGlassIcon className="h-5 w-5" />
                 </div>
                 <input
                   type="text"
-                  placeholder="Rechercher en temps réel par nom ou email..."
-                  className="w-full pl-10 pr-10 py-2.5 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                  placeholder="Rechercher par nom ou email..."
+                  className="w-full pl-12 pr-12 py-3.5 bg-surface-50 border border-surface-200 rounded-2xl text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 {searchTerm && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSearchTerm('');
-                    }}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-surface-400 hover:text-rose-500 transition-colors"
                   >
                     <XMarkIcon className="h-5 w-5" />
                   </button>
@@ -356,76 +374,95 @@ const UserManagement = () => {
               </div>
             </div>
             <div>
-              <select
-                className="w-full py-2.5 px-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none cursor-pointer"
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-              >
-                <option value="">Tous les rôles</option>
-                {roles.map(role => (
-                  <option key={role.value} value={role.value}>{role.label}</option>
-                ))}
-              </select>
+              <div className="relative group">
+                <select
+                  className="w-full py-3.5 pl-4 pr-10 bg-surface-50 border border-surface-200 rounded-2xl text-surface-700 font-black uppercase tracking-widest text-[10px] focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                  value={filterRole}
+                  onChange={(e) => setFilterRole(e.target.value)}
+                >
+                  <option value="">Tous les rôles</option>
+                  {roles.map(role => (
+                    <option key={role.value} value={role.value}>{role.label}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
+                  <FunnelIcon className="h-4 w-4" />
+                </div>
+              </div>
             </div>
             <div>
-              <select
-                className="w-full py-2.5 px-3 bg-gray-800/50 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none cursor-pointer"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-              >
-                <option value="">Tous les statuts</option>
-                {availableStatuses.map(status => (
-                  <option key={status.value} value={status.value}>{status.label}</option>
-                ))}
-              </select>
+              <div className="relative group">
+                <select
+                  className="w-full py-3.5 pl-4 pr-10 bg-surface-50 border border-surface-200 rounded-2xl text-surface-700 font-black uppercase tracking-widest text-[10px] focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="">Tous les statuts</option>
+                  {availableStatuses.map(status => (
+                    <option key={status.value} value={status.value}>{status.label}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
+                  <FunnelIcon className="h-4 w-4" />
+                </div>
+              </div>
             </div>
           </div>
         </Card>
         
         {/* Users Table */}
-        <Card className="p-6">
+        <div className="overflow-hidden rounded-[2rem] border border-surface-100 bg-white shadow-soft">
           {uiSuccess && (
-            <div className="mb-4 p-3 rounded-lg bg-green-500/20 border border-green-500/30 text-green-300 flex items-start justify-between">
+            <div className="m-6 p-4 rounded-2xl bg-teal-50 border border-teal-100 text-teal-700 flex items-start justify-between animate-slideDown">
               <div className="flex items-start">
-                <CheckCircleIcon className="w-5 h-5 mr-2" />
-                <span>{uiSuccess}</span>
+                <CheckCircleIcon className="w-5 h-5 mr-3 text-teal-600" />
+                <span className="text-xs font-black uppercase tracking-widest">{uiSuccess}</span>
               </div>
-              <button
-                onClick={() => setUiSuccess('')}
-                className="text-green-300/80 hover:text-green-200 transition-colors"
-                aria-label="Fermer la notification de succès"
-              >
-                ✕
+              <button onClick={() => setUiSuccess('')} className="text-teal-400 hover:text-teal-600 transition-colors">
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
           )}
           {uiError && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 flex items-start justify-between">
+            <div className="m-6 p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 flex items-start justify-between animate-slideDown">
               <div className="flex items-start">
-                <ExclamationTriangleIcon className="w-5 h-5 mr-2" />
-                <span>{uiError}</span>
+                <ExclamationTriangleIcon className="w-5 h-5 mr-3 text-rose-600" />
+                <span className="text-xs font-black uppercase tracking-widest">{uiError}</span>
               </div>
-              <button
-                onClick={() => setUiError('')}
-                className="text-red-300/80 hover:text-red-200 transition-colors"
-                aria-label="Fermer la notification d'erreur"
-              >
-                ✕
+              <button onClick={() => setUiError('')} className="text-rose-400 hover:text-rose-600 transition-colors">
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
           )}
+          
           {usersState.loading ? (
-            <div className="py-8 text-center text-gray-400">Chargement des utilisateurs...</div>
+            <div className="py-20 flex flex-col items-center justify-center">
+              <div className="w-12 h-12 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin mb-4"></div>
+              <p className="text-[10px] font-black text-surface-500 uppercase tracking-[0.2em]">Chargement des utilisateurs...</p>
+            </div>
           ) : usersState.error ? (
-            <div className="py-8 text-center text-red-400">Erreur: {usersState.error}</div>
+            <div className="py-20 text-center">
+              <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ExclamationTriangleIcon className="w-8 h-8" />
+              </div>
+              <p className="text-sm font-bold text-rose-600">Erreur: {usersState.error}</p>
+            </div>
           ) : (
             <Table 
-              data={filteredUsers} 
+              data={paginatedUsers} 
               columns={columns} 
-              caption={`Utilisateurs (${filteredUsers.length})`}
+              loading={usersState.loading}
+              emptyMessage="Aucun utilisateur trouvé"
+              pagination={{
+                currentPage,
+                totalPages,
+                onPageChange: setCurrentPage,
+                totalItems,
+                pageSize
+              }}
             />
           )}
-        </Card>
+        </div>
       </div>
       
       {/* View User Modal */}
@@ -660,16 +697,35 @@ const UserManagement = () => {
         size="md"
       >
         {selectedUser && (
-          <div className="space-y-4">
-            <p className="text-gray-300">
-              Êtes-vous sûr de vouloir supprimer l'utilisateur <strong className="text-white">{selectedUser.name}</strong> ? 
-              Cette action est irréversible.
-            </p>
-            <div className="flex justify-end space-x-3 pt-4">
-              <Button variant="secondary" onClick={() => setShowModal(false)}>
+          <div className="space-y-6 py-4">
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center text-rose-500 border border-rose-100 shadow-sm">
+                <TrashIcon className="w-10 h-10" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-surface-900 tracking-tight">Suppression Irréversible</h3>
+                <p className="text-sm font-bold text-surface-600 leading-relaxed">
+                  Êtes-vous sûr de vouloir supprimer <br />
+                  <span className="text-rose-600 font-black uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-md text-[10px]">
+                    "{selectedUser.name}"
+                  </span> ?
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 pt-6">
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowModal(false)}
+                className="flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+              >
                 Annuler
               </Button>
-              <Button variant="danger" onClick={handleConfirmDelete}>
+              <Button 
+                variant="danger" 
+                onClick={handleConfirmDelete}
+                className="flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-500/20"
+              >
                 Supprimer
               </Button>
             </div>
