@@ -8,8 +8,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('roles', function (Blueprint $table) {
             $table->id();
-            $table->string('libelle', 100);
-            $table->string('code', 20)->unique()->nullable();
+            $table->string('name', 100)->unique();
             $table->foreignId('role_category_id')->constrained('role_categories')->cascadeOnDelete();
             $table->text('description')->nullable();
             $table->timestamps();

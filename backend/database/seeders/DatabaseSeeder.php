@@ -12,14 +12,18 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            ParametreSeeder::class,     // Basic states & grades
-            MoroccanGeoSeeder::class,   // Regions & Cities
             RoleCategorySeeder::class,  // Role groupings
-            RoleSeeder::class,          // Roles (Admin, Commission, Employe)
-            EtablissementSeeder::class,    // Establishments linked to cities
+            RoleSeeder::class,          // Roles (Admin, Commission, Formateur, User)
+            PermissionSeeder::class,    // CRUD permissions + workflow permissions
+            RolePermissionSeeder::class, // Role-permission mapping
+            ParametreSeeder::class,     // Basic states, grades, regions, cities, and initial etablissements
             UserSeeder::class,           // Users with roles
-            EmployeSeeder::class,        // Employee professional profiles
+            FormateurSeeder::class,      // Formateur professional profiles
+            AdminSeeder::class,           // Admin profile assignment
+            CommissionSeeder::class,      // Commission profile + jurisdictions
+            PermissionRequestSeeder::class, // Sample permission workflow records
             DemandePermutationSeeder::class, // Sample requests
+            PermutationMarketSeeder::class,  // Available and reciprocal demandes
         ]);
     }
 }

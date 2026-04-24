@@ -9,7 +9,7 @@ class RoleCategorySeeder extends Seeder
 {
     public function run(): void
     {
-        RoleCategory::firstOrCreate(['code' => 'ADMIN'], ['libelle' => 'Administration']);
-        RoleCategory::firstOrCreate(['code' => 'METIER'], ['libelle' => 'Métier']);
+        RoleCategory::firstOrCreate(['name' => 'ADMIN'], ['description' => 'Administration roles']);
+        RoleCategory::firstOrCreate(['name' => 'METIER'], ['description' => 'Business roles']);
     }
 }

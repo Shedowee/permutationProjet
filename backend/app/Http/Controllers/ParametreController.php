@@ -11,6 +11,7 @@ class ParametreController extends Controller
     {
         $type = $request->query('type');
         $includeInactive = $request->query('include_inactive');
+        $parentId = $request->query('parent_id');
 
         $query = Parametre::query()->orderBy('ordre');
         
@@ -20,6 +21,9 @@ class ParametreController extends Controller
 
         if ($type) {
             $query->where('type', $type);
+        }
+        if ($parentId) {
+            $query->where('parent_id', $parentId);
         }
 
         return response()->json([
@@ -38,7 +42,14 @@ class ParametreController extends Controller
             'parent_id' => 'nullable|exists:parametres,id',
         ]);
 
-        $parametre = Parametre::create($request->all());
+        $parametre = Parametre::create([
+            'type' => $request->type,
+            'key' => $request->code,
+            'value' => ['libelle' => $request->libelle],
+            'actif' => $request->actif ?? true,
+            'ordre' => $request->ordre ?? 0,
+            'parent_id' => $request->parent_id,
+        ]);
 
         return response()->json([
             'message' => 'Paramètre créé avec succès',
@@ -55,7 +66,13 @@ class ParametreController extends Controller
             'parent_id' => 'nullable|exists:parametres,id',
         ]);
 
-        $parametre->update($request->all());
+        $data = $request->only(['actif', 'ordre', 'parent_id']);
+        
+        if ($request->has('libelle')) {
+            $data['value'] = ['libelle' => $request->libelle];
+        }
+
+        $parametre->update($data);
 
         return response()->json([
             'message' => 'Paramètre mis à jour avec succès',
@@ -80,4 +97,3 @@ class ParametreController extends Controller
         return response()->json(['message' => 'Paramètre supprimé']);
     }
 }
-

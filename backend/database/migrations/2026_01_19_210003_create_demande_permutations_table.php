@@ -15,8 +15,8 @@ return new class extends Migration
             $table->dateTime('date_traitement')->nullable();
             $table->text('commentaire_commission')->nullable();
             $table->foreignId('etat_id')->constrained('parametres'); // Status
-            $table->foreignId('employe_id')->constrained('employes')->cascadeOnDelete();
-            $table->foreignId('traite_par_utilisateur_id')->nullable()->constrained('utilisateurs')->nullOnDelete();
+            $table->foreignId('formateur_id')->constrained('formateurs')->cascadeOnDelete();
+            $table->foreignId('traite_par_utilisateur_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('region_souhaitee_id')->nullable()->constrained('parametres')->nullOnDelete();
             $table->foreignId('ville_souhaitee_id')->nullable()->constrained('parametres')->nullOnDelete();
             $table->foreignId('etablissement_souhaite_id')->nullable()->constrained('etablissements')->nullOnDelete();

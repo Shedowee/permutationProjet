@@ -4,23 +4,24 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DemandePermutation extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'employe_id',
+        'date_soumission',
         'motif',
+        'date_traitement',
+        'commentaire_commission',
         'etat_id',
+        'formateur_id',
+        'traite_par_utilisateur_id',
         'region_souhaitee_id',
         'ville_souhaitee_id',
         'etablissement_souhaite_id',
         'document_joint',
-        'commentaire_commission',
-        'date_soumission',
-        'date_traitement',
-        'traite_par_utilisateur_id'
     ];
 
     protected $casts = [
@@ -29,11 +30,11 @@ class DemandePermutation extends Model
     ];
 
     /**
-     * Get the employee who made the request.
+     * Get the trainer who made the request.
      */
-    public function employe()
+    public function formateur(): BelongsTo
     {
-        return $this->belongsTo(Employe::class);
+        return $this->belongsTo(Formateur::class, 'formateur_id');
     }
 
     /**
@@ -81,16 +82,16 @@ class DemandePermutation extends Model
      */
     public function scopePending($query)
     {
-        return $query->whereHas('etat', fn($q) => $q->where('code', 'EN_ATTENTE'));
+        return $query->whereHas('etat', fn($q) => $q->where('key', 'EN_ATTENTE'));
     }
 
     public function scopeValidated($query)
     {
-        return $query->whereHas('etat', fn($q) => $q->where('code', 'VALIDE'));
+        return $query->whereHas('etat', fn($q) => $q->where('key', 'VALIDE'));
     }
 
     public function scopeRejected($query)
     {
-        return $query->whereHas('etat', fn($q) => $q->where('code', 'REFUSE'));
+        return $query->whereHas('etat', fn($q) => $q->where('key', 'REFUSE'));
     }
 }

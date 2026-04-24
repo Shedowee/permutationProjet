@@ -6,12 +6,19 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserDocument extends Model
 {
+    const CREATED_AT = 'uploaded_at';
+    const UPDATED_AT = null;
+
     protected $fillable = [
         'user_id',
-        'title',
+        'document_type',
         'file_path',
-        'file_type',
-        'file_size',
+        'verified',
+    ];
+
+    protected $casts = [
+        'verified' => 'boolean',
+        'uploaded_at' => 'datetime',
     ];
 
     public function user()

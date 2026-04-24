@@ -10,12 +10,21 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminCat = RoleCategory::where('code', 'ADMIN')->first();
-        $metierCat = RoleCategory::where('code', 'METIER')->first();
+        $adminCat = RoleCategory::where('name', 'ADMIN')->first();
+        $metierCat = RoleCategory::where('name', 'METIER')->first();
 
-        Role::firstOrCreate(['code' => 'ADMIN'], ['libelle' => 'Admin', 'role_category_id' => $adminCat?->id]);
-        Role::firstOrCreate(['code' => 'EMPLOYE'], ['libelle' => 'Employé', 'role_category_id' => $metierCat?->id]);
-        Role::firstOrCreate(['code' => 'COMMISSION'], ['libelle' => 'Commission', 'role_category_id' => $metierCat?->id]);
-        Role::firstOrCreate(['code' => 'USER'], ['libelle' => 'Utilisateur standard', 'role_category_id' => $metierCat?->id]);
+        $roles = [
+            ['name' => 'admin', 'code' => 'admin', 'role_category_id' => $adminCat?->id, 'description' => 'Administration system-wide'],
+            ['name' => 'commission', 'code' => 'commission', 'role_category_id' => $metierCat?->id, 'description' => 'Commission reviewer'],
+            ['name' => 'user', 'code' => 'user', 'role_category_id' => $metierCat?->id, 'description' => 'Basic user'],
+            ['name' => 'formateur', 'code' => 'formateur', 'role_category_id' => $metierCat?->id, 'description' => 'Trainer'],
+        ];
+
+        foreach ($roles as $role) {
+            Role::updateOrCreate(
+                ['code' => $role['code']],
+                $role
+            );
+        }
     }
 }

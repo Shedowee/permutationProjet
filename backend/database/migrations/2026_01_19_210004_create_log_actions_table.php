@@ -11,11 +11,12 @@ return new class extends Migration
         Schema::create('log_actions', function (Blueprint $table) {
             $table->id();
             $table->string('action');
-            $table->string('entite')->nullable();
-            $table->unsignedBigInteger('entite_id')->nullable();
-            $table->dateTime('date_action')->useCurrent();
-            $table->string('adresse_ip', 45)->nullable();
-            $table->foreignId('user_id')->nullable()->constrained('utilisateurs')->cascadeOnDelete();
+            $table->string('table_name')->nullable();
+            $table->unsignedBigInteger('record_id')->nullable();
+            $table->string('ip_address', 45)->nullable();
+            $table->jsonb('before')->nullable();
+            $table->jsonb('after')->nullable();
+            $table->foreignId('user_id')->nullable()->constrained('users')->cascadeOnDelete();
             $table->timestamps();
         });
     }

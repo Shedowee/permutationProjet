@@ -10,12 +10,12 @@ return new class extends Migration
     {
         Schema::create('etablissements', function (Blueprint $table) {
             $table->id();
-            $table->string('code', 50)->unique()->nullable();
-            $table->string('nom', 150);
-            $table->string('adresse')->nullable();
-            $table->foreignId('ville_id')->nullable()->constrained('parametres')->nullOnDelete();
-            $table->foreignId('region_id')->nullable()->constrained('parametres')->nullOnDelete();
-            $table->boolean('actif')->default(true);
+            $table->string('name', 150);
+            $table->string('address')->nullable();
+            $table->string('contact_phone')->nullable();
+            $table->string('contact_email')->nullable();
+            $table->foreignId('city_id')->nullable()->constrained('parametres')->nullOnDelete();
+            $table->jsonb('metadata')->nullable();
             $table->timestamps();
         });
     }

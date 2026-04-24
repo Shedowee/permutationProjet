@@ -2,106 +2,158 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $table = 'utilisateurs'; // IMPORTANT
+    private const ACTIVE_STATUSES = ['active', 'actif'];
+    private const BLOCKED_STATUSES = ['blocked', 'bloqué', 'inactive', 'inactif', 'suspended', 'suspendu'];
+
+    protected $table = 'users';
 
     protected $fillable = [
-        'username',
-        'nom',
+        'uuid',
         'email',
-        'mot_de_passe',
-        'role_id',
-        'actif',
-        'date_derniere_connexion',
-        'profile_picture',
-        'age',
+        'password_hash',
+        'name',
         'phone',
+        'age',
         'address',
+        'role_id',
+        'status',
         'email_verified_at',
-        'email_verified',
+        'photo_url',
     ];
 
     protected $casts = [
-        'date_derniere_connexion' => 'datetime',
-        'actif' => 'boolean',
-        'email_verified' => 'boolean',
         'email_verified_at' => 'datetime',
     ];
 
     protected $hidden = [
-        'mot_de_passe',
+        'password_hash',
         'remember_token',
     ];
 
-    protected static function booted()
-    {
-        static::creating(function ($user) {
-            if (empty($user->username)) {
-                $user->username = explode('@', $user->email)[0] . '_' . rand(100, 999);
-            }
-        });
-    }
+    protected $appends = [
+        'permissions',
+    ];
 
     // Tell Laravel which column is the password
     public function getAuthPassword()
     {
-        return $this->mot_de_passe;
+        return $this->password_hash;
+    }
+
+    public function normalizedStatus(): string
+    {
+        return strtolower(trim((string) $this->status));
+    }
+
+    public function isActiveAccount(): bool
+    {
+        return in_array($this->normalizedStatus(), self::ACTIVE_STATUSES, true);
+    }
+
+    public function isBlockedAccount(): bool
+    {
+        return in_array($this->normalizedStatus(), self::BLOCKED_STATUSES, true);
+    }
+
+    public function hasLimitedAccess(): bool
+    {
+        return ! $this->isActiveAccount() && ! $this->isBlockedAccount();
+    }
+
+    public function hasVerifiedEmail(): bool
+    {
+        return ! is_null($this->email_verified_at);
+    }
+
+    public function markEmailAsVerified(): bool
+    {
+        return $this->forceFill([
+            'email_verified_at' => $this->freshTimestamp(),
+        ])->save();
+    }
+
+    public function markEmailAsUnverified(): bool
+    {
+        return $this->forceFill([
+            'email_verified_at' => null,
+        ])->save();
+    }
+
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmail);
+    }
+
+    public function getEmailForVerification(): string
+    {
+        return $this->email;
     }
 
     /**
-     * Get the employee profile associated with the user.
+     * Get the formateur profile associated with the user.
      */
-    public function employe()
+    public function formateur(): HasOne
     {
-        return $this->hasOne(Employe::class, 'user_id');
+        return $this->hasOne(Formateur::class, 'user_id');
+    }
+
+    /**
+     * Get the admin profile associated with the user.
+     */
+    public function admin(): HasOne
+    {
+        return $this->hasOne(Admin::class, 'user_id');
+    }
+
+    /**
+     * Get the commission profile associated with the user.
+     */
+    public function commission(): HasOne
+    {
+        return $this->hasOne(Commission::class, 'user_id');
     }
 
     /**
      * Get the role associated with the user.
      */
-    public function role()
+    public function role(): BelongsTo
     {
         return $this->belongsTo(Role::class);
     }
 
-    /**
-     * Check if the user has a specific role.
-     */
-    public function hasRole(string $roleCode): bool
+    public function permissionRequests(): HasMany
     {
-        return $this->role && strtoupper($this->role->code) === strtoupper($roleCode);
+        return $this->hasMany(PermissionRequest::class);
     }
 
-    /**
-     * Check if user is an administrator.
-     */
-    public function isAdmin(): bool
+    public function getPermissionsAttribute(): array
     {
-        return $this->hasRole('ADMIN');
+        $role = $this->relationLoaded('role') ? $this->role : $this->role()->with('permissions')->first();
+        return $role?->permissions?->pluck('name')->values()->all() ?? [];
     }
 
-    /**
-     * Check if user is a commission member.
-     */
-    public function isCommission(): bool
+    public function hasPermission(string $permission): bool
     {
-        return $this->hasRole('COMMISSION');
-    }
+        $role = $this->relationLoaded('role') ? $this->role : $this->role()->with('permissions')->first();
+        if (!$role) {
+            return false;
+        }
 
-    /**
-     * Check if user is an employee.
-     */
-    public function isEmployee(): bool
-    {
-        return $this->hasRole('EMPLOYE') || $this->hasRole('FORMATEUR');
+        return $role->permissions->contains(fn ($item) => $item->name === $permission);
     }
 
     public function notifications()

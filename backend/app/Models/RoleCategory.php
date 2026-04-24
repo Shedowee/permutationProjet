@@ -8,7 +8,7 @@ class RoleCategory extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['libelle', 'code', 'description'];
+    protected $fillable = ['name', 'description'];
 
     public function roles() {
         return $this->hasMany(Role::class);

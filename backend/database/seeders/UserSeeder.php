@@ -6,68 +6,104 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminRole = Role::where('code', 'ADMIN')->first();
-        $commissionRole = Role::where('code', 'COMMISSION')->first();
-        $employeRole = Role::where('code', 'EMPLOYE')->first();
+        $adminRole = Role::where('code', 'admin')->first();
+        $commissionRole = Role::where('code', 'commission')->first();
+        $formateurRole = Role::where('code', 'formateur')->first();
+        $userRole = Role::where('code', 'user')->first();
 
         // 1. Admin
         User::updateOrCreate(
             ['email' => 'admin@ofppt.ma'],
             [
-                'nom' => 'System Administrator',
-                'username' => 'admin',
-                'mot_de_passe' => Hash::make('Admin123!'),
+                'uuid' => Str::uuid(),
+                'name' => 'System Administrator',
+                'password_hash' => Hash::make('Admin123!'),
                 'role_id' => $adminRole?->id,
-                'actif' => true,
+                'status' => 'actif',
                 'email_verified_at' => now(),
+                'age' => 41,
+                'address' => 'Rabat, Maroc',
             ]
         );
 
         // 2. Commission Members
         $commissionMembers = [
-            ['nom' => 'Ahmed Alaoui', 'email' => 'a.alaoui@ofppt.ma'],
-            ['nom' => 'Fatima Zahra', 'email' => 'f.zahra@ofppt.ma'],
+            ['name' => 'Ahmed Alaoui', 'email' => 'a.alaoui@ofppt.ma'],
+            ['name' => 'Fatima Zahra', 'email' => 'f.zahra@ofppt.ma'],
         ];
 
         foreach ($commissionMembers as $member) {
             User::updateOrCreate(
                 ['email' => $member['email']],
                 [
-                    'nom' => $member['nom'],
-                    'username' => explode('@', $member['email'])[0],
-                    'mot_de_passe' => Hash::make('Commission123!'),
-                    'role_id' => $commissionRole?->id,
-                    'actif' => true,
+                'uuid' => Str::uuid(),
+                'name' => $member['name'],
+                'password_hash' => Hash::make('Commission123!'),
+                'role_id' => $commissionRole?->id,
+                'status' => 'actif',
                     'email_verified_at' => now(),
+                    'age' => 38,
+                    'address' => 'Casablanca, Maroc',
                 ]
             );
         }
 
-        // 3. Employee Users (Account only, details in EmployeeSeeder)
-        $employees = [
-            ['nom' => 'Hamza Majdoub', 'email' => 'h.majdoub@ofppt.ma'],
-            ['nom' => 'Sami Mansouri', 'email' => 's.mansouri@ofppt.ma'],
-            ['nom' => 'Yassine Benani', 'email' => 'y.benani@ofppt.ma'],
-            ['nom' => 'Meriam El Amrani', 'email' => 'm.amrani@ofppt.ma'],
+        // 3. Formateur Users
+        $formateurs = [
+            ['name' => 'Hamza Majdoub', 'email' => 'h.majdoub@ofppt.ma'],
+            ['name' => 'Sami Mansouri', 'email' => 's.mansouri@ofppt.ma'],
+            ['name' => 'Yassine Benani', 'email' => 'y.benani@ofppt.ma'],
+            ['name' => 'Meriam El Amrani', 'email' => 'm.amrani@ofppt.ma'],
         ];
 
-        foreach ($employees as $emp) {
+        foreach ($formateurs as $form) {
             User::updateOrCreate(
-                ['email' => $emp['email']],
+                ['email' => $form['email']],
                 [
-                    'nom' => $emp['nom'],
-                    'username' => explode('@', $emp['email'])[0],
-                    'mot_de_passe' => Hash::make('Employe123!'),
-                    'role_id' => $employeRole?->id,
-                    'actif' => true,
-                    'email_verified_at' => now(),
-                ]
+                'uuid' => Str::uuid(),
+                'name' => $form['name'],
+                'password_hash' => Hash::make('Formateur123!'),
+                'role_id' => $formateurRole?->id,
+                'status' => 'actif',
+                'email_verified_at' => now(),
+                'age' => 35,
+                'address' => 'Marrakech, Maroc',
+            ]
             );
         }
+
+        User::updateOrCreate(
+            ['email' => 'user@ofppt.ma'],
+            [
+                'uuid' => Str::uuid(),
+                'name' => 'Basic User',
+                'password_hash' => Hash::make('User123!'),
+                'role_id' => $userRole?->id,
+                'status' => 'actif',
+                'email_verified_at' => now(),
+                'age' => 29,
+                'address' => 'Fès, Maroc',
+            ]
+        );
+
+        User::updateOrCreate(
+            ['email' => 'unassigned.user@ofppt.ma'],
+            [
+                'uuid' => Str::uuid(),
+                'name' => 'Unassigned User',
+                'password_hash' => Hash::make('Profile123!'),
+                'role_id' => null,
+                'status' => 'actif',
+                'email_verified_at' => now(),
+                'age' => 26,
+                'address' => 'Tanger, Maroc',
+            ]
+        );
     }
 }

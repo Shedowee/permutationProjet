@@ -7,8 +7,7 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('role_categories', function (Blueprint $table) {
             $table->id();
-            $table->string('libelle', 100)->unique();
-            $table->string('code', 20)->unique()->nullable();
+            $table->string('name', 100)->unique();
             $table->text('description')->nullable();
             $table->timestamps();
         });

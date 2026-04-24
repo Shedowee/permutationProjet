@@ -8,30 +8,35 @@ class Etablissement extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['code', 'nom', 'adresse', 'ville_id', 'region_id', 'actif'];
+    protected $fillable = [
+        'name',
+        'address',
+        'contact_phone',
+        'contact_email',
+        'city_id',
+        'metadata',
+        'actif',
+    ];
+
+    protected $casts = [
+        'metadata' => 'array',
+        'actif' => 'boolean',
+    ];
 
     /**
-     * Get the region of the establishment.
-     */
-    public function region()
-    {
-        return $this->belongsTo(Parametre::class, 'region_id')->where('type', 'REGION');
-    }
-
-    /**
-     * Get the city of the establishment.
+     * Get the city where the establishment is located.
      */
     public function ville()
     {
-        return $this->belongsTo(Parametre::class, 'ville_id')->where('type', 'VILLE');
+        return $this->belongsTo(Parametre::class, 'city_id');
     }
 
     /**
-     * Get all employees currently assigned to this establishment.
+     * Get all formateurs currently assigned to this establishment.
      */
-    public function employes()
+    public function formateurs()
     {
-        return $this->hasMany(Employe::class);
+        return $this->belongsToMany(Formateur::class, 'etablissement_formateur')->withTimestamps();
     }
 
     /**
@@ -42,4 +47,3 @@ class Etablissement extends Model
         return $this->hasMany(DemandePermutation::class, 'etablissement_souhaite_id');
     }
 }
-

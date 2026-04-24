@@ -9,10 +9,11 @@ class Parametre extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['type', 'code', 'libelle', 'actif', 'ordre', 'parent_id'];
+    protected $fillable = ['type', 'key', 'value', 'description', 'actif', 'ordre', 'parent_id'];
 
     protected $casts = [
         'actif' => 'boolean',
+        'value' => 'array',
     ];
 
     /**
@@ -21,6 +22,14 @@ class Parametre extends Model
     public function parent()
     {
         return $this->belongsTo(Parametre::class, 'parent_id');
+    }
+
+    /**
+     * Alias for parent when it's a Region
+     */
+    public function region()
+    {
+        return $this->belongsTo(Parametre::class, 'parent_id')->where('type', 'REGION');
     }
 
     /**
@@ -36,7 +45,7 @@ class Parametre extends Model
      */
     public function etablissements()
     {
-        return $this->hasMany(Etablissement::class, 'ville_id');
+        return $this->hasMany(Etablissement::class, 'city_id');
     }
 
     /**
@@ -63,10 +72,10 @@ class Parametre extends Model
     }
 
     /**
-     * Static helper to get a parameter ID by code and type.
+     * Static helper to get a parameter ID by key and type.
      */
-    public static function getIdByCode(string $type, string $code): ?int
+    public static function getIdByKey(string $type, string $key): ?int
     {
-        return static::where('type', $type)->where('code', $code)->value('id');
+        return static::where('type', $type)->where('key', $key)->value('id');
     }
 }

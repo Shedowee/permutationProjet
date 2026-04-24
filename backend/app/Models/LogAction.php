@@ -9,21 +9,21 @@ class LogAction extends Model
 {
     use HasFactory;
 
+    const UPDATED_AT = null;
+
     protected $fillable = [
         'user_id',
-        'action_type',
-        'description',
+        'action',
+        'table_name',
+        'record_id',
         'ip_address',
-        'user_agent',
-        'action', // existing
-        'entite', // existing
-        'entite_id', // existing
-        'date_action', // existing
-        'adresse_ip', // existing
+        'before',
+        'after',
     ];
     
     protected $casts = [
-        'date_action' => 'datetime',
+        'before' => 'array',
+        'after' => 'array',
     ];
 
     public function user()
@@ -31,15 +31,15 @@ class LogAction extends Model
         return $this->belongsTo(User::class);
     }
 
-    public static function record(?int $userId, string $action, ?string $entite = null, ?int $entiteId = null, ?string $ip = null): void
+    public static function record(?int $userId, string $action, ?string $tableName = null, ?int $recordId = null, ?array $before = null, ?array $after = null): void
     {
         static::create([
-            'action' => $action,
-            'entite' => $entite,
-            'entite_id' => $entiteId,
-            'date_action' => now(),
-            'adresse_ip' => $ip,
             'user_id' => $userId,
+            'action' => $action,
+            'table_name' => $tableName,
+            'record_id' => $recordId,
+            'before' => $before,
+            'after' => $after,
         ]);
     }
 }

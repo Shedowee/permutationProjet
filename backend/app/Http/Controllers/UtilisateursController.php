@@ -3,19 +3,150 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Parametre;
+use App\Models\Etablissement;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use App\Services\EmailVerificationService;
 use App\Events\UserActionOccurred;
+use App\Http\Controllers\Concerns\HandlesMailSending;
 
 class UtilisateursController extends Controller
 {
-    protected EmailVerificationService $emailVerificationService;
+    use HandlesMailSending;
 
-    public function __construct(EmailVerificationService $emailVerificationService)
+    private function allowedEtablissementIds(User $user): ?array
     {
-        $this->emailVerificationService = $emailVerificationService;
+        if ($user->admin) {
+            $admin = optional($user->admin);
+            $ids = is_array($admin?->metadata['etablissements'] ?? null) ? $admin->metadata['etablissements'] : [];
+            return $ids ?: null; // null means no restriction (super admin without metadata)
+        }
+        if ($user->commission) {
+            $com = optional($user->commission);
+            $ids = is_array($com?->metadata['etablissements'] ?? null) ? $com->metadata['etablissements'] : [];
+            return $ids ?: null;
+        }
+        if ($user->formateur) {
+            $ids = $user->formateur->etablissements()->pluck('etablissements.id')->values()->all();
+            return $ids ?: ($user->formateur->establishment_id ? [$user->formateur->establishment_id] : null);
+        }
+        return null;
+    }
+
+    private function syncProfileForRole(User $user, ?string $roleCode): void
+    {
+        $roleCode = strtolower((string) $roleCode);
+
+        if ($roleCode === 'formateur') {
+            \App\Models\Formateur::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'employee_number' => 'F' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+                    'position' => 'Formateur',
+                ]
+            );
+        }
+
+        if ($roleCode === 'commission') {
+            \App\Models\Commission::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'commission_name' => 'Commission',
+                ]
+            );
+        }
+
+        if ($roleCode === 'admin') {
+            \App\Models\Admin::firstOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'admin_level' => 1,
+                ]
+            );
+        }
+    }
+
+    private function formateurIsWithinAllowedEstablishments(User $user, array $allowed): bool
+    {
+        if (!$user->formateur) {
+            return true;
+        }
+
+        $pivotIds = $user->formateur->etablissements()->pluck('etablissements.id')->all();
+        if (collect($pivotIds)->intersect($allowed)->isNotEmpty()) {
+            return true;
+        }
+
+        return in_array($user->formateur->establishment_id, $allowed);
+    }
+
+    private function buildUserDetailPayload(User $user): array
+    {
+        $role = $user->relationLoaded('role') ? $user->role : $user->role()->with('permissions')->first();
+
+        return [
+            'id' => $user->id,
+            'uuid' => $user->uuid,
+            'name' => $user->name,
+            'nom' => $user->name,
+            'email' => $user->email,
+            'role_id' => $user->role_id,
+            'role' => $role?->code ?? null,
+            'role_label' => $role?->name ?? null,
+            'permissions' => $role?->permissions?->pluck('name')->values()->all() ?? [],
+            'status' => $user->status,
+            'email_verified_at' => $user->email_verified_at,
+            'phone' => $user->phone,
+            'age' => $user->age,
+            'address' => $user->address,
+            'photo_url' => $user->photo_url,
+            'created_at' => $user->created_at,
+            'admin' => $user->admin ? [
+                'id' => $user->admin->id,
+                'admin_level' => $user->admin->admin_level,
+                'notes' => $user->admin->notes,
+                'metadata' => $user->admin->metadata,
+            ] : null,
+            'commission' => $user->commission ? [
+                'id' => $user->commission->id,
+                'commission_name' => $user->commission->commission_name,
+                'jurisdiction' => $user->commission->jurisdiction,
+                'start_date' => $user->commission->start_date,
+                'end_date' => $user->commission->end_date,
+                'notes' => $user->commission->notes,
+                'metadata' => $user->commission->metadata,
+            ] : null,
+            'formateur' => $user->formateur ? [
+                'id' => $user->formateur->id,
+                'employee_number' => $user->formateur->employee_number,
+                'position' => $user->formateur->position,
+                'establishment_id' => $user->formateur->establishment_id,
+                'etablissement' => $user->formateur->etablissement ? [
+                    'id' => $user->formateur->etablissement->id,
+                    'name' => $user->formateur->etablissement->name,
+                ] : null,
+                'etablissements' => $user->formateur->etablissements?->map(fn ($e) => [
+                    'id' => $e->id,
+                    'name' => $e->name,
+                ])->values()->all() ?? [],
+            ] : null,
+            'documents' => $user->documents?->map(fn ($document) => [
+                'id' => $document->id,
+                'document_type' => $document->document_type,
+                'file_path' => $document->file_path,
+                'created_at' => $document->created_at,
+            ])->values()->all() ?? [],
+            'logs' => $user->logs?->map(fn ($log) => [
+                'id' => $log->id,
+                'action' => $log->action,
+                'type' => $log->type,
+                'date' => $log->date ?? $log->created_at,
+                'description' => $log->description ?? null,
+            ])->values()->all() ?? [],
+        ];
     }
 
     /**
@@ -26,13 +157,64 @@ class UtilisateursController extends Controller
         $user = $request->user();
 
         $validated = $request->validate([
-            'nom' => 'sometimes|string|max:255',
-            'age' => 'sometimes|integer|min:18|max:100',
+            'name' => 'sometimes|string|max:255',
+            'age' => 'sometimes|nullable|integer|min:0|max:120',
             'phone' => 'sometimes|string|max:20',
-            'address' => 'sometimes|string|max:500',
+            'address' => 'sometimes|nullable|string|max:255',
+            'region_id' => 'nullable|exists:parametres,id',
+            'city_id' => 'nullable|exists:parametres,id',
+            'establishment_id' => 'nullable|exists:etablissements,id',
         ]);
 
-        $user->update($validated);
+        $profileData = array_intersect_key($validated, array_flip(['name', 'age', 'phone', 'address']));
+
+        $formateurPayload = null;
+        if ($user->formateur && ($request->filled('region_id') || $request->filled('city_id') || $request->filled('establishment_id'))) {
+            if (!$request->filled('region_id') || !$request->filled('city_id') || !$request->filled('establishment_id')) {
+                return response()->json([
+                    'message' => 'Veuillez sélectionner une région, une ville et un établissement.',
+                ], 422);
+            }
+
+            $region = Parametre::query()
+                ->where('type', 'REGION')
+                ->find($validated['region_id']);
+            $city = Parametre::query()
+                ->where('type', 'VILLE')
+                ->find($validated['city_id']);
+            $etablissement = Etablissement::with('ville')->find($validated['establishment_id']);
+
+            if (!$region || !$city || !$etablissement) {
+                return response()->json([
+                    'message' => 'Sélection invalide pour l\'affectation.',
+                ], 422);
+            }
+
+            if ((int) $city->parent_id !== (int) $region->id) {
+                return response()->json([
+                    'message' => 'La ville sélectionnée ne correspond pas à la région choisie.',
+                ], 422);
+            }
+
+            if ((int) $etablissement->city_id !== (int) $city->id) {
+                return response()->json([
+                    'message' => 'L\'établissement sélectionné ne correspond pas à la ville choisie.',
+                ], 422);
+            }
+            $formateurPayload = [
+                'establishment_id' => $etablissement->id,
+            ];
+        }
+
+        DB::transaction(function () use ($user, $profileData, $formateurPayload) {
+            if (!empty($profileData)) {
+                $user->update($profileData);
+            }
+
+            if ($formateurPayload && $user->formateur) {
+                $user->formateur->update($formateurPayload);
+            }
+        });
 
         event(new UserActionOccurred(
             $user->id,
@@ -42,7 +224,7 @@ class UtilisateursController extends Controller
 
         return response()->json([
             'message' => 'Profil mis à jour avec succès',
-            'user' => $user
+            'user' => $user->fresh()->load(['role.permissions', 'formateur.etablissement.ville.region', 'formateur.etablissements'])
         ]);
     }
 
@@ -58,12 +240,12 @@ class UtilisateursController extends Controller
             'new_password' => 'required|string|min:6|confirmed',
         ]);
 
-        if (!Hash::check($request->current_password, $user->mot_de_passe)) {
+        if (!Hash::check($request->current_password, $user->password_hash)) {
             return response()->json(['message' => 'Le mot de passe actuel est incorrect'], 422);
         }
 
         $user->update([
-            'mot_de_passe' => Hash::make($request->new_password)
+            'password_hash' => Hash::make($request->new_password)
         ]);
 
         event(new UserActionOccurred(
@@ -83,62 +265,39 @@ class UtilisateursController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'email' => 'required|email|unique:utilisateurs,email,' . $user->id,
+            'email' => 'required|email|unique:users,email,' . $user->id,
         ]);
 
         if ($request->email === $user->email) {
             return response()->json(['message' => 'C\'est déjà votre adresse email actuelle'], 422);
         }
 
-        // Store new email temporarily in OTP table or similar
-        $code = $this->emailVerificationService->sendOtp($request->email, 'email_change');
-        
-        // Mocking email sending
-        try {
-            \Illuminate\Support\Facades\Mail::raw(
-                'Votre code de vérification pour changer votre email est: ' . $code,
-                function ($message) use ($request) {
-                    $message->to($request->email)->subject('Changement d\'adresse email');
-                }
-            );
-        } catch (\Throwable $e) {}
-
-        return response()->json([
-            'message' => 'Un code de vérification a été envoyé à votre nouvelle adresse email.',
-            'temp_email' => $request->email
-        ]);
-    }
-
-    /**
-     * Verify and complete email change
-     */
-    public function verifyNewEmail(Request $request)
-    {
-        $user = $request->user();
-
-        $request->validate([
-            'email' => 'required|email|unique:utilisateurs,email,' . $user->id,
-            'code' => 'required|string',
-        ]);
-
-        if (!$this->emailVerificationService->verifyOtp($request->email, $request->code, 'email_change')) {
-            return response()->json(['message' => 'Code de vérification invalide ou expiré'], 422);
-        }
-
         $oldEmail = $user->email;
-        $user->update([
+        $user->forceFill([
             'email' => $request->email,
-            'email_verified' => true,
-            'email_verified_at' => now()
-        ]);
+            'email_verified_at' => null,
+        ])->save();
+
+        $mailSent = $this->sendMailSafely(
+            fn () => $user->sendEmailVerificationNotification(),
+            'Verification email could not be sent after profile email change.',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]
+        );
 
         event(new UserActionOccurred(
             $user->id,
-            'email_verified',
+            'email_change',
             "Email changé de {$oldEmail} vers {$request->email}"
         ));
 
-        return response()->json(['message' => 'Adresse email mise à jour et vérifiée avec succès']);
+        return response()->json([
+            'message' => 'Adresse email mise à jour. Un lien de vérification a été envoyé à la nouvelle adresse.',
+            'email' => $request->email,
+            'mail_sent' => $mailSent,
+        ]);
     }
 
     /**
@@ -146,12 +305,34 @@ class UtilisateursController extends Controller
      */
     public function getNotifications(Request $request)
     {
-        $notifications = $request->user()->notifications()
-            ->orderBy('is_read', 'asc')
+        $user = $request->user();
+        $user->loadMissing('role');
+        $query = Notification::query()->visibleTo($user);
+
+        if ($search = trim((string) $request->query('q', ''))) {
+            $like = '%' . mb_strtolower($search) . '%';
+            $query->where(function ($q) use ($like) {
+                $q->whereRaw('LOWER(type) LIKE ?', [$like])
+                  ->orWhereRaw("LOWER(COALESCE(payload->>'title', '')) LIKE ?", [$like])
+                  ->orWhereRaw("LOWER(COALESCE(payload->>'message', '')) LIKE ?", [$like]);
+            });
+        }
+
+        $paginator = $query
+            ->orderByRaw('CASE WHEN read_at IS NULL THEN 0 ELSE 1 END')
             ->latest()
             ->paginate(20);
 
-        return response()->json(['data' => $notifications]);
+        // Return a flat array plus meta to match frontend expectations
+        return response()->json([
+            'data' => $paginator->items(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'total'        => $paginator->total(),
+                'per_page'     => $paginator->perPage(),
+            ],
+        ]);
     }
 
     /**
@@ -159,13 +340,45 @@ class UtilisateursController extends Controller
      */
     public function markNotificationRead(Request $request, \App\Models\Notification $notification)
     {
-        if ($notification->user_id !== $request->user()->id) {
+        $user = $request->user();
+        $user->loadMissing('role');
+
+        if (! $notification->newQuery()->visibleTo($user)->whereKey($notification->id)->exists()) {
             return response()->json(['message' => 'Non autorisé'], 403);
         }
 
-        $notification->update(['is_read' => true]);
+        $notification->update(['read_at' => now()]);
 
         return response()->json(['message' => 'Notification marquée comme lue']);
+    }
+
+    /**
+     * Clear all notifications for the authenticated user.
+     */
+    public function clearNotifications(Request $request)
+    {
+        $user = $request->user();
+        $user->loadMissing('role');
+        Notification::query()->visibleTo($user)->delete();
+
+        return response()->json(['message' => 'Notifications supprimées avec succès']);
+    }
+
+    /**
+     * Get a single notification.
+     */
+    public function getNotification(Request $request, Notification $notification)
+    {
+        $user = $request->user();
+        $user->loadMissing('role');
+
+        if (! $notification->newQuery()->visibleTo($user)->whereKey($notification->id)->exists()) {
+            return response()->json(['message' => 'Non autorisé'], 403);
+        }
+
+        return response()->json([
+            'data' => $notification->load('user'),
+        ]);
     }
 
     /**
@@ -173,7 +386,12 @@ class UtilisateursController extends Controller
      */
     public function getUnreadNotificationsCount(Request $request)
     {
-        $count = $request->user()->notifications()->where('is_read', false)->count();
+        $user = $request->user();
+        $user->loadMissing('role');
+        $count = Notification::query()
+            ->visibleTo($user)
+            ->whereNull('read_at')
+            ->count();
         return response()->json(['count' => $count]);
     }
     /**
@@ -187,16 +405,17 @@ class UtilisateursController extends Controller
 
         $user = $request->user();
 
-        if ($user->profile_picture) {
-            Storage::disk('public')->delete($user->profile_picture);
+        if ($user->photo_url) {
+            Storage::disk('public')->delete($user->photo_url);
         }
 
         $path = $request->file('image')->store('profile_pictures', 'public');
-        $user->update(['profile_picture' => $path]);
+        $user->update(['photo_url' => $path]);
 
         return response()->json([
             'message' => 'Photo de profil mise à jour',
-            'url' => asset('storage/' . $path)
+            'url' => asset('storage/' . $path),
+            'photo_url' => $path
         ]);
     }
 
@@ -207,7 +426,7 @@ class UtilisateursController extends Controller
     {
         $request->validate([
             'document' => 'required|file|mimes:pdf,doc,docx,jpg,png|max:5120',
-            'title' => 'required|string|max:255',
+            'document_type' => 'required|string|max:255',
         ]);
 
         $user = $request->user();
@@ -215,10 +434,8 @@ class UtilisateursController extends Controller
         $path = $file->store('user_documents/' . $user->id, 'public');
 
         $document = $user->documents()->create([
-            'title' => $request->title,
+            'document_type' => $request->document_type,
             'file_path' => $path,
-            'file_type' => $file->getClientOriginalExtension(),
-            'file_size' => $file->getSize(),
         ]);
 
         return response()->json([
@@ -254,21 +471,88 @@ class UtilisateursController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('role')->orderBy('nom')->get();
+        $query = User::with(['role.permissions']);
 
-        $data = $users->map(function ($u) {
-            return [
+        $requestUser = $request->user();
+        if ($requestUser && !$requestUser->admin) {
+            $allowed = $this->allowedEtablissementIds($requestUser);
+            if (is_array($allowed) && ($requestUser->commission || $requestUser->formateur)) {
+                $query->whereHas('formateur', function ($q) use ($allowed) {
+                    $q->whereIn('establishment_id', $allowed)
+                      ->orWhereHas('etablissements', function ($etabQuery) use ($allowed) {
+                          $etabQuery->whereIn('etablissements.id', $allowed);
+                      });
+                });
+            }
+        }
+
+        // Filters
+        $search = trim((string) $request->query('search', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%$search%")
+                  ->orWhere('email', 'LIKE', "%$search%");
+            });
+        }
+        if ($role = $request->query('role')) {
+            $query->whereHas('role', function($rq) use ($role) {
+                $rq->whereRaw('LOWER(name) = ?', [strtolower($role)]);
+            });
+        }
+        if ($status = $request->query('status')) {
+            $query->where('status', $status);
+        }
+        if ($request->boolean('pending')) {
+            $query->where(function ($q) {
+                $q->whereNull('role_id')
+                  ->orWhere('status', '!=', 'actif');
+            });
+        }
+
+        $limit = (int) $request->query('limit', 5);
+        if ($limit === -1) {
+            $users = $query->orderBy('name')->get();
+            $data = $users->map(fn($u) => [
                 'id' => $u->id,
-                'name' => $u->nom,
+                'name' => $u->name,
+                'nom' => $u->name,
                 'email' => $u->email,
-                'role' => $u->role ? strtolower($u->role->code) : null,
-                'status' => $u->actif ? 'actif' : 'inactif',
-            ];
-        });
+                'role' => $u->role?->code ?? strtolower((string) $u->role?->name),
+                'status' => $u->status,
+                'phone' => $u->phone,
+                'age' => $u->age,
+                'address' => $u->address,
+                'photo_url' => $u->photo_url,
+            ]);
+            return response()->json(['data' => $data]);
+        }
 
-        return response()->json(['data' => $data]);
+        $page = (int) $request->query('page', 1);
+        $paginator = $query->orderBy('name')->paginate($limit, ['*'], 'page', $page);
+        $data = collect($paginator->items())->map(fn($u) => [
+            'id' => $u->id,
+            'name' => $u->name,
+            'nom' => $u->name,
+            'email' => $u->email,
+            'role' => $u->role?->code ?? strtolower((string) $u->role?->name),
+            'status' => $u->status,
+            'phone' => $u->phone,
+            'age' => $u->age,
+            'address' => $u->address,
+            'photo_url' => $u->photo_url,
+        ]);
+
+        return response()->json([
+            'data' => $data,
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'total' => $paginator->total(),
+                'per_page' => $paginator->perPage(),
+            ]
+        ]);
     }
 
     /**
@@ -276,49 +560,61 @@ class UtilisateursController extends Controller
      */
     public function store(Request $request)
     {
-            $validated = $request->validate([
-                'nom' => 'required|string|max:255',
-                'email' => 'required|email|unique:utilisateurs,email',
-                'password' => 'required|string|min:6',
-                'role' => 'required|string',
-                'status' => 'nullable|string',
-            ]);
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+            'role' => 'required|string',
+            'status' => 'nullable|string',
+        ]);
 
-            $roleCode = strtolower($validated['role']);
-            $roleId = \App\Models\Role::whereRaw('LOWER(code) = ?', [$roleCode])->value('id');
+        $roleCode = strtolower($validated['role']);
+        $roleId = \App\Models\Role::where('code', $roleCode)->value('id');
 
-            if (!$roleId) {
-                return response()->json(['message' => 'Role not found'], 422);
-            }
+        if (!$roleId) {
+            return response()->json(['message' => 'Role not found'], 422);
+        }
 
-            $user = User::create([
-                'nom' => $validated['nom'],
-                'email' => $validated['email'],
-                'mot_de_passe' => Hash::make($validated['password']),
-                'role_id' => $roleId,
-                'actif' => isset($validated['status']) ? ($validated['status'] === 'actif' || $validated['status'] === 'active') : true,
-            ]);
+        $user = User::create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password_hash' => Hash::make($validated['password']),
+            'role_id' => $roleId,
+            'status' => $validated['status'] ?? 'pending',
+            'email_verified_at' => now(), // Assume admin created users are verified
+        ]);
 
-            $user->load('role');
+        $this->syncProfileForRole($user, $roleCode);
 
-            return response()->json([
-                'data' => [
-                    'id' => $user->id,
-                    'name' => $user->nom,
-                    'email' => $user->email,
-                    'role' => $user->role ? strtolower($user->role->code) : null,
-                    'status' => $user->actif ? 'actif' : 'inactif',
-                ]
-            ], 201);
+        return response()->json([
+            'message' => 'Utilisateur créé avec succès',
+            'user' => $user->load('role.permissions')
+        ], 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        $user = User::with(['role', 'documents', 'employe.grade', 'employe.region', 'employe.etablissement'])->findOrFail($id);
-        return response()->json(['data' => $user]);
+        $user = User::with([
+            'role.permissions',
+            'formateur.etablissements',
+            'admin',
+            'commission',
+            'documents',
+            'logs',
+        ])->findOrFail($id);
+        $requestUser = $request->user();
+        if ($requestUser && !$requestUser->admin) {
+            $allowed = $this->allowedEtablissementIds($requestUser);
+            if (is_array($allowed) && !$this->formateurIsWithinAllowedEstablishments($user, $allowed)) {
+                return response()->json(['message' => 'Non autorisé'], 403);
+            }
+        }
+
+        return response()->json(['data' => $this->buildUserDetailPayload($user)]);
     }
 
     /**
@@ -326,56 +622,59 @@ class UtilisateursController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        $allowed = $this->allowedEtablissementIds($request->user());
+        if (is_array($allowed) && !$this->formateurIsWithinAllowedEstablishments($user, $allowed)) {
+            return response()->json(['message' => 'Non autorisé'], 403);
+        }
         $validated = $request->validate([
-            'nom' => 'nullable|string|max:255',
-            'email' => 'nullable|email|unique:utilisateurs,email,' . $user->id,
-            'password' => 'nullable|string|min:6',
-            'role' => 'nullable|string',
-            'status' => 'nullable|string',
+            'name' => 'sometimes|string|max:255',
+            'age' => 'sometimes|nullable|integer|min:0|max:120',
+            'phone' => 'sometimes|nullable|string|max:20',
+            'address' => 'sometimes|nullable|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'role' => 'sometimes|string',
+            'status' => 'sometimes|string',
         ]);
 
         if (isset($validated['role'])) {
             $roleCode = strtolower($validated['role']);
-            $roleId = \App\Models\Role::whereRaw('LOWER(code) = ?', [$roleCode])->value('id');
-            if (!$roleId) {
-                return response()->json(['message' => 'Role not found'], 422);
+            $roleId = \App\Models\Role::where('code', $roleCode)->value('id');
+            if ($roleId) {
+                $validated['role_id'] = $roleId;
+                $this->syncProfileForRole($user, $roleCode);
             }
-            $user->role_id = $roleId;
+            unset($validated['role']);
         }
 
-        if (isset($validated['nom'])) {
-            $user->nom = $validated['nom'];
-        }
-        if (isset($validated['email'])) {
-            $user->email = $validated['email'];
-        }
-        if (isset($validated['password'])) {
-            $user->mot_de_passe = Hash::make($validated['password']);
-        }
-        if (isset($validated['status'])) {
-            $user->actif = ($validated['status'] === 'actif' || $validated['status'] === 'active');
+        $beforeRoleId = $user->role_id;
+        $user->update($validated);
+
+        if ($beforeRoleId !== $user->role_id) {
+            event(new UserActionOccurred(
+                $user->id,
+                'role_change',
+                "Rôle mis à jour pour l'utilisateur: {$user->email}"
+            ));
         }
 
-        $user->save();
-        $user->load('role');
+        $payload = $user->load(['role.permissions', 'formateur.etablissements', 'admin', 'commission', 'documents', 'logs']);
 
         return response()->json([
-            'data' => [
-                'id' => $user->id,
-                'name' => $user->nom,
-                'email' => $user->email,
-                'role' => $user->role ? strtolower($user->role->code) : null,
-                'status' => $user->actif ? 'actif' : 'inactif',
-            ]
+            'message' => 'Utilisateur mis à jour avec succès',
+            'user' => $this->buildUserDetailPayload($payload)
         ]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
+        $allowed = $this->allowedEtablissementIds($request->user());
+        if (is_array($allowed) && !$this->formateurIsWithinAllowedEstablishments($user, $allowed)) {
+            return response()->json(['message' => 'Non autorisé'], 403);
+        }
         $user->delete();
-        return response()->json(['message' => 'User deleted']);
+        return response()->json(['message' => 'Utilisateur supprimé avec succès']);
     }
 }

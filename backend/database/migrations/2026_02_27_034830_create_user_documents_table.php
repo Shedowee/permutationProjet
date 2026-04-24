@@ -10,12 +10,11 @@ return new class extends Migration
     {
         Schema::create('user_documents', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('utilisateurs')->onDelete('cascade');
-            $table->string('title');
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('document_type');
             $table->string('file_path');
-            $table->string('file_type');
-            $table->integer('file_size');
-            $table->timestamps();
+            $table->boolean('verified')->default(false);
+            $table->timestamp('uploaded_at')->useCurrent();
         });
     }
 

@@ -19,13 +19,12 @@ class ActivityLogService
     {
         LogAction::create([
             'user_id' => $userId,
-            'action_type' => $actionType,
-            'description' => $description,
+            'action' => $actionType,
+            'table_name' => null, // Can be set if needed
+            'record_id' => null, // Can be set if needed
             'ip_address' => Request::ip(),
-            'user_agent' => Request::userAgent(),
-            'action' => $actionType, // compatible with old system
-            'date_action' => now(),
-            'adresse_ip' => Request::ip(), // compatible with old system
+            'before' => null,
+            'after' => ['description' => $description],
         ]);
     }
 }

@@ -8,6 +8,27 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckUserRole
 {
+    private const LIMITED_ACCESS_PATHS = [
+        'api/me',
+        'api/logout',
+        'api/email/resend',
+        'api/user/profile',
+        'api/user/password',
+        'api/user/email',
+        'api/user/profile-picture',
+        'api/notifications',
+        'api/notifications/unread-count',
+    ];
+
+    private function canAccessLimitedRoutes(string $path): bool
+    {
+        if (in_array($path, self::LIMITED_ACCESS_PATHS, true)) {
+            return true;
+        }
+
+        return str_starts_with($path, 'api/notifications/');
+    }
+
     /**
      * Handle an incoming request.
      *
@@ -18,18 +39,16 @@ class CheckUserRole
         $user = $request->user();
 
         if ($user) {
-            $isUserRole = $user->role && strtoupper($user->role->code) === 'USER';
-            $isInactive = !$user->actif;
+            if ($user->isBlockedAccount()) {
+                return response()->json([
+                    'message' => 'Accès refusé. Votre compte est suspendu ou désactivé.'
+                ], 403);
+            }
 
-            if ($isUserRole || $isInactive) {
-                $allowedRoutes = ['me', 'logout'];
-                $currentRoute = $request->route()->getName() ?: explode('/', $request->path())[1] ?? '';
-
-                if (!in_array($currentRoute, $allowedRoutes) && !$request->is('api/me') && !$request->is('api/logout')) {
-                    return response()->json([
-                        'message' => 'Accès restreint. Votre compte est en attente d\'activation par un administrateur.'
-                    ], 403);
-                }
+            if (!$user->isActiveAccount() && !$this->canAccessLimitedRoutes($request->path())) {
+                return response()->json([
+                    'message' => 'Accès restreint. Votre compte doit encore être validé par un administrateur.'
+                ], 403);
             }
         }
 

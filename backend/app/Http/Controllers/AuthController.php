@@ -2,45 +2,49 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Auth\Events\Registered;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
-use App\Services\EmailVerificationService;
 use App\Events\UserActionOccurred;
+use App\Http\Controllers\Concerns\HandlesMailSending;
 
 class AuthController extends Controller
 {
-    protected EmailVerificationService $emailVerificationService;
-
-    public function __construct(EmailVerificationService $emailVerificationService)
-    {
-        $this->emailVerificationService = $emailVerificationService;
-    }
+    use HandlesMailSending;
 
     public function signup(Request $request)
     {
         $validated = $request->validate([
-            'nom' => 'required|string|max:255',
-            'email' => 'required|email|unique:utilisateurs,email',
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:6',
         ]);
 
-        $role = \App\Models\Role::where('code', 'USER')->first();
+        $user = \Illuminate\Support\Facades\DB::transaction(function () use ($validated) {
+            $role = \App\Models\Role::where('code', 'user')->first();
 
-        $user = User::create([
-            'nom' => $validated['nom'],
-            'email' => $validated['email'],
-            'mot_de_passe' => Hash::make($validated['password']),
-            'role_id' => $role?->id,
-            'actif' => false,
-            'email_verified' => false,
-        ]);
+            return User::create([
+                'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password_hash' => Hash::make($validated['password']),
+                'role_id' => $role?->id,
+                'status' => 'pending',
+            ]);
+        });
 
-        $code = $this->emailVerificationService->sendOtp($validated['email']);
-        
-        // Mocking email sending for now as per sendVerificationEmail logic
-        $this->sendVerificationEmail($validated['email'], $code);
+        $verificationMailSent = true;
+
+        $verificationMailSent = $this->sendMailSafely(
+            fn () => event(new Registered($user)),
+            'Verification email could not be sent during signup.',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]
+        );
 
         event(new UserActionOccurred(
             $user->id,
@@ -49,59 +53,11 @@ class AuthController extends Controller
         ));
 
         return response()->json([
-            'message' => 'Compte créé. Un code a été envoyé à votre email.',
+            'message' => $verificationMailSent
+                ? 'Compte créé. Vérifiez votre boîte mail pour activer votre adresse email.'
+                : 'Compte créé, mais l\'email de vérification n\'a pas pu être envoyé. Vérifiez la configuration mail ou demandez un renvoi.',
+            'mail_sent' => $verificationMailSent,
         ], 201);
-    }
-
-    public function confirm(Request $request)
-    {
-        $validated = $request->validate([
-            'email' => 'required|email',
-            'code' => 'required|string',
-        ]);
-
-        $user = User::where('email', $validated['email'])->first();
-        
-        if (!$user || !$this->emailVerificationService->verifyOtp($validated['email'], $validated['code'])) {
-            return response()->json(['message' => 'Code de confirmation invalide ou expiré'], 422);
-        }
-
-        $user->update([
-            'actif' => true,
-            'email_verified' => true,
-            'email_verified_at' => now()
-        ]);
-
-        event(new UserActionOccurred(
-            $user->id,
-            'email_verified',
-            "Email vérifié pour l'utilisateur: {$user->email}"
-        ));
-
-        return response()->json([
-            'message' => 'Compte confirmé. Vous pouvez maintenant vous connecter.',
-        ]);
-    }
-
-    public function resendCode(Request $request)
-    {
-        $validated = $request->validate([
-            'email' => 'required|email',
-        ]);
-
-        $user = User::where('email', $validated['email'])->first();
-        if (!$user) {
-            return response()->json(['message' => 'Utilisateur non trouvé'], 404);
-        }
-
-        if ($user->email_verified) {
-            return response()->json(['message' => 'Email déjà vérifié'], 422);
-        }
-
-        $code = $this->emailVerificationService->sendOtp($validated['email']);
-        $this->sendVerificationEmail($validated['email'], $code);
-
-        return response()->json(['message' => 'Nouveau code envoyé']);
     }
 
     public function forgotPassword(Request $request)
@@ -122,16 +78,25 @@ class AuthController extends Controller
             ['token' => $token, 'created_at' => now()]
         );
 
-        try {
-            \Illuminate\Support\Facades\Mail::raw(
-                "Utilisez ce lien pour réinitialiser votre mot de passe: " . config('app.frontend_url', 'http://localhost:5173') . "/reset-password?token=" . $token . "&email=" . urlencode($validated['email']),
-                function ($message) use ($validated) {
-                    $message->to($validated['email'])->subject('Réinitialisation du mot de passe');
-                }
-            );
-        } catch (\Throwable $e) {}
+        $mailSent = $this->sendMailSafely(
+            function () use ($validated, $token) {
+                \Illuminate\Support\Facades\Mail::raw(
+                    "Utilisez ce lien pour réinitialiser votre mot de passe: " . config('app.frontend_url', 'http://localhost:5173') . "/reset-password?token=" . $token . "&email=" . urlencode($validated['email']),
+                    function ($message) use ($validated) {
+                        $message->to($validated['email'])->subject('Réinitialisation du mot de passe');
+                    }
+                );
+            },
+            'Reset password email could not be sent.',
+            [
+                'email' => $validated['email'],
+            ]
+        );
 
-        return response()->json(['message' => 'Si cet email correspond à un compte, un lien de réinitialisation sera envoyé.']);
+        return response()->json([
+            'message' => 'Si cet email correspond à un compte, un lien de réinitialisation sera envoyé.',
+            'mail_sent' => $mailSent,
+        ]);
     }
 
     public function resetPassword(Request $request)
@@ -153,7 +118,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
         if ($user) {
-            $user->update(['mot_de_passe' => Hash::make($validated['password'])]);
+            $user->update(['password_hash' => Hash::make($validated['password'])]);
         }
 
         \Illuminate\Support\Facades\DB::table('password_reset_tokens')->where('email', $validated['email'])->delete();
@@ -169,61 +134,77 @@ class AuthController extends Controller
             return response()->json(['message' => 'Email déjà vérifié'], 422);
         }
 
-        $code = $this->emailVerificationService->sendOtp($user->email, 'email_verification');
-        $this->sendVerificationEmail($user->email, $code);
+        $mailSent = $this->sendMailSafely(
+            fn () => $user->sendEmailVerificationNotification(),
+            'Verification email could not be resent for authenticated user.',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]
+        );
 
         event(new UserActionOccurred(
             $user->id,
-            'otp_resend',
-            "Nouveau code de vérification envoyé à: {$user->email}"
+            'email_verification_resent',
+            "Nouveau lien de vérification envoyé à: {$user->email}"
         ));
 
-        return response()->json(['message' => 'Un nouveau code a été envoyé.']);
+        return response()->json([
+            'message' => 'Un nouveau lien de vérification a été envoyé.',
+            'mail_sent' => $mailSent,
+        ]);
     }
 
-    public function verifyOtp(Request $request)
+    public function resendVerificationLink(Request $request)
     {
-        $user = $request->user();
-
-        $request->validate([
-            'code' => 'required|string',
+        $validated = $request->validate([
+            'email' => 'required|email',
         ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non trouvé'], 404);
+        }
 
         if ($user->email_verified_at) {
             return response()->json(['message' => 'Email déjà vérifié'], 422);
         }
 
-        if (!$this->emailVerificationService->verifyOtp($user->email, $request->code, 'email_verification')) {
-            return response()->json(['message' => 'Code de vérification invalide ou expiré'], 422);
-        }
+        $mailSent = $this->sendMailSafely(
+            fn () => $user->sendEmailVerificationNotification(),
+            'Verification email could not be sent to a newly provided email address.',
+            [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]
+        );
 
-        $user->update([
-            'actif' => true,
-            'email_verified' => true,
-            'email_verified_at' => now()
+        return response()->json([
+            'message' => 'Un nouveau lien de vérification a été envoyé.',
+            'mail_sent' => $mailSent,
         ]);
-
-        event(new UserActionOccurred(
-            $user->id,
-            'email_verified',
-            "Email vérifié avec succès pour: {$user->email}"
-        ));
-
-        return response()->json(['message' => 'Email vérifié avec succès.']);
     }
 
-    private function sendVerificationEmail($email, $code)
+    /**
+     * Normalize role name for frontend
+     */
+    private function normalizeRole($roleName)
     {
-        try {
-            \Illuminate\Support\Facades\Mail::raw(
-                'Votre code de confirmation OFPPT est: ' . $code,
-                function ($message) use ($email) {
-                    $message->to($email)->subject('Code de confirmation');
-                }
-            );
-        } catch (\Throwable $e) {
-            // ignore mail failures in dev; code is stored in cache
-        }
+        if (!$roleName) return null;
+
+        $mapping = [
+            'admin' => 'admin',
+            'administrateur' => 'admin',
+            'commission' => 'commission',
+            'membre de commission' => 'commission',
+            'formateur' => 'formateur',
+            'user' => 'user',
+            'utilisateur standard' => 'user',
+        ];
+
+        $lower = strtolower($roleName);
+        return $mapping[$lower] ?? $lower;
     }
 
     /**
@@ -235,20 +216,47 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email'    => 'required|string',
             'password' => 'required|string',
         ]);
 
-        // Fetch user by email
-        $user = User::where('email', $request->email)->with('role')->first();
+        // 1. Try to find the user by email or employee_number
+        $user = User::where('email', $request->email)
+            ->orWhere(function($query) use ($request) {
+                $query->whereHas('formateur', function($q) use ($request) {
+                    $q->where('employee_number', $request->email);
+                });
+            })
+            ->with(['role.permissions', 'formateur.etablissement.ville.region', 'formateur.etablissements'])
+            ->first();
 
-        if (!$user || !Hash::check($request->password, $user->mot_de_passe)) {
+        // 2. If user not found, return specific error
+        if (!$user) {
             return response()->json([
-                'message' => 'Invalid credentials'
+                'message' => 'Email ou matricule incorrect.',
+                'error_code' => 'IDENTIFIER_NOT_FOUND',
+                'field' => 'email'
             ], 401);
         }
 
-        // Log in user via session
+        // 3. If user found, verify password
+        if (!Hash::check($request->password, $user->password_hash)) {
+            return response()->json([
+                'message' => 'Mot de passe incorrect.',
+                'error_code' => 'INVALID_PASSWORD',
+                'field' => 'password'
+            ], 401);
+        }
+
+        // 4. Block only explicitly suspended/inactive accounts.
+        if ($user->isBlockedAccount()) {
+            return response()->json([
+                'message' => 'Votre compte est suspendu ou désactivé.',
+                'error_code' => 'ACCOUNT_BLOCKED'
+            ], 403);
+        }
+
+        // 5. Proceed with login
         Auth::login($user);
 
         // Regenerate session to prevent fixation attacks
@@ -265,12 +273,43 @@ class AuthController extends Controller
             'message' => 'Login successful',
             'user' => [
                 'id'      => $user->id,
-                'nom'     => $user->nom,
+                'name'    => $user->name,
+                'nom'     => $user->name,
                 'email'   => $user->email,
                 'role_id' => $user->role_id,
-                'role'    => $user->role ? strtolower($user->role->code) : null,
-                'actif'   => $user->actif,
+                'role'    => $this->normalizeRole($user->role?->code ?? $user->role?->name),
+                'permissions' => $user->permissions,
+                'status'  => $user->status,
                 'email_verified_at' => $user->email_verified_at,
+                'phone'   => $user->phone,
+                'age'     => $user->age,
+                'address' => $user->address,
+                'photo_url' => $user->photo_url,
+                'created_at' => $user->created_at,
+                'formateur' => $user->formateur ? [
+                    'id' => $user->formateur->id,
+                    'employee_number' => $user->formateur->employee_number,
+                    'position' => $user->formateur->position,
+                    'establishment_id' => $user->formateur->establishment_id,
+                    'etablissement' => $user->formateur->etablissement ? [
+                        'id' => $user->formateur->etablissement->id,
+                        'name' => $user->formateur->etablissement->name,
+                        'ville' => $user->formateur->etablissement->ville ? [
+                            'id' => $user->formateur->etablissement->ville->id,
+                            'key' => $user->formateur->etablissement->ville->key,
+                            'value' => $user->formateur->etablissement->ville->value,
+                            'region' => $user->formateur->etablissement->ville->region ? [
+                                'id' => $user->formateur->etablissement->ville->region->id,
+                                'key' => $user->formateur->etablissement->ville->region->key,
+                                'value' => $user->formateur->etablissement->ville->region->value,
+                            ] : null,
+                        ] : null,
+                    ] : null,
+                    'etablissements' => $user->formateur->etablissements?->map(fn ($e) => [
+                        'id' => $e->id,
+                        'name' => $e->name,
+                    ])->values()->all() ?? [],
+                ] : null,
             ]
         ]);
     }
@@ -290,18 +329,49 @@ class AuthController extends Controller
         }
 
         if (!$user->relationLoaded('role')) {
-            $user->load('role');
+            $user->load('role.permissions');
         }
 
         return response()->json([
             'user' => [
                 'id'      => $user->id,
-                'nom'     => $user->nom,
+                'name'    => $user->name,
+                'nom'     => $user->name,
                 'email'   => $user->email,
                 'role_id' => $user->role_id,
-                'role'    => $user->role ? strtolower($user->role->code) : null,
-                'actif'   => $user->actif,
+                'role'    => $this->normalizeRole($user->role?->code ?? $user->role?->name),
+                'permissions' => $user->permissions,
+                'status'  => $user->status,
                 'email_verified_at' => $user->email_verified_at,
+                'phone'   => $user->phone,
+                'age'     => $user->age,
+                'address' => $user->address,
+                'photo_url' => $user->photo_url,
+                'created_at' => $user->created_at,
+                'formateur' => $user->formateur ? [
+                    'id' => $user->formateur->id,
+                    'employee_number' => $user->formateur->employee_number,
+                    'position' => $user->formateur->position,
+                    'establishment_id' => $user->formateur->establishment_id,
+                    'etablissement' => $user->formateur->etablissement ? [
+                        'id' => $user->formateur->etablissement->id,
+                        'name' => $user->formateur->etablissement->name,
+                        'ville' => $user->formateur->etablissement->ville ? [
+                            'id' => $user->formateur->etablissement->ville->id,
+                            'key' => $user->formateur->etablissement->ville->key,
+                            'value' => $user->formateur->etablissement->ville->value,
+                            'region' => $user->formateur->etablissement->ville->region ? [
+                                'id' => $user->formateur->etablissement->ville->region->id,
+                                'key' => $user->formateur->etablissement->ville->region->key,
+                                'value' => $user->formateur->etablissement->ville->region->value,
+                            ] : null,
+                        ] : null,
+                    ] : null,
+                    'etablissements' => $user->formateur->etablissements?->map(fn ($e) => [
+                        'id' => $e->id,
+                        'name' => $e->name,
+                    ])->values()->all() ?? [],
+                ] : null,
             ]
         ]);
     }
