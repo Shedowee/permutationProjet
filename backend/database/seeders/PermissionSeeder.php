@@ -26,7 +26,6 @@ class PermissionSeeder extends Seeder
             'notifications',
             'log_actions',
             'parametres',
-            'permission_requests',
             'demandes',
         ];
 
@@ -42,8 +41,6 @@ class PermissionSeeder extends Seeder
         }
 
         $workflow = [
-            'approve_permission_requests' => 'Approve permission requests',
-            'reject_permission_requests' => 'Reject permission requests',
             'approve_demandes' => 'Approve demandes',
             'reject_demandes' => 'Reject demandes',
         ];

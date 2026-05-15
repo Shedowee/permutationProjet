@@ -36,17 +36,23 @@ class UtilisateursController extends Controller
         return null;
     }
 
-    private function syncProfileForRole(User $user, ?string $roleCode): void
+    private function syncProfileForRole(User $user, ?string $roleCode, ?string $specialite = null): void
     {
         $roleCode = strtolower((string) $roleCode);
 
         if ($roleCode === 'formateur') {
-            \App\Models\Formateur::firstOrCreate(
+            $payload = [
+                'employee_number' => 'F' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+                'position' => 'Formateur',
+            ];
+
+            if ($specialite !== null) {
+                $payload['specialite'] = $specialite;
+            }
+
+            \App\Models\Formateur::updateOrCreate(
                 ['user_id' => $user->id],
-                [
-                    'employee_number' => 'F' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
-                    'position' => 'Formateur',
-                ]
+                $payload
             );
         }
 
@@ -123,6 +129,7 @@ class UtilisateursController extends Controller
                 'id' => $user->formateur->id,
                 'employee_number' => $user->formateur->employee_number,
                 'position' => $user->formateur->position,
+                'specialite' => $user->formateur->specialite,
                 'establishment_id' => $user->formateur->establishment_id,
                 'etablissement' => $user->formateur->etablissement ? [
                     'id' => $user->formateur->etablissement->id,
@@ -161,6 +168,7 @@ class UtilisateursController extends Controller
             'age' => 'sometimes|nullable|integer|min:0|max:120',
             'phone' => 'sometimes|string|max:20',
             'address' => 'sometimes|nullable|string|max:255',
+            'specialite' => 'sometimes|nullable|string|max:255',
             'region_id' => 'nullable|exists:parametres,id',
             'city_id' => 'nullable|exists:parametres,id',
             'establishment_id' => 'nullable|exists:etablissements,id',
@@ -169,50 +177,66 @@ class UtilisateursController extends Controller
         $profileData = array_intersect_key($validated, array_flip(['name', 'age', 'phone', 'address']));
 
         $formateurPayload = null;
-        if ($user->formateur && ($request->filled('region_id') || $request->filled('city_id') || $request->filled('establishment_id'))) {
-            if (!$request->filled('region_id') || !$request->filled('city_id') || !$request->filled('establishment_id')) {
+        $formateur = null;
+        $hasFormateurUpdate = $request->has('specialite') || $request->filled('region_id') || $request->filled('city_id') || $request->filled('establishment_id');
+        if (($user->formateur || $request->has('specialite')) && $hasFormateurUpdate) {
+            if (($request->filled('region_id') || $request->filled('city_id') || $request->filled('establishment_id'))
+                && (!$request->filled('region_id') || !$request->filled('city_id') || !$request->filled('establishment_id'))) {
                 return response()->json([
                     'message' => 'Veuillez sélectionner une région, une ville et un établissement.',
                 ], 422);
             }
 
-            $region = Parametre::query()
-                ->where('type', 'REGION')
-                ->find($validated['region_id']);
-            $city = Parametre::query()
-                ->where('type', 'VILLE')
-                ->find($validated['city_id']);
-            $etablissement = Etablissement::with('ville')->find($validated['establishment_id']);
+            $formateurPayload = [];
+            $formateur = $user->formateur ?? \App\Models\Formateur::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'employee_number' => 'F' . str_pad($user->id, 5, '0', STR_PAD_LEFT),
+                    'position' => 'Formateur',
+                ]
+            );
 
-            if (!$region || !$city || !$etablissement) {
-                return response()->json([
-                    'message' => 'Sélection invalide pour l\'affectation.',
-                ], 422);
+            if ($request->filled('region_id') || $request->filled('city_id') || $request->filled('establishment_id')) {
+                $region = Parametre::query()
+                    ->where('type', 'REGION')
+                    ->find($validated['region_id']);
+                $city = Parametre::query()
+                    ->where('type', 'VILLE')
+                    ->find($validated['city_id']);
+                $etablissement = Etablissement::with('ville')->find($validated['establishment_id']);
+
+                if (!$region || !$city || !$etablissement) {
+                    return response()->json([
+                        'message' => 'Sélection invalide pour l\'affectation.',
+                    ], 422);
+                }
+
+                if ((int) $city->parent_id !== (int) $region->id) {
+                    return response()->json([
+                        'message' => 'La ville sélectionnée ne correspond pas à la région choisie.',
+                    ], 422);
+                }
+
+                if ((int) $etablissement->city_id !== (int) $city->id) {
+                    return response()->json([
+                        'message' => 'L\'établissement sélectionné ne correspond pas à la ville choisie.',
+                    ], 422);
+                }
+                $formateurPayload['establishment_id'] = $etablissement->id;
             }
 
-            if ((int) $city->parent_id !== (int) $region->id) {
-                return response()->json([
-                    'message' => 'La ville sélectionnée ne correspond pas à la région choisie.',
-                ], 422);
+            if (array_key_exists('specialite', $validated)) {
+                $formateurPayload['specialite'] = $validated['specialite'];
             }
-
-            if ((int) $etablissement->city_id !== (int) $city->id) {
-                return response()->json([
-                    'message' => 'L\'établissement sélectionné ne correspond pas à la ville choisie.',
-                ], 422);
-            }
-            $formateurPayload = [
-                'establishment_id' => $etablissement->id,
-            ];
         }
 
-        DB::transaction(function () use ($user, $profileData, $formateurPayload) {
+        DB::transaction(function () use ($user, $profileData, $formateurPayload, $formateur) {
             if (!empty($profileData)) {
                 $user->update($profileData);
             }
 
-            if ($formateurPayload && $user->formateur) {
-                $user->formateur->update($formateurPayload);
+            if ($formateurPayload && $formateur) {
+                $formateur->update($formateurPayload);
             }
         });
 
@@ -566,6 +590,7 @@ class UtilisateursController extends Controller
             'password' => 'required|string|min:6',
             'role' => 'required|string',
             'status' => 'nullable|string',
+            'specialite' => 'nullable|string|max:255',
         ]);
 
         $roleCode = strtolower($validated['role']);
@@ -585,7 +610,7 @@ class UtilisateursController extends Controller
             'email_verified_at' => now(), // Assume admin created users are verified
         ]);
 
-        $this->syncProfileForRole($user, $roleCode);
+        $this->syncProfileForRole($user, $roleCode, $validated['specialite'] ?? null);
 
         return response()->json([
             'message' => 'Utilisateur créé avec succès',
@@ -634,6 +659,7 @@ class UtilisateursController extends Controller
             'email' => 'sometimes|email|unique:users,email,' . $user->id,
             'role' => 'sometimes|string',
             'status' => 'sometimes|string',
+            'specialite' => 'sometimes|nullable|string|max:255',
         ]);
 
         if (isset($validated['role'])) {
@@ -641,7 +667,7 @@ class UtilisateursController extends Controller
             $roleId = \App\Models\Role::where('code', $roleCode)->value('id');
             if ($roleId) {
                 $validated['role_id'] = $roleId;
-                $this->syncProfileForRole($user, $roleCode);
+                $this->syncProfileForRole($user, $roleCode, $validated['specialite'] ?? null);
             }
             unset($validated['role']);
         }

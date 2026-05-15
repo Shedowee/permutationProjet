@@ -135,11 +135,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Role::class);
     }
 
-    public function permissionRequests(): HasMany
-    {
-        return $this->hasMany(PermissionRequest::class);
-    }
-
     public function getPermissionsAttribute(): array
     {
         $role = $this->relationLoaded('role') ? $this->role : $this->role()->with('permissions')->first();

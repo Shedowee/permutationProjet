@@ -1,0 +1,243 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+hide circle
+
+package "Frontend" {
+  class api <<service>> {
+    +request()
+  }
+
+  class authService <<service>> {
+    +login()
+    +logout()
+    +getCurrentUser()
+    +signup()
+  }
+
+  class demandesService <<service>> {
+    +listDemandes()
+    +createDemande()
+    +traiterDemande()
+    +deleteDemande()
+  }
+
+  class userService <<service>> {
+    +updateProfile()
+    +updatePassword()
+    +updateEmail()
+    +getNotifications()
+  }
+
+  class AuthContext <<context>> {
+    +user
+    +role
+    +loading
+    +isAuthenticated()
+    +can()
+  }
+
+  class ProtectedRoute <<component>> {
+    +allowedRoles
+    +allowedPermissions
+  }
+
+  class GuestRoute <<component>>
+  class EchoClient <<realtime>> {
+    +getEcho()
+    +leaveNotificationChannel()
+  }
+}
+
+package "Backend Application" {
+  class AuthController <<controller>> {
+    +login()
+    +logout()
+    +me()
+    +signup()
+  }
+
+  class UtilisateursController <<controller>> {
+    +index()
+    +show()
+    +store()
+    +update()
+    +destroy()
+  }
+
+  class DemandePermutationController <<controller>> {
+    +index()
+    +store()
+    +update()
+    +destroy()
+  }
+
+  class EtablissementController <<controller>>
+  class FormateurController <<controller>>
+  class RoleController <<controller>>
+  class PermissionController <<controller>>
+  class LogsController <<controller>>
+  class AdminStatsController <<controller>>
+
+  class NotificationService <<service>> {
+    +notify()
+    +notifyUser()
+    +notifyRole()
+    +notifyUsersWithRole()
+    +notifyUsersWithPermission()
+  }
+
+  class ActivityLogService <<service>> {
+    +log()
+  }
+
+  class UserActionObserver <<observer>>
+  class NotifyUserAction <<listener>>
+  class LogUserAction <<listener>>
+
+  class UserActionOccurred <<event>>
+  class NotificationCreated <<event>>
+}
+
+package "Domain Models" {
+  class User {
+    +hasPermission()
+    +isActiveAccount()
+    +isBlockedAccount()
+    +role()
+    +formateur()
+    +notifications()
+  }
+
+  class Role {
+    +permissions()
+    +users()
+  }
+
+  class RoleCategory {
+    +roles()
+  }
+
+  class Permission {
+    +roles()
+  }
+
+  class Formateur {
+    +user()
+    +etablissement()
+    +etablissements()
+    +demandes()
+  }
+
+  class Admin {
+    +user()
+  }
+
+  class Commission {
+    +user()
+  }
+
+  class Etablissement {
+    +ville()
+    +formateurs()
+    +demandesSouhaitees()
+  }
+
+  class Parametre {
+    +parent()
+    +children()
+    +etablissements()
+  }
+
+  class DemandePermutation {
+    +formateur()
+    +etat()
+    +regionSouhaitee()
+    +villeSouhaitee()
+    +etablissementSouhaite()
+    +traitePar()
+  }
+
+  class Notification {
+    +user()
+    +scopeVisibleTo()
+  }
+
+  class LogAction {
+    +user()
+    +record()
+  }
+
+  class UserDocument {
+    +user()
+  }
+}
+
+User "1" --> "0..1" Role
+RoleCategory "1" --> "0..*" Role
+Role "1" --> "0..*" User
+Role "0..*" -- "0..*" Permission : role_permissions
+
+User "1" --> "0..1" Formateur
+User "1" --> "0..1" Admin
+User "1" --> "0..1" Commission
+User "1" --> "0..*" Notification
+User "1" --> "0..*" LogAction
+User "1" --> "0..*" UserDocument
+
+Formateur "0..*" --> "1" Etablissement
+Formateur "1" --> "0..*" DemandePermutation
+Etablissement "1" --> "0..*" Formateur
+Etablissement "1" --> "0..*" DemandePermutation : cible
+
+Parametre "1" --> "0..*" Parametre : parent/children
+Parametre "1" --> "0..*" Etablissement : city
+Parametre "1" --> "0..*" DemandePermutation : etat/region/ville
+
+DemandePermutation "1" --> "1" Formateur
+DemandePermutation "1" --> "1" Parametre : etat
+DemandePermutation "1" --> "1" Parametre : region
+DemandePermutation "1" --> "1" Parametre : ville
+DemandePermutation "1" --> "1" Etablissement : souhaite
+DemandePermutation "0..1" --> "1" User : traitePar
+
+Notification "1" --> "1" User
+LogAction "1" --> "1" User
+UserDocument "1" --> "1" User
+
+api ..> AuthContext
+authService ..> api
+demandesService ..> api
+userService ..> api
+ProtectedRoute ..> AuthContext
+GuestRoute ..> AuthContext
+EchoClient ..> NotificationCreated
+
+AuthController ..> User
+AuthController ..> UserActionOccurred
+UtilisateursController ..> User
+UtilisateursController ..> Notification
+UtilisateursController ..> UserDocument
+DemandePermutationController ..> DemandePermutation
+DemandePermutationController ..> Formateur
+DemandePermutationController ..> Parametre
+DemandePermutationController ..> NotificationService
+DemandePermutationController ..> UserActionOccurred
+EtablissementController ..> Etablissement
+FormateurController ..> Formateur
+RoleController ..> Role
+RoleController ..> Permission
+PermissionController ..> Permission
+LogsController ..> LogAction
+AdminStatsController ..> User
+AdminStatsController ..> DemandePermutation
+
+NotificationService ..> Notification
+NotificationService ..> NotificationCreated
+ActivityLogService ..> LogAction
+UserActionObserver ..> UserActionOccurred
+NotifyUserAction ..> NotificationService
+LogUserAction ..> ActivityLogService
+
+@enduml

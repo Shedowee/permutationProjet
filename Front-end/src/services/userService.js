@@ -15,18 +15,25 @@ export const updateEmail = async (email) => {
   return response.data;
 };
 
-export const verifyNewEmail = async (data) => {
-  const response = await api.post("/api/user/email/verify", data);
+export const getNotifications = async (page = 1, q = "") => {
+  const params = new URLSearchParams({ page: String(page) });
+  if (q) params.set("q", q);
+  const response = await api.get(`/api/notifications?${params.toString()}`);
   return response.data;
 };
 
-export const getNotifications = async (page = 1) => {
-  const response = await api.get(`/api/notifications?page=${page}`);
+export const getNotification = async (id) => {
+  const response = await api.get(`/api/notifications/${id}`);
   return response.data;
 };
 
 export const markNotificationRead = async (id) => {
   const response = await api.put(`/api/notifications/${id}/read`);
+  return response.data;
+};
+
+export const clearNotifications = async () => {
+  const response = await api.delete("/api/notifications");
   return response.data;
 };
 

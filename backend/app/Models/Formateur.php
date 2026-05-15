@@ -16,6 +16,7 @@ class Formateur extends Model
     protected $fillable = [
         'employee_number',
         'position',
+        'specialite',
         'hire_date',
         'salary',
         'user_id',

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { verifyEmailOtp, resendVerificationEmail } from "../../services/authService";
+import { resendVerificationLink, resendVerificationEmail } from "../../services/authService";
 import { useToast } from "../context/useToast";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -13,19 +14,34 @@ import {
 } from "@heroicons/react/24/outline";
 
 export default function VerifyEmail() {
-  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [mailWarning, setMailWarning] = useState("");
   const { user, refreshUser } = useAuth();
   const { success, error, info } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const email = user?.email || searchParams.get("email") || "";
 
   useEffect(() => {
     if (user?.email_verified_at) {
       navigate("/dashboard", { replace: true });
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("verified") === "1") {
+      success("Votre adresse email a été vérifiée.");
+      if (user) {
+        void refreshUser().finally(() => navigate("/dashboard", { replace: true }));
+      } else {
+        navigate("/login?verified=1", { replace: true });
+      }
+    }
+  }, [location.search, navigate, refreshUser, success, user]);
 
   useEffect(() => {
     const required = sessionStorage.getItem('verification_required');
@@ -43,35 +59,30 @@ export default function VerifyEmail() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const handleVerify = async (e) => {
-    e.preventDefault();
-    if (!code.trim()) return;
+  const handleResend = async () => {
+    if (cooldown > 0) return;
+    if (!email) {
+      error("Aucune adresse email disponible pour renvoyer le lien.");
+      return;
+    }
     
     try {
       setLoading(true);
-      await verifyEmailOtp(code);
-      await refreshUser();
-      success("Email vérifié avec succès !");
-      navigate("/dashboard", { replace: true });
-    } catch (err) {
-      error(err.response?.data?.message || "Code invalide ou expiré");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResend = async () => {
-    if (cooldown > 0) return;
-    
-    try {
       setResending(true);
-      await resendVerificationEmail();
-      info("Un nouveau code a été envoyé à votre email.");
+      if (user) {
+        const res = await resendVerificationEmail();
+        setMailWarning(res?.mail_sent === false ? "Le lien n'a pas pu être envoyé. Vérifiez la configuration mail." : "");
+      } else {
+        const res = await resendVerificationLink(email);
+        setMailWarning(res?.mail_sent === false ? "Le lien n'a pas pu être envoyé. Vérifiez la configuration mail." : "");
+      }
+      info("Un nouveau lien de vérification a été envoyé à votre email.");
       setCooldown(60);
     } catch (err) {
-      error(err.response?.data?.message || "Échec de l'envoi du code");
+      error(err.response?.data?.message || "Échec de l'envoi du lien");
     } finally {
       setResending(false);
+      setLoading(false);
     }
   };
 
@@ -85,37 +96,38 @@ export default function VerifyEmail() {
 
       <Card variant="institutional" className="w-full max-w-md relative z-10 p-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-4 rounded-2xl bg-orange-50 border border-orange-100 mb-6">
+          <div className="inline-flex items-center justify-center p-4 rounded-lg bg-orange-50 border border-orange-100 mb-6">
             <EnvelopeIcon className="h-10 w-10 text-orange-600" />
           </div>
           <h1 className="text-2xl font-black text-surface-900 tracking-tight mb-2">Vérifiez votre email</h1>
           <p className="text-sm text-secondary-600 font-medium">
-            Pour accéder à toutes les fonctionnalités, veuillez saisir le code envoyé à <br />
-            <span className="text-primary-600 font-black">{user?.email}</span>
+            Pour accéder au profil, cliquez sur le lien envoyé à <br />
+            <span className="text-primary-600 font-black">{email || "votre adresse email"}</span>
           </p>
         </div>
 
-        <form onSubmit={handleVerify} className="space-y-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-secondary-400 uppercase tracking-[0.2em] block text-center">Code de confirmation</label>
-            <input
-              type="text"
-              maxLength="6"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="000000"
-              className="w-full text-center text-3xl font-black tracking-[0.5em] py-4 bg-secondary-50 border border-secondary-200 rounded-2xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all placeholder:text-secondary-200"
-              required
-            />
+        <div className="space-y-6">
+          {mailWarning && (
+            <div className="p-4 rounded-lg text-sm font-bold text-center bg-amber-50 text-amber-700 border border-amber-100">
+              {mailWarning}
+            </div>
+          )}
+
+          <div className="p-4 rounded-lg bg-primary-50 border border-primary-100 text-center">
+            <p className="text-sm font-bold text-primary-700">
+              Ouvrez le message reçu puis cliquez sur le bouton de vérification. Ensuite, votre compte restera en accès limité jusqu'à validation administrative.
+            </p>
           </div>
 
           <Button
-            type="submit"
+            type="button"
             variant="primary"
-            className="w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-primary-500/20"
+            className="w-full py-4 rounded-lg text-xs font-black uppercase tracking-widest shadow-xl shadow-primary-500/20"
             loading={loading}
+            disabled={!email}
+            onClick={handleResend}
           >
-            Vérifier mon compte
+            Renvoyer le lien
           </Button>
 
           <div className="text-center">
@@ -128,10 +140,10 @@ export default function VerifyEmail() {
               }`}
             >
               <ArrowPathIcon className={`h-4 w-4 mr-2 ${resending ? 'animate-spin' : ''}`} />
-              {cooldown > 0 ? `Renvoyer le code (${cooldown}s)` : 'Renvoyer un nouveau code'}
+              {cooldown > 0 ? `Renvoyer le lien (${cooldown}s)` : 'Renvoyer un nouveau lien'}
             </button>
           </div>
-        </form>
+        </div>
 
         <div className="mt-8 pt-6 border-t border-secondary-50 text-center">
           <button

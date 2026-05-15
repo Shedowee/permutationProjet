@@ -1,0 +1,73 @@
+@startuml
+title End-to-end permutation request flow
+autonumber
+actor Formateur
+actor Commission
+participant "React frontend" as FE
+participant "Laravel API" as API
+participant "DemandePermutationController" as DPC
+participant "Formateur model" as FormateurModel
+participant "Parametre model" as ParametreModel
+participant "DemandePermutation model" as DemandeModel
+participant "Event bus" as Bus
+participant "LogUserAction listener" as Logger
+participant "ActivityLogService" as LogSvc
+participant "LogAction model" as LogAction
+participant "NotificationService" as NotifySvc
+participant "Notification model" as NotificationModel
+participant "NotificationCreated event" as NEvent
+participant "Echo / Reverb" as Echo
+
+Formateur -> FE : Fill form and submit request
+FE -> API : POST /api/demandes
+API -> DPC : store(request)
+DPC -> DPC : auth + permission + validate
+DPC -> FormateurModel : firstOrCreate(user_id)
+DPC -> DemandeModel : check pending request for formateur
+
+alt existing pending request
+  DPC --> FE : 422 already pending
+else new request
+  DPC -> ParametreModel : find EN_ATTENTE / region / city ids
+  DPC -> DemandeModel : create(motif, etat_id, formateur_id, targets)
+  DPC -> Bus : dispatch UserActionOccurred(create)
+  Bus -> Logger : handle(event)
+  Logger -> LogSvc : log(userId, actionType, description)
+  LogSvc -> LogAction : create()
+
+  DPC -> NotifySvc : notifyUsersWithRole("commission", ...)
+  loop each commission user
+    NotifySvc -> NotificationModel : create(user_id, payload)
+    NotifySvc -> NEvent : dispatch(created notification)
+    NEvent -> Echo : private channel notifications.{user_id}
+  end
+
+  DPC --> FE : 201 created
+end
+
+Commission -> Echo : receive live notification
+Echo --> Commission : notification appears in dashboard
+
+alt commission approves the request
+  Commission -> FE : Review demande
+  FE -> API : PUT /api/demandes/{id} (etat_code=VALIDE)
+  API -> DPC : update(request, demande)
+  DPC -> DemandeModel : update(status, reviewer, date_traitement)
+  DPC -> NotifySvc : notify(formateurUser, "validated", ...)
+  NotifySvc -> NotificationModel : create()
+  NotifySvc -> NEvent : dispatch(created notification)
+  NEvent -> Echo : private channel notifications.{formateur_id}
+  DPC --> FE : updated demande
+else commission rejects the request
+  Commission -> FE : Review demande
+  FE -> API : PUT /api/demandes/{id} (etat_code=REFUSE)
+  API -> DPC : update(request, demande)
+  DPC -> DemandeModel : update(status, reviewer, date_traitement)
+  DPC -> NotifySvc : notify(formateurUser, "rejected", ...)
+  NotifySvc -> NotificationModel : create()
+  NotifySvc -> NEvent : dispatch(created notification)
+  NEvent -> Echo : private channel notifications.{formateur_id}
+  DPC --> FE : updated demande
+end
+
+@enduml

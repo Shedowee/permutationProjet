@@ -5,6 +5,7 @@ import { AuthContext } from "./AuthContextBase";
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [role, setRole] = useState(null);
+  const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -17,15 +18,20 @@ export const AuthProvider = ({ children }) => {
     checkAuthStatus();
   }, []);
 
+  const extractPermissions = (data) => data?.user?.permissions || [];
+
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
       const data = await authService.getCurrentUser();
       setUser(data.user);
-      setRole(data.user?.actif ? normalizeRole(data.user?.role) : null);
+      const userRole = data.user?.role || null;
+      setRole(normalizeRole(userRole));
+      setPermissions(extractPermissions(data));
     } catch {
       setUser(null);
       setRole(null);
+      setPermissions([]);
     } finally {
       setLoading(false);
     }
@@ -35,7 +41,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await authService.getCurrentUser();
       setUser(data.user);
-      setRole(data.user?.actif ? normalizeRole(data.user?.role) : null);
+      const userRole = data.user?.role || null;
+      setRole(normalizeRole(userRole));
+      setPermissions(extractPermissions(data));
     } catch (err) {
       console.error("Failed to refresh user", err);
     }
@@ -48,12 +56,16 @@ export const AuthProvider = ({ children }) => {
       await authService.login(credentials);
       const data = await authService.getCurrentUser();
       setUser(data.user);
-      setRole(data.user?.actif ? normalizeRole(data.user?.role) : null);
+      const userRole = data.user?.role || null;
+      setRole(normalizeRole(userRole));
+      setPermissions(extractPermissions(data));
       return data.user;
     } catch (err) {
-      setError(err.message || "Login failed");
+      const message = err.response?.data?.message || err.message || "Login failed";
+      setError(message);
       setUser(null);
       setRole(null);
+      setPermissions([]);
       throw err;
     } finally {
       setLoading(false);
@@ -69,22 +81,29 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setRole(null);
+      setPermissions([]);
       setError(null);
       setLoading(false);
     }
   };
+
+  const clearError = () => setError(null);
+  const can = (permission) => permissions.includes(permission);
 
   return (
     <AuthContext.Provider
       value={{
         user,
         role,
+        permissions,
+        can,
         loading,
         error,
         isAuthenticated: !!user,
         login,
         logout,
         refreshUser,
+        clearError,
       }}
     >
       {children}

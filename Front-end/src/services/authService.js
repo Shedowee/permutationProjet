@@ -6,12 +6,30 @@ export const getCsrfCookie = async () => {
 
 export const login = async ({ email, password }) => {
   await getCsrfCookie(); // 🔥 REQUIRED
-  const response = await api.post(
-    "/api/login",
-    { email, password },
-    { withCredentials: true },
-  );
-  return response.data;
+  try {
+    const response = await api.post(
+      "/api/login",
+      { email, password },
+      { withCredentials: true },
+    );
+    return response.data;
+  } catch (err) {
+    const status = err?.response?.status;
+    const raw = err?.response?.data?.message || err?.message;
+    const data = err?.response?.data || {};
+    let message = raw || "Une erreur est survenue";
+    if (status === 401) message = "Identifiant ou mot de passe incorrect.";
+    else if (status === 403) message = raw || "Accès refusé. Compte suspendu ou non autorisé.";
+    else if (status === 422) message = raw || "Données invalides.";
+    else if (!err?.response) message = "Impossible de contacter le serveur. Vérifiez votre connexion.";
+    const e = new Error(message);
+    e.response = err?.response;
+    e.status = status;
+    e.code = data.error_code || null;
+    e.field = data.field || null;
+    e.data = data;
+    throw e;
+  }
 };
 
 export const logout = async () => {
@@ -23,30 +41,20 @@ export const getCurrentUser = async () => {
   return response.data;
 };
 
-export const signup = async ({ nom, email, password }) => {
+export const signup = async ({ name, email, password }) => {
   await getCsrfCookie();
   const response = await api.post(
     "/api/signup",
-    { nom, email, password },
+    { name, email, password },
     { withCredentials: true }
   );
   return response.data;
 };
 
-export const confirmAccount = async ({ email, code }) => {
+export const resendVerificationLink = async (email) => {
   await getCsrfCookie();
   const response = await api.post(
-    "/api/confirm",
-    { email, code },
-    { withCredentials: true }
-  );
-  return response.data;
-};
-
-export const resendCode = async (email) => {
-  await getCsrfCookie();
-  const response = await api.post(
-    "/api/resend-code",
+    "/api/resend-verification-link",
     { email },
     { withCredentials: true }
   );
@@ -65,11 +73,6 @@ export const forgotPassword = async (email) => {
 
 export const resendVerificationEmail = async () => {
   const response = await api.post("/api/email/resend", {}, { withCredentials: true });
-  return response.data;
-};
-
-export const verifyEmailOtp = async (code) => {
-  const response = await api.post("/api/email/verify", { code }, { withCredentials: true });
   return response.data;
 };
 

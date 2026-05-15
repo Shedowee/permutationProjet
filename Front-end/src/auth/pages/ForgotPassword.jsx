@@ -16,6 +16,7 @@ function ForgotPassword() {
   const { success } = useToast();
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState(null);
+  const [mailWarning, setMailWarning] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +29,10 @@ function ForgotPassword() {
       setError(null);
       const res = await forgotPassword(email);
       setMessage(res.message);
-      success("Lien de réinitialisation envoyé par email");
+      setMailWarning(res?.mail_sent === false ? "Le lien n'a pas pu être envoyé. Vérifiez la configuration mail." : "");
+      if (res?.mail_sent !== false) {
+        success("Lien de réinitialisation envoyé par email");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Une erreur est survenue.");
     } finally {
@@ -58,6 +62,11 @@ function ForgotPassword() {
               <div className="inline-flex items-center justify-center p-4 rounded-full bg-primary-50 border border-primary-100 mb-2">
                 <CheckCircleIcon className="h-12 w-12 text-primary-600" />
               </div>
+              {mailWarning && (
+                <div className="p-4 rounded-2xl text-sm font-bold text-center bg-amber-50 text-amber-700 border border-amber-100">
+                  {mailWarning}
+                </div>
+              )}
               <p className="text-surface-600 font-bold text-sm leading-relaxed">
                 {message}
               </p>

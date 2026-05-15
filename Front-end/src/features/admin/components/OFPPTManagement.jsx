@@ -6,13 +6,13 @@ import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
 import Modal from '../../../shared/components/Modal';
 import { OFPPT_ENTITY_TYPES, VALIDATION_MESSAGES } from '../../../shared/constants/constants';
-import { 
-  BuildingOffice2Icon, 
-  PencilIcon, 
-  PlusIcon, 
-  TrashIcon, 
-  BookOpenIcon, 
-  UserGroupIcon, 
+import {
+  BuildingOffice2Icon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+  BookOpenIcon,
+  UserGroupIcon,
   AcademicCapIcon,
   MagnifyingGlassIcon,
   XMarkIcon
@@ -26,24 +26,36 @@ const OFPPTManagement = () => {
   const [fields, setFields] = useState([]);
   const [groups, setGroups] = useState([]);
   const [trainees, setTrainees] = useState([]);
+  const [meta, setMeta] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // State for modals and forms
   const [activeTab, setActiveTab] = useState('establishments');
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingEntity, setEditingEntity] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 5;
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [entityToDelete, setEntityToDelete] = useState(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({});
   const [errors, setErrors] = useState({});
 
   // Load establishments from backend
   useEffect(() => {
-    let mounted = true;
-    api.get('/api/etablissements', { withCredentials: true })
+    setIsLoading(true);
+    const searchToUse = searchTerm || globalSearchTerm;
+    api.get('/api/etablissements', {
+      params: {
+        page: currentPage,
+        limit: pageSize,
+        search: searchToUse
+      },
+      withCredentials: true
+    })
       .then((res) => {
         const list = res.data?.data ?? [];
         const mapped = list.map((e) => ({
@@ -53,26 +65,39 @@ const OFPPTManagement = () => {
           adresse: e.adresse || '',
           actif: !!e.actif,
         }));
-        if (mounted) setEstablishments(mapped);
+        setEstablishments(mapped);
+        setMeta(res.data?.meta);
       })
-      .catch(() => {});
-    return () => {
-      mounted = false;
-    };
-  }, []);
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, [currentPage, searchTerm, globalSearchTerm]);
 
-  const currentEntities = useMemo(() => establishments, [establishments]);
+  useEffect(() => {
+    if (currentPage !== 1) setCurrentPage(1);
+  }, [searchTerm, globalSearchTerm]);
+
+  const currentEntities = useMemo(() => {
+    switch(activeTab) {
+      case 'establishments': return establishments;
+      case 'fields': return fields;
+      case 'groups': return groups;
+      case 'trainees': return trainees;
+      default: return [];
+    }
+  }, [activeTab, establishments, fields, groups, trainees]);
 
   // Filtered entities
   const filteredEntities = useMemo(() => {
+    if (activeTab === 'establishments') return establishments;
+
     return currentEntities.filter(entity => {
       const searchToUse = searchTerm || globalSearchTerm;
       const entityValues = Object.values(entity);
-      return entityValues.some(value => 
+      return entityValues.some(value =>
         value && value.toString().toLowerCase().includes(searchToUse.toLowerCase())
       );
     });
-  }, [currentEntities, searchTerm, globalSearchTerm]);
+  }, [activeTab, currentEntities, establishments, searchTerm, globalSearchTerm]);
 
   // Handle adding a new entity
   const handleAddEntity = () => {
@@ -120,7 +145,7 @@ const OFPPTManagement = () => {
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     // Simple validation
     const newErrors = {};
     Object.keys(formData).forEach(key => {
@@ -128,32 +153,32 @@ const OFPPTManagement = () => {
         newErrors[key] = VALIDATION_MESSAGES.required;
       }
     });
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     if (editingEntity) {
       // Update existing entity
       switch(activeTab) {
         case 'establishments':
-          setEstablishments(establishments.map(est => 
+          setEstablishments(establishments.map(est =>
             est.id === editingEntity.id ? { ...est, ...formData } : est
           ));
           break;
         case 'fields':
-          setFields(fields.map(field => 
+          setFields(fields.map(field =>
             field.id === editingEntity.id ? { ...field, ...formData } : field
           ));
           break;
         case 'groups':
-          setGroups(groups.map(group => 
+          setGroups(groups.map(group =>
             group.id === editingEntity.id ? { ...group, ...formData } : group
           ));
           break;
         case 'trainees':
-          setTrainees(trainees.map(trainee => 
+          setTrainees(trainees.map(trainee =>
             trainee.id === editingEntity.id ? { ...trainee, ...formData } : trainee
           ));
           break;
@@ -166,7 +191,7 @@ const OFPPTManagement = () => {
         id: Date.now(),
         ...formData
       };
-      
+
       switch(activeTab) {
         case 'establishments':
           setEstablishments([...establishments, newEntity]);
@@ -183,7 +208,7 @@ const OFPPTManagement = () => {
       }
       setShowAddModal(false);
     }
-    
+
     setFormData({});
     setErrors({});
   };
@@ -193,23 +218,23 @@ const OFPPTManagement = () => {
     switch(activeTab) {
       case 'establishments':
         return [
-          { header: 'Nom', key: 'name', render: (value) => <span className="font-medium text-white">{value}</span> },
+          { header: 'Nom', key: 'name', render: (value) => <span className="font-medium text-jb-text-primary">{value}</span> },
           { header: 'Ville', key: 'city', render: (value) => <span className="text-gray-300">{value}</span> },
           { header: 'Directeur', key: 'director', render: (value) => <span className="text-gray-300">{value}</span> },
-          { header: 'Étudiants', key: 'students', render: (value) => <span className="text-white font-medium">{value}</span> },
+          { header: 'Étudiants', key: 'students', render: (value) => <span className="text-jb-text-primary font-medium">{value}</span> },
           { header: 'Personnel', key: 'staff', render: (value) => <span className="text-gray-300">{value}</span> },
-          { 
-            header: 'Actions', 
+          {
+            header: 'Actions',
             key: 'actions',
             render: (value, row) => (
               <div className="flex space-x-2">
-                <button 
+                <button
                   onClick={() => handleEditEntity(row)}
                   className="p-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500/20 to-violet-500/20 text-purple-300 hover:from-purple-600/30 hover:to-violet-600/30 border border-purple-500/30 transition-all duration-200"
                 >
                   <PencilIcon className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => handleDeleteEntity(row)}
                   className="p-2 rounded-lg text-sm font-medium bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-300 hover:from-red-600/30 hover:to-pink-600/30 border border-red-500/30 transition-all duration-200"
                 >
@@ -221,23 +246,23 @@ const OFPPTManagement = () => {
         ];
       case 'fields':
         return [
-          { header: 'Nom', key: 'name', render: (value) => <span className="font-medium text-white">{value}</span> },
+          { header: 'Nom', key: 'name', render: (value) => <span className="font-medium text-jb-text-primary">{value}</span> },
           { header: 'Établissement', key: 'establishment', render: (value) => <span className="text-gray-300">{value}</span> },
           { header: 'Niveau', key: 'level', render: (value) => <span className="text-blue-400 font-medium">{value}</span> },
           { header: 'Durée', key: 'duration', render: (value) => <span className="text-gray-300">{value}</span> },
-          { header: 'Étudiants', key: 'students', render: (value) => <span className="text-white font-medium">{value}</span> },
-          { 
-            header: 'Actions', 
+          { header: 'Étudiants', key: 'students', render: (value) => <span className="text-jb-text-primary font-medium">{value}</span> },
+          {
+            header: 'Actions',
             key: 'actions',
             render: (value, row) => (
               <div className="flex space-x-2">
-                <button 
+                <button
                   onClick={() => handleEditEntity(row)}
                   className="p-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500/20 to-violet-500/20 text-purple-300 hover:from-purple-600/30 hover:to-violet-600/30 border border-purple-500/30 transition-all duration-200"
                 >
                   <PencilIcon className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => handleDeleteEntity(row)}
                   className="p-2 rounded-lg text-sm font-medium bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-300 hover:from-red-600/30 hover:to-pink-600/30 border border-red-500/30 transition-all duration-200"
                 >
@@ -249,23 +274,23 @@ const OFPPTManagement = () => {
         ];
       case 'groups':
         return [
-          { header: 'Nom', key: 'name', render: (value) => <span className="font-medium text-white">{value}</span> },
+          { header: 'Nom', key: 'name', render: (value) => <span className="font-medium text-jb-text-primary">{value}</span> },
           { header: 'Filière', key: 'field', render: (value) => <span className="text-gray-300">{value}</span> },
           { header: 'Établissement', key: 'establishment', render: (value) => <span className="text-gray-300">{value}</span> },
-          { header: 'Étudiants', key: 'students', render: (value) => <span className="text-white font-medium">{value}</span> },
+          { header: 'Étudiants', key: 'students', render: (value) => <span className="text-jb-text-primary font-medium">{value}</span> },
           { header: 'Année', key: 'year', render: (value) => <span className="text-gray-300">{value}</span> },
-          { 
-            header: 'Actions', 
+          {
+            header: 'Actions',
             key: 'actions',
             render: (value, row) => (
               <div className="flex space-x-2">
-                <button 
+                <button
                   onClick={() => handleEditEntity(row)}
                   className="p-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500/20 to-violet-500/20 text-purple-300 hover:from-purple-600/30 hover:to-violet-600/30 border border-purple-500/30 transition-all duration-200"
                 >
                   <PencilIcon className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => handleDeleteEntity(row)}
                   className="p-2 rounded-lg text-sm font-medium bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-300 hover:from-red-600/30 hover:to-pink-600/30 border border-red-500/30 transition-all duration-200"
                 >
@@ -277,7 +302,7 @@ const OFPPTManagement = () => {
         ];
       case 'trainees':
         return [
-          { header: 'Nom', key: 'firstName', render: (value, row) => <span className="font-medium text-white">{value} {row.lastName}</span> },
+          { header: 'Nom', key: 'firstName', render: (value, row) => <span className="font-medium text-jb-text-primary">{value} {row.lastName}</span> },
           { header: 'Groupe', key: 'group', render: (value) => <span className="text-gray-300">{value}</span> },
           { header: 'Email', key: 'email', render: (value) => <span className="text-gray-300 font-mono text-sm">{value}</span> },
           { header: 'Téléphone', key: 'phone', render: (value) => <span className="text-gray-300">{value}</span> },
@@ -286,18 +311,18 @@ const OFPPTManagement = () => {
               {value}
             </span>
           ) },
-          { 
-            header: 'Actions', 
+          {
+            header: 'Actions',
             key: 'actions',
             render: (value, row) => (
               <div className="flex space-x-2">
-                <button 
+                <button
                   onClick={() => handleEditEntity(row)}
                   className="p-2 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500/20 to-violet-500/20 text-purple-300 hover:from-purple-600/30 hover:to-violet-600/30 border border-purple-500/30 transition-all duration-200"
                 >
                   <PencilIcon className="w-4 h-4" />
                 </button>
-                <button 
+                <button
                   onClick={() => handleDeleteEntity(row)}
                   className="p-2 rounded-lg text-sm font-medium bg-gradient-to-r from-red-500/20 to-pink-500/20 text-red-300 hover:from-red-600/30 hover:to-pink-600/30 border border-red-500/30 transition-all duration-200"
                 >
@@ -366,9 +391,9 @@ const OFPPTManagement = () => {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Gestion Etablissement</h1>
+          <h1 className="text-3xl font-bold text-jb-text-primary">Gestion Etablissement</h1>
         </div>
-        
+
         {/* Tabs */}
         <Card className="p-0">
           <div className="border-b border-gray-800">
@@ -389,7 +414,7 @@ const OFPPTManagement = () => {
             </nav>
           </div>
         </Card>
-        
+
         {/* Controls */}
         <Card className="p-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -399,7 +424,7 @@ const OFPPTManagement = () => {
               </div>
               <input
                 type="text"
-                className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
+                className="block w-full rounded-lg border-0 bg-[#D8E9FB] py-2 pl-10 pr-10 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border border-white/10"
                 placeholder={`Rechercher dans les ${entityLabels[activeTab].plural.toLowerCase()}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -408,33 +433,41 @@ const OFPPTManagement = () => {
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-jb-text-primary"
                   title="Effacer"
                 >
                   <XMarkIcon className="h-5 w-5" />
                 </button>
               )}
             </div>
-            
+
             <Button variant="primary" size="md" onClick={handleAddEntity}>
               <PlusIcon className="w-4 h-4 mr-2" />
               Ajouter {entityLabels[activeTab].singular.toLowerCase()}
             </Button>
           </div>
         </Card>
-        
+
         {/* Entities Table */}
         <Card className="p-6">
-          <Table 
+          <Table
             data={filteredEntities}
             columns={getColumns()}
             striped={true}
-            caption={`${filteredEntities.length} ${entityLabels[activeTab].plural.toLowerCase()} trouvé${filteredEntities.length !== 1 ? 's' : ''}`}
+            isLoading={isLoading}
+            pagination={activeTab === 'establishments' ? {
+              currentPage,
+              totalPages: meta?.last_page || 1,
+              totalItems: meta?.total || 0,
+              onPageChange: setCurrentPage,
+              pageSize
+            } : null}
+            caption={`${activeTab === 'establishments' ? meta?.total || 0 : filteredEntities.length} ${entityLabels[activeTab].plural.toLowerCase()} trouvé${(activeTab === 'establishments' ? meta?.total || 0 : filteredEntities.length) !== 1 ? 's' : ''}`}
           />
         </Card>
-        
+
         {/* Add Entity Modal */}
-        <Modal 
+        <Modal
           isOpen={showAddModal}
           onClose={() => {
             setShowAddModal(false);
@@ -444,10 +477,14 @@ const OFPPTManagement = () => {
           title={`Ajouter un ${entityLabels[activeTab].singular.toLowerCase()}`}
           size="md"
         >
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="p-4 rounded-lg border border-white/10 bg-[#D8E9FB]">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-jb-text-muted">Informations principales</p>
+              <p className="text-xs text-jb-text-secondary mt-1">Renseignez les champs obligatoires pour créer l'entrée.</p>
+            </div>
             {getFormFields().map(field => (
-              <div key={field.name}>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+              <div key={field.name} className="space-y-2">
+                <label className="block text-sm font-medium text-jb-text-primary mb-1">
                   {field.label}
                 </label>
                 <input
@@ -455,7 +492,7 @@ const OFPPTManagement = () => {
                   name={field.name}
                   value={formData[field.name] || ''}
                   onChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})}
-                  className={`w-full rounded-lg border-0 py-2 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border ${errors[field.name] ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
+                  className={`w-full rounded-lg border-0 py-2 px-3 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border ${errors[field.name] ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
                   placeholder={`Entrez ${field.label.toLowerCase()}`}
                 />
                 {errors[field.name] && (
@@ -463,10 +500,10 @@ const OFPPTManagement = () => {
                 )}
               </div>
             ))}
-            
-            <div className="flex justify-end space-x-3 pt-6">
-              <Button 
-                variant="secondary" 
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-white/10">
+              <Button
+                variant="secondary"
                 type="button"
                 onClick={() => {
                   setShowAddModal(false);
@@ -476,8 +513,8 @@ const OFPPTManagement = () => {
               >
                 Annuler
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 type="submit"
               >
                 Ajouter
@@ -485,9 +522,9 @@ const OFPPTManagement = () => {
             </div>
           </form>
         </Modal>
-        
+
         {/* Edit Entity Modal */}
-        <Modal 
+        <Modal
           isOpen={showEditModal}
           onClose={() => {
             setShowEditModal(false);
@@ -498,10 +535,14 @@ const OFPPTManagement = () => {
           title={`Modifier ${entityLabels[activeTab].singular.toLowerCase()}`}
           size="md"
         >
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="p-4 rounded-lg border border-white/10 bg-[#D8E9FB]">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-jb-text-muted">Mise à jour ciblée</p>
+              <p className="text-xs text-jb-text-secondary mt-1">Modifiez uniquement les informations nécessaires.</p>
+            </div>
             {getFormFields().map(field => (
-              <div key={field.name}>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
+              <div key={field.name} className="space-y-2">
+                <label className="block text-sm font-medium text-jb-text-primary mb-1">
                   {field.label}
                 </label>
                 <input
@@ -509,7 +550,7 @@ const OFPPTManagement = () => {
                   name={field.name}
                   value={formData[field.name] || ''}
                   onChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})}
-                  className={`w-full rounded-lg border-0 py-2 px-3 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border ${errors[field.name] ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
+                  className={`w-full rounded-lg border-0 py-2 px-3 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border ${errors[field.name] ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
                   placeholder={`Entrez ${field.label.toLowerCase()}`}
                 />
                 {errors[field.name] && (
@@ -517,10 +558,10 @@ const OFPPTManagement = () => {
                 )}
               </div>
             ))}
-            
-            <div className="flex justify-end space-x-3 pt-6">
-              <Button 
-                variant="secondary" 
+
+            <div className="flex justify-end space-x-3 pt-4 border-t border-white/10">
+              <Button
+                variant="secondary"
                 type="button"
                 onClick={() => {
                   setShowEditModal(false);
@@ -531,8 +572,8 @@ const OFPPTManagement = () => {
               >
                 Annuler
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 type="submit"
               >
                 Mettre à jour
@@ -540,9 +581,9 @@ const OFPPTManagement = () => {
             </div>
           </form>
         </Modal>
-        
+
         {/* Delete Confirmation Modal */}
-        <Modal 
+        <Modal
           isOpen={showDeleteModal}
           onClose={() => {
             setShowDeleteModal(false);
@@ -553,15 +594,18 @@ const OFPPTManagement = () => {
         >
           {entityToDelete && (
             <div className="space-y-4">
-              <p className="text-gray-300">
+              <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300">Action irréversible</p>
+                <p className="text-gray-300 mt-2">
                 Êtes-vous sûr de vouloir supprimer ce {entityLabels[activeTab].singular.toLowerCase()} <strong>{entityToDelete.name || entityToDelete.firstName + ' ' + entityToDelete.lastName}</strong> ?
-              </p>
-              <p className="text-gray-400 text-sm">
-                Cette action est irréversible et supprimera définitivement l'entrée.
-              </p>
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button 
-                  variant="secondary" 
+                </p>
+                <p className="text-gray-400 text-sm mt-2">
+                  Cette action est irréversible et supprimera définitivement l'entrée.
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3 pt-4 border-t border-white/10">
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setShowDeleteModal(false);
                     setEntityToDelete(null);
@@ -569,8 +613,8 @@ const OFPPTManagement = () => {
                 >
                   Annuler
                 </Button>
-                <Button 
-                  variant="danger" 
+                <Button
+                  variant="danger"
                   onClick={confirmDelete}
                 >
                   Supprimer

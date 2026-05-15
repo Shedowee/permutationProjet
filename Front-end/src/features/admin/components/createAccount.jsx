@@ -17,7 +17,8 @@ const CreateAccount = () => {
     password: '',
     confirmPassword: '',
     role: '',
-    status: 'active',
+    status: 'actif',
+    specialite: '',
   });
   
   const [errors, setErrors] = useState({});
@@ -80,6 +81,10 @@ const CreateAccount = () => {
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
     }
+
+    if (formData.role === 'formateur' && !formData.specialite.trim()) {
+      newErrors.specialite = 'La spécialité est requise pour un formateur';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -122,6 +127,7 @@ const CreateAccount = () => {
         password: formData.password,
         role: formData.role,
         status: formData.status,
+        specialite: formData.specialite,
       });
       success(`Compte pour ${created.name} créé avec succès`);
       setSuccessMessage(`Compte pour ${created.name} créé avec succès !`);
@@ -134,6 +140,7 @@ const CreateAccount = () => {
         confirmPassword: '',
         role: '',
         status: 'active',
+        specialite: '',
       });
     } catch {
       error("Erreur lors de la création du compte");
@@ -146,8 +153,8 @@ const CreateAccount = () => {
     <Layout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Créer un Compte</h1>
-          <p className="text-gray-400 mt-2">Remplissez le formulaire pour créer un nouveau compte utilisateur</p>
+          <h1 className="text-3xl font-bold text-jb-text-primary">Créer un Compte</h1>
+          <p className="text-jb-text-secondary mt-2">Remplissez le formulaire pour créer un nouveau compte utilisateur</p>
         </div>
         
         <Card className="p-6">
@@ -171,7 +178,7 @@ const CreateAccount = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className={`w-full rounded-lg border-0 py-3 px-4 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border ${errors.name ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
+                className={`w-full rounded-lg border-0 py-3 px-4 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border ${errors.name ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
                 placeholder="Entrez le nom complet"
               />
               {errors.name && (
@@ -193,7 +200,7 @@ const CreateAccount = () => {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className={`w-full rounded-lg border-0 py-3 px-4 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border ${errors.email ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
+                className={`w-full rounded-lg border-0 py-3 px-4 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border ${errors.email ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
                 placeholder="exemple@domaine.com"
               />
               {errors.email && (
@@ -216,7 +223,7 @@ const CreateAccount = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full rounded-lg border-0 py-3 px-4 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border ${errors.password ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
+                  className={`w-full rounded-lg border-0 py-3 px-4 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border ${errors.password ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
                   placeholder="Entrez le mot de passe"
                 />
                 {errors.password && (
@@ -237,7 +244,7 @@ const CreateAccount = () => {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`w-full rounded-lg border-0 py-3 px-4 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border ${errors.confirmPassword ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
+                  className={`w-full rounded-lg border-0 py-3 px-4 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border ${errors.confirmPassword ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
                   placeholder="Confirmez le mot de passe"
                 />
                 {errors.confirmPassword && (
@@ -260,7 +267,7 @@ const CreateAccount = () => {
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="w-full rounded-lg border-0 py-3 px-4 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
+                  className="w-full rounded-lg border-0 py-3 px-4 text-jb-text-primary focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border border-white/10"
                 >
                   <option value="">Sélectionnez un rôle</option>
                   {roles.map(role => (
@@ -278,7 +285,7 @@ const CreateAccount = () => {
                   name="status"
                   value={formData.status}
                   onChange={handleChange}
-                  className="w-full rounded-lg border-0 py-3 px-4 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
+                  className="w-full rounded-lg border-0 py-3 px-4 text-jb-text-primary focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border border-white/10"
                 >
                   {statuses.map(status => (
                     <option key={status.value} value={status.value}>{status.label}</option>
@@ -286,6 +293,29 @@ const CreateAccount = () => {
                 </select>
               </div>
             </div>
+
+            {formData.role === 'formateur' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
+                  <UserIcon className="w-4 h-4 mr-2 text-blue-400" />
+                  Spécialité
+                </label>
+                <input
+                  type="text"
+                  name="specialite"
+                  value={formData.specialite}
+                  onChange={handleChange}
+                  className={`w-full rounded-lg border-0 py-3 px-4 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border ${errors.specialite ? 'border-red-500/50' : 'border-white/10'} transition-colors duration-200`}
+                  placeholder="Ex: Génie logiciel, Réseaux, Comptabilité"
+                />
+                {errors.specialite && (
+                  <p className="mt-2 text-sm text-red-400 flex items-center">
+                    <ExclamationTriangleIcon className="w-4 h-4 mr-1" />
+                    {errors.specialite}
+                  </p>
+                )}
+              </div>
+            )}
             
             {/* Submit Button */}
             <div className="pt-4">

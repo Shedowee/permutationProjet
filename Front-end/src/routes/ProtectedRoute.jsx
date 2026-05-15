@@ -1,12 +1,12 @@
 /**
  * src/routes/ProtectedRoute.jsx
  *
- * Protected route component for role-based access control
+ * Protected route component for access control
  *
  * Features:
  * - Waits for auth check to complete (loading state)
  * - Redirects to login if not authenticated
- * - Validates user role against allowedRoles
+ * - Validates user role and/or permissions against route requirements
  * - Redirects to correct dashboard if role is invalid
  * - No token logic - all auth from backend via cookies
  */
@@ -25,10 +25,11 @@ import { useToast } from "../shared/context/useToast";
  *
  * @param {React.ReactNode} children - Component to protect
  * @param {string[]} allowedRoles - Array of roles allowed (e.g., ['admin'])
+ * @param {string[]} allowedPermissions - Array of permissions allowed (e.g., ['read_users'])
  */
-const ProtectedRoute = ({ children, allowedRoles }) => {
+const ProtectedRoute = ({ children, allowedRoles, allowedPermissions }) => {
   // Get auth state from context (not Redux)
-  const { user, role, loading, isAuthenticated } = useAuth();
+  const { user, role, loading, isAuthenticated, can } = useAuth();
   const { info } = useToast();
   const location = useLocation();
 
@@ -62,11 +63,20 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
       admin: "/admin",
       commission: "/commission",
       formateur: "/formateur",
-      employe: "/employe",
+      user: "/profile",
     };
 
-    const redirectPath = dashboards[role] || "/login";
+    // If role is unknown, fallback to /profile or /dashboard instead of /login to avoid loop
+    const redirectPath = dashboards[role] || "/profile";
     return <Navigate to={redirectPath} replace />;
+  }
+
+  if (allowedPermissions && allowedPermissions.length > 0) {
+    const allowed = allowedPermissions.some((permission) => can(permission));
+    if (!allowed) {
+      const redirectPath = role === "admin" ? "/admin" : role === "commission" ? "/commission" : role === "formateur" ? "/formateur" : "/profile";
+      return <Navigate to={redirectPath} replace />;
+    }
   }
 
   // All checks passed - render protected component

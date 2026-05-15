@@ -6,13 +6,26 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import * as usersApi from '../../../services/usersService';
 import api from '../../../services/api';
 
+const mapEtablissementFromApi = (e = {}) => ({
+  ...e,
+  actif: typeof e.actif === 'boolean' ? e.actif : !!e.actif,
+  city_id: e.city_id ?? e.ville?.id ?? '',
+  region_id: e.region_id ?? e.ville?.parent?.id ?? e.ville?.region?.id ?? '',
+  city_label: e.city_label || e.ville?.value?.libelle || e.ville?.libelle || '',
+  region_label: e.region_label || e.ville?.parent?.value?.libelle || e.ville?.region?.value?.libelle || '',
+});
+
 // ==================== USERS MANAGEMENT ====================
 // Async thunk pour charger les utilisateurs
 export const fetchUsers = createAsyncThunk(
   'admin/fetchUsers',
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1, limit = 5, filters = {} } = {}, { rejectWithValue }) => {
     try {
-      const users = await usersApi.listUsers();
+      const normalizedFilters = {
+        ...filters,
+        ...(filters.pending ? { pending: 1 } : {}),
+      };
+      const users = await usersApi.listUsers(page, limit, normalizedFilters);
       return users;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des utilisateurs');
@@ -26,164 +39,8 @@ export const fetchAdminStats = createAsyncThunk(
   'admin/fetchAdminStats',
   async (_, { rejectWithValue }) => {
     try {
-      const [usersRes, demandesRes, etabsRes, logsRes] = await Promise.all([
-        api.get('/api/users', { withCredentials: true }),
-        api.get('/api/demandes', { withCredentials: true }),
-        api.get('/api/etablissements', { withCredentials: true }),
-        api.get('/api/logs', { withCredentials: true }),
-      ]);
-
-      const users = usersRes.data?.data ?? [];
-      const demandes = demandesRes.data?.data ?? [];
-      const etablissements = etabsRes.data?.data ?? [];
-      const logs = logsRes.data?.data ?? [];
-
-      const totalUsers = users.length;
-      const activeUsers = users.filter((u) => u.status === 'actif').length;
-
-      const roleCounts = users.reduce((acc, u) => {
-        const role = (u.role || '').toLowerCase();
-        if (!role) return acc;
-        acc[role] = (acc[role] || 0) + 1;
-        return acc;
-      }, {});
-
-      const totalAdmins = roleCounts['admin'] || 0;
-      const totalCommission = roleCounts['commission'] || 0;
-      const totalFormateurs = roleCounts['formateur'] || 0;
-
-      const validatedRequests = demandes.filter(
-        (d) => d.etat && d.etat.code === 'VALIDE'
-      ).length;
-      const pendingRequests = demandes.filter(
-        (d) => d.etat && d.etat.code === 'EN_ATTENTE'
-      ).length;
-
-      const totalEstablishments = etablissements.length;
-
-      const now = new Date();
-      const monthLabels = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-
-      const unverifiedUsers = users.filter((u) => !u.role || u.status !== 'actif');
-      const pendingVerification = unverifiedUsers.length;
-      const pendingUsers = unverifiedUsers.map((u) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        status: u.status || 'inactif',
-      }));
-      const sameDay = (d1, d2) =>
-        d1.getFullYear() === d2.getFullYear() &&
-        d1.getMonth() === d2.getMonth() &&
-        d1.getDate() === d2.getDate();
-      const newAccountLogs = logs.filter(
-        (l) =>
-          l.type === 'create' &&
-          String(l.action || '').toLowerCase().includes('création compte utilisateur')
-      );
-      const newAccountsToday = newAccountLogs.filter((l) => {
-        if (!l.date) return false;
-        const d = new Date(l.date);
-        return sameDay(d, now);
-      }).length;
-      const newAccounts7d = newAccountLogs.filter((l) => {
-        if (!l.date) return false;
-        const d = new Date(l.date);
-        const diff = now.getTime() - d.getTime();
-        return diff >= 0 && diff <= 7 * 24 * 60 * 60 * 1000;
-      }).length;
-
-      const monthlyActivityData = [];
-      for (let i = 5; i >= 0; i--) {
-        const date = new Date(now);
-        date.setMonth(now.getMonth() - i);
-        const monthKey = `${date.getFullYear()}-${String(
-          date.getMonth() + 1
-        ).padStart(2, '0')}`;
-        const label = monthLabels[date.getMonth()];
-
-        const monthLogs = logs.filter((log) => {
-          if (!log.date) return false;
-          const d = new Date(log.date);
-          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-            2,
-            '0'
-          )}`;
-          return key === monthKey;
-        });
-
-        const usersCount = monthLogs.filter((l) => l.type === 'login').length;
-        const registrationsCount = monthLogs.filter(
-          (l) => l.type === 'create'
-        ).length;
-
-        monthlyActivityData.push({
-          month: label,
-          users: usersCount,
-          registrations: registrationsCount,
-        });
-      }
-
-      const userStatsData = Object.entries(roleCounts).map(([role, count]) => {
-        let name = role;
-        if (role === 'admin') name = 'Admins';
-        else if (role === 'commission') name = 'Commission';
-        else if (role === 'formateur') name = 'Formateurs';
-        return { name, value: count };
-      });
-
-      const regionCounts = demandes.reduce((acc, d) => {
-        const regionObj = d.region_souhaitee || d.regionSouhaitee || null;
-        const regionName =
-          (regionObj && (regionObj.libelle || regionObj.code)) || 'Autre';
-        acc[regionName] = (acc[regionName] || 0) + 1;
-        return acc;
-      }, {});
-
-      const regionStats = Object.entries(regionCounts)
-        .map(([region, count]) => ({
-          region,
-          users: count,
-        }))
-        .sort((a, b) => b.users - a.users)
-        .slice(0, 5)
-        .map((entry) => {
-          if (!demandes.length) {
-            return { ...entry, growth: '0%' };
-          }
-          const share = (entry.users / demandes.length) * 100;
-          return {
-            ...entry,
-            growth: `${Math.round(share)}%`,
-          };
-        });
-
-      const recentActions = logs.slice(0, 5).map((log) => ({
-        id: log.id,
-        user: log.user,
-        action: log.action,
-        time: log.date,
-        type: log.type,
-      }));
-
-      return {
-        totalUsers,
-        activeUsers,
-        validatedRequests,
-        pendingRequests,
-        totalEstablishments,
-        totalAdmins,
-        totalCommission,
-        totalFormateurs,
-        pendingVerification,
-        newAccountsToday,
-        newAccounts7d,
-        pendingUsers,
-        monthlyActivityData,
-        userStatsData,
-        regionStats,
-        recentActions,
-      };
+      const response = await api.get('/api/admin/stats', { withCredentials: true });
+      return response.data?.data ?? null;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des statistiques');
     }
@@ -230,7 +87,62 @@ export const updateUser = createAsyncThunk(
 );
 
 // ==================== ETABLISSEMENT MANAGEMENT ====================
-// Async thunk pour charger les informations de l'établissement
+// Async thunk pour lister tous les établissements
+export const fetchEtablissements = createAsyncThunk(
+  'admin/fetchEtablissements',
+  async ({ page = 1, limit = 10, search = '' } = {}, { rejectWithValue }) => {
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('limit', String(limit));
+      if (search) params.set('search', search);
+      const res = await api.get(`/api/etablissements?${params.toString()}`, { withCredentials: true });
+      return {
+        data: (res.data?.data ?? []).map(mapEtablissementFromApi),
+        meta: res.data?.meta ?? null,
+      };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des établissements');
+    }
+  }
+);
+
+// Async thunk pour créer un établissement
+export const createEtablissement = createAsyncThunk(
+  'admin/createEtablissement',
+  async (etabData, { rejectWithValue }) => {
+    try {
+      const payload = {
+        name: etabData.name ?? etabData.nom,
+        address: etabData.address ?? etabData.adresse,
+        contact_phone: etabData.contact_phone,
+        contact_email: etabData.contact_email,
+        city_id: etabData.city_id,
+        metadata: etabData.metadata,
+        actif: typeof etabData.actif === 'boolean' ? etabData.actif : undefined,
+      };
+      const res = await api.post('/api/etablissements', payload, { withCredentials: true });
+      return mapEtablissementFromApi(res.data?.data ?? {});
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Erreur de création de l\'établissement');
+    }
+  }
+);
+
+// Async thunk pour supprimer un établissement
+export const deleteEtablissement = createAsyncThunk(
+  'admin/deleteEtablissement',
+  async (id, { rejectWithValue }) => {
+    try {
+      await api.delete(`/api/etablissements/${id}`, { withCredentials: true });
+      return id;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Erreur de suppression de l\'établissement');
+    }
+  }
+);
+
+// Async thunk pour charger les informations d'un établissement (premier trouvé)
 export const fetchEtablissement = createAsyncThunk(
   'admin/fetchEtablissement',
   async (_, { rejectWithValue }) => {
@@ -241,13 +153,15 @@ export const fetchEtablissement = createAsyncThunk(
       if (!first) {
         return rejectWithValue('Aucun établissement actif trouvé');
       }
-      return {
+      return mapEtablissementFromApi({
         id: first.id,
         code: first.code || '',
         nom: first.nom || '',
         adresse: first.adresse || '',
         actif: !!first.actif,
-      };
+        city_id: first.city_id ?? first.ville?.id ?? '',
+        ville: first.ville,
+      });
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement de l\'établissement');
     }
@@ -260,20 +174,18 @@ export const updateEtablissement = createAsyncThunk(
   async (etablissementData, { rejectWithValue }) => {
     try {
       const payload = {
-        ...(etablissementData.code !== undefined ? { code: etablissementData.code } : {}),
-        ...(etablissementData.nom !== undefined ? { nom: etablissementData.nom } : {}),
-        ...(etablissementData.adresse !== undefined ? { adresse: etablissementData.adresse } : {}),
+        ...(etablissementData.name !== undefined ? { name: etablissementData.name } : {}),
+        ...(etablissementData.nom !== undefined ? { name: etablissementData.nom } : {}),
+        ...(etablissementData.address !== undefined ? { address: etablissementData.address } : {}),
+        ...(etablissementData.adresse !== undefined ? { address: etablissementData.adresse } : {}),
+        ...(etablissementData.contact_phone !== undefined ? { contact_phone: etablissementData.contact_phone } : {}),
+        ...(etablissementData.contact_email !== undefined ? { contact_email: etablissementData.contact_email } : {}),
+        ...(etablissementData.city_id !== undefined ? { city_id: etablissementData.city_id } : {}),
+        ...(etablissementData.metadata !== undefined ? { metadata: etablissementData.metadata } : {}),
         ...(etablissementData.actif !== undefined ? { actif: etablissementData.actif } : {}),
       };
       const res = await api.put(`/api/etablissements/${etablissementData.id}`, payload, { withCredentials: true });
-      const d = res.data?.data ?? etablissementData;
-      return {
-        id: d.id,
-        code: d.code || '',
-        nom: d.nom || '',
-        adresse: d.adresse || '',
-        actif: !!d.actif,
-      };
+      return mapEtablissementFromApi(res.data?.data ?? etablissementData);
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de mise à jour de l\'établissement');
     }
@@ -285,13 +197,15 @@ const initialState = {
   // Users state
   users: {
     data: [],
+    meta: null,
     loading: false,
     error: null,
   },
   
   // Etablissement state
   etablissement: {
-    data: null,
+    data: [],
+    meta: null,
     loading: false,
     error: null,
   },
@@ -350,7 +264,8 @@ const adminSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.users.loading = false;
-        state.users.data = action.payload;
+        state.users.data = action.payload.data;
+        state.users.meta = action.payload.meta;
         state.users.error = null;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
@@ -363,13 +278,32 @@ const adminSlice = createSlice({
       })
       
       // Etablissement reducers
+      .addCase(fetchEtablissements.pending, (state) => {
+        state.etablissement.loading = true;
+        state.etablissement.error = null;
+      })
+      .addCase(fetchEtablissements.fulfilled, (state, action) => {
+        state.etablissement.loading = false;
+        state.etablissement.data = action.payload.data;
+        state.etablissement.meta = action.payload.meta;
+        state.etablissement.error = null;
+      })
+      .addCase(fetchEtablissements.rejected, (state, action) => {
+        state.etablissement.loading = false;
+        state.etablissement.error = action.payload;
+      })
       .addCase(fetchEtablissement.pending, (state) => {
         state.etablissement.loading = true;
         state.etablissement.error = null;
       })
       .addCase(fetchEtablissement.fulfilled, (state, action) => {
         state.etablissement.loading = false;
-        state.etablissement.data = action.payload;
+        // When single item is fetched, keep list semantics by merging/replacing
+        const item = action.payload;
+        if (!item) return;
+        const idx = state.etablissement.data.findIndex(e => e.id === item.id);
+        if (idx === -1) state.etablissement.data.push(item);
+        else state.etablissement.data[idx] = item;
         state.etablissement.error = null;
       })
       .addCase(fetchEtablissement.rejected, (state, action) => {
@@ -377,9 +311,19 @@ const adminSlice = createSlice({
         state.etablissement.error = action.payload;
       })
       .addCase(updateEtablissement.fulfilled, (state, action) => {
-        state.etablissement.data = action.payload;
+        const updated = action.payload;
+        const idx = state.etablissement.data.findIndex(e => e.id === updated.id);
+        if (idx !== -1) state.etablissement.data[idx] = updated;
+        else state.etablissement.data.push(updated);
         state.etablissement.loading = false;
         state.etablissement.error = null;
+      })
+      .addCase(createEtablissement.fulfilled, (state, action) => {
+        if (action.payload) state.etablissement.data.unshift(action.payload);
+      })
+      .addCase(deleteEtablissement.fulfilled, (state, action) => {
+        const id = action.payload;
+        state.etablissement.data = state.etablissement.data.filter(e => e.id !== id);
       })
       
       // Stats reducers
@@ -415,6 +359,7 @@ const adminSlice = createSlice({
 // ==================== SELECTORS ====================
 // Users selectors
 export const selectUsers = (state) => state.admin.users.data;
+export const selectUsersMeta = (state) => state.admin.users.meta;
 export const selectUsersLoading = (state) => state.admin.users.loading;
 export const selectUsersError = (state) => state.admin.users.error;
 
@@ -422,6 +367,7 @@ export const selectUsersError = (state) => state.admin.users.error;
 export const selectEtablissement = (state) => state.admin.etablissement.data;
 export const selectEtablissementLoading = (state) => state.admin.etablissement.loading;
 export const selectEtablissementError = (state) => state.admin.etablissement.error;
+export const selectEtablissementMeta = (state) => state.admin.etablissement.meta;
 
 // Stats selectors
 export const selectAdminStats = (state) => state.admin.stats.data;

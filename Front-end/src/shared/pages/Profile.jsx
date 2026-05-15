@@ -1,7 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useToast } from "../context/useToast";
-import { updateProfile, updatePassword, updateEmail, verifyNewEmail } from "../../services/userService";
+import { updateProfile, updatePassword, updateEmail } from "../../services/userService";
+import { updateProfilePicture } from "../../services/usersService";
+import { listParametres, listCitiesByRegion } from "../../services/paramService";
+import { listEtablissementsByCity } from "../../services/etablissementsService";
 import Layout from "../layouts/Layout";
 import Card from "../components/Card";
 import Button from "../components/Button";
@@ -22,10 +25,11 @@ export default function Profile() {
   const { success, error: toastError, info } = useToast();
   
   const [profileForm, setProfileForm] = useState({
-    nom: user?.nom || "",
+    name: user?.name || user?.nom || "",
     age: user?.age || "",
     phone: user?.phone || "",
-    address: user?.address || ""
+    address: user?.address || "",
+    specialite: user?.formateur?.specialite || "",
   });
 
   const [passwordForm, setPasswordForm] = useState({
@@ -35,36 +39,179 @@ export default function Profile() {
   });
 
   const [emailForm, setEmailForm] = useState({
-    email: user?.email || "",
-    code: ""
+    email: user?.email || ""
+  });
+  const [regions, setRegions] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [etablissements, setEtablissements] = useState([]);
+  const [assignmentForm, setAssignmentForm] = useState({
+    region_id: "",
+    city_id: "",
+    establishment_id: "",
   });
 
-  const [emailStep, setEmailStep] = useState(1); // 1: Change request, 2: Verification
   const [loading, setLoading] = useState(false);
+  const [pictureLoading, setPictureLoading] = useState(false);
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const fileInputRef = useRef(null);
+  const formateurEtablissement = user?.formateur?.etablissement?.name || "—";
+  const formateurRegion = user?.formateur?.etablissement?.ville?.region?.value?.libelle || "—";
+
+  const mapParametre = (item) => ({
+    id: item.id,
+    libelle: item.value?.libelle || item.key || item.name || "",
+  });
+
+  const mapEtablissement = (item) => ({
+    id: item.id,
+    nom: item.name || item.nom || "",
+  });
 
   useEffect(() => {
     if (user) {
       setProfileForm({
-        nom: user.nom || "",
+        name: user.name || user.nom || "",
         age: user.age || "",
         phone: user.phone || "",
-        address: user.address || ""
+        address: user.address || "",
+        specialite: user?.formateur?.specialite || "",
       });
-      setEmailForm(prev => ({ ...prev, email: user.email }));
+      setEmailForm({ email: user.email });
+      setAssignmentForm({
+        region_id: user?.formateur?.etablissement?.ville?.region?.id ? String(user.formateur.etablissement.ville.region.id) : "",
+        city_id: user?.formateur?.etablissement?.ville?.id ? String(user.formateur.etablissement.ville.id) : "",
+        establishment_id: user?.formateur?.establishment_id
+          ? String(user.formateur.establishment_id)
+          : user?.formateur?.etablissement?.id
+            ? String(user.formateur.etablissement.id)
+            : "",
+      });
     }
   }, [user]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadRegions = async () => {
+      try {
+        const data = await listParametres({ type: "REGION" });
+        if (!mounted) return;
+        setRegions((data || []).map(mapParametre));
+      } catch (err) {
+        console.error("Failed to load regions", err);
+      }
+    };
+    loadRegions();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!assignmentForm.region_id) {
+      setCities([]);
+      setEtablissements([]);
+      return;
+    }
+
+    let mounted = true;
+    const loadCities = async () => {
+      try {
+        const data = await listCitiesByRegion(assignmentForm.region_id);
+        if (!mounted) return;
+        setCities((data || []).map(mapParametre));
+      } catch (err) {
+        console.error("Failed to load cities", err);
+      }
+    };
+
+    loadCities();
+    return () => {
+      mounted = false;
+    };
+  }, [assignmentForm.region_id]);
+
+  useEffect(() => {
+    if (!assignmentForm.city_id) {
+      setEtablissements([]);
+      return;
+    }
+
+    let mounted = true;
+    const loadEtablissements = async () => {
+      try {
+        const data = await listEtablissementsByCity(assignmentForm.city_id);
+        if (!mounted) return;
+        setEtablissements((data || []).map(mapEtablissement));
+      } catch (err) {
+        console.error("Failed to load establishments", err);
+      }
+    };
+
+    loadEtablissements();
+    return () => {
+      mounted = false;
+    };
+  }, [assignmentForm.city_id]);
+
+  const currentRegionId = user?.formateur?.etablissement?.ville?.region?.id ? String(user.formateur.etablissement.ville.region.id) : "";
+  const currentCityId = user?.formateur?.etablissement?.ville?.id ? String(user.formateur.etablissement.ville.id) : "";
+  const currentEstablishmentId = user?.formateur?.establishment_id
+    ? String(user.formateur.establishment_id)
+    : user?.formateur?.etablissement?.id
+      ? String(user.formateur.etablissement.id)
+      : "";
+
+  const selectedRegion = regions.find((r) => String(r.id) === String(assignmentForm.region_id));
+  const selectedCity = cities.find((c) => String(c.id) === String(assignmentForm.city_id));
+  const selectedEtablissement = etablissements.find((e) => String(e.id) === String(assignmentForm.establishment_id));
+
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      setPictureLoading(true);
+      await updateProfilePicture(formData);
+      await refreshUser();
+      success("Photo de profil mise à jour avec succès");
+    } catch (err) {
+      toastError(err.response?.data?.message || "Erreur lors de l'upload de la photo");
+    } finally {
+      setPictureLoading(false);
+      e.target.value = "";
+    }
+  };
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
-      await updateProfile(profileForm);
+      const payload = {
+        ...profileForm,
+      };
+
+      if (role === "formateur" || user?.formateur) {
+        payload.region_id = assignmentForm.region_id;
+        payload.city_id = assignmentForm.city_id;
+        payload.establishment_id = assignmentForm.establishment_id;
+        payload.specialite = profileForm.specialite;
+      }
+
+      if (payload.region_id || payload.city_id || payload.establishment_id) {
+        setAssignmentLoading(true);
+      }
+
+      await updateProfile(payload);
       await refreshUser();
       success("Profil mis à jour avec succès");
     } catch (err) {
       toastError(err.response?.data?.message || "Erreur lors de la mise à jour");
     } finally {
       setLoading(false);
+      setAssignmentLoading(false);
     }
   };
 
@@ -86,16 +233,12 @@ export default function Profile() {
     e.preventDefault();
     try {
       setLoading(true);
-      if (emailStep === 1) {
-        await updateEmail(emailForm.email);
-        setEmailStep(2);
-        info("Un code a été envoyé à votre nouvelle adresse email");
+      const res = await updateEmail(emailForm.email);
+      await refreshUser();
+      if (res?.mail_sent === false) {
+        info("Adresse email mise à jour, mais le lien de vérification n'a pas pu être envoyé. Vérifiez la configuration mail.");
       } else {
-        await verifyNewEmail({ email: emailForm.email, code: emailForm.code });
-        await refreshUser();
-        setEmailStep(1);
-        setEmailForm(prev => ({ ...prev, code: "" }));
-        success("Adresse email mise à jour et vérifiée");
+        info("Adresse email mise à jour. Vérifiez votre boîte mail pour activer la nouvelle adresse.");
       }
     } catch (err) {
       toastError(err.response?.data?.message || "Erreur lors du changement d'email");
@@ -110,7 +253,7 @@ export default function Profile() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="text-4xl font-black text-surface-900 tracking-tight uppercase flex items-center gap-4">
-              <div className="p-3 bg-primary-500 text-white rounded-2xl shadow-primary">
+              <div className="p-3 bg-primary-500 text-white rounded-lg shadow-primary">
                 <UserCircleIcon className="h-8 w-8" />
               </div>
               Mon Profil
@@ -120,9 +263,9 @@ export default function Profile() {
             </p>
           </div>
           
-          <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-2xl border border-surface-100 shadow-soft self-end md:self-auto">
+          <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-lg border border-surface-100 shadow-soft self-end md:self-auto">
             <ShieldCheckIcon className="h-5 w-5 text-primary-500" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-surface-900">{role}</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-surface-900">{role || "Aucun rôle"}</span>
           </div>
         </div>
 
@@ -133,15 +276,49 @@ export default function Profile() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-standard"></div>
               
               <div className="relative mb-6">
-                <div className="w-24 h-24 bg-primary-500 rounded-3xl mx-auto flex items-center justify-center text-white text-4xl font-black shadow-primary">
-                  {user?.nom?.[0].toUpperCase()}
+                <div className="w-24 h-24 bg-primary-500 rounded-lg mx-auto flex items-center justify-center text-white text-4xl font-black shadow-primary overflow-hidden relative">
+                  {user?.photo_url ? (
+                    <img
+                      src={`${import.meta.env.VITE_API_URL}/storage/${user.photo_url}`}
+                      alt="Profil"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    (user?.name || user?.nom || "U")[0].toUpperCase()
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                    aria-label="Changer la photo de profil"
+                  >
+                    <span className="text-xs font-black uppercase tracking-widest">Changer</span>
+                  </button>
                 </div>
                 <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-xl shadow-soft flex items-center justify-center border border-surface-100">
                   <CheckCircleIcon className="h-5 w-5 text-primary-500" />
                 </div>
               </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleProfilePictureChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                loading={pictureLoading}
+                className="mb-6 w-full"
+              >
+                Changer la photo
+              </Button>
               
-              <h2 className="text-xl font-black text-surface-900 tracking-tight">{user?.nom}</h2>
+              <h2 className="text-xl font-black text-surface-900 tracking-tight">{user?.name || user?.nom}</h2>
               <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest mt-1">{user?.email}</p>
               
               <div className="mt-10 pt-8 border-t border-surface-50 space-y-4">
@@ -153,6 +330,34 @@ export default function Profile() {
                   <span className="text-surface-400">Statut</span>
                   <span className="text-primary-600">Actif</span>
                 </div>
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                  <span className="text-surface-400">Téléphone</span>
+                  <span className="text-surface-900">{user?.phone || "—"}</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                  <span className="text-surface-400">Âge</span>
+                  <span className="text-surface-900">{user?.age || "—"}</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                  <span className="text-surface-400">Adresse</span>
+                  <span className="text-surface-900 text-right max-w-[12rem] truncate">{user?.address || "—"}</span>
+                </div>
+                {(role === "formateur" || user?.formateur) && (
+                  <>
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                      <span className="text-surface-400">Spécialité</span>
+                      <span className="text-surface-900 text-right max-w-[12rem] truncate">{user?.formateur?.specialite || "—"}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                      <span className="text-surface-400">Établissement</span>
+                      <span className="text-surface-900 text-right max-w-[12rem] truncate">{formateurEtablissement}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+                      <span className="text-surface-400">Région</span>
+                      <span className="text-surface-900 text-right max-w-[12rem] truncate">{formateurRegion}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </Card>
 
@@ -190,8 +395,8 @@ export default function Profile() {
                   <label className="label-text ml-1">Nom Complet</label>
                   <input
                     type="text"
-                    value={profileForm.nom}
-                    onChange={(e) => setProfileForm({ ...profileForm, nom: e.target.value })}
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                     className="input-field"
                     placeholder="Votre nom"
                   />
@@ -226,8 +431,110 @@ export default function Profile() {
                     placeholder="Votre adresse"
                   />
                 </div>
+                {(role === "formateur" || user?.formateur) && (
+                  <div className="md:col-span-2 space-y-6 pt-2">
+                    <div className="space-y-3 md:max-w-xl">
+                      <label className="label-text ml-1">Spécialité</label>
+                      <input
+                        type="text"
+                        value={profileForm.specialite}
+                        onChange={(e) => setProfileForm({ ...profileForm, specialite: e.target.value })}
+                        className="input-field"
+                        placeholder="Ex: Génie logiciel, Réseaux, Comptabilité"
+                      />
+                      <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest ml-1">
+                        Utilisée pour les permutations compatibles
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 border-b border-surface-50 pb-4">
+                      <MapPinIcon className="h-5 w-5 text-primary-500" />
+                      <h3 className="text-xs font-black uppercase tracking-[0.2em] text-surface-900">
+                        Affectation actuelle
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-3">
+                        <label className="label-text ml-1">Région</label>
+                        <select
+                          value={assignmentForm.region_id}
+                          onChange={(e) => {
+                            const region_id = e.target.value;
+                            setAssignmentForm({
+                              region_id,
+                              city_id: "",
+                              establishment_id: "",
+                            });
+                          }}
+                          className="input-field py-4 cursor-pointer font-bold"
+                        >
+                          <option value="">Choisir une région</option>
+                          {regions.map((region) => (
+                            <option key={region.id} value={region.id}>
+                              {region.libelle}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="label-text ml-1">Ville</label>
+                        <select
+                          value={assignmentForm.city_id}
+                          onChange={(e) => {
+                            const city_id = e.target.value;
+                            setAssignmentForm((prev) => ({
+                              ...prev,
+                              city_id,
+                              establishment_id: "",
+                            }));
+                          }}
+                          disabled={!assignmentForm.region_id}
+                          className="input-field py-4 cursor-pointer font-bold disabled:bg-surface-50"
+                        >
+                          <option value="">Choisir une ville</option>
+                          {cities.map((city) => (
+                            <option key={city.id} value={city.id}>
+                              {city.libelle}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="label-text ml-1">Établissement</label>
+                        <select
+                          value={assignmentForm.establishment_id}
+                          onChange={(e) => {
+                            setAssignmentForm((prev) => ({
+                              ...prev,
+                              establishment_id: e.target.value,
+                            }));
+                          }}
+                          disabled={!assignmentForm.city_id}
+                          className="input-field py-4 cursor-pointer font-bold disabled:bg-surface-50"
+                        >
+                          <option value="">Choisir un établissement</option>
+                          {etablissements.map((etab) => (
+                            <option key={etab.id} value={etab.id}>
+                              {etab.nom}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="bg-primary-50/40 border border-primary-100 rounded-lg p-5 text-sm font-bold text-surface-700">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-surface-400 mb-2">
+                        Aperçu de l'affectation
+                      </p>
+                      <p>{selectedRegion?.libelle || "—"} / {selectedCity?.libelle || "—"} / {selectedEtablissement?.nom || "—"}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="md:col-span-2 pt-4">
-                  <Button type="submit" variant="primary" loading={loading} className="w-full md:w-auto px-12">
+                    <Button type="submit" variant="primary" loading={loading || assignmentLoading} className="w-full md:w-auto px-12">
                     Mettre à jour le profil
                   </Button>
                 </div>
@@ -241,45 +548,21 @@ export default function Profile() {
                 Adresse Email
               </h2>
               <form onSubmit={handleEmailSubmit} className="space-y-8">
-                {emailStep === 1 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                    <div className="space-y-3">
-                      <label className="label-text ml-1">Nouvel Email</label>
-                      <input
-                        type="email"
-                        value={emailForm.email}
-                        onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
-                        className="input-field"
-                        placeholder="nouveau@email.com"
-                      />
-                    </div>
-                    <Button type="submit" variant="secondary" loading={loading} className="px-12">
-                      Changer l'email
-                    </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
+                  <div className="space-y-3">
+                    <label className="label-text ml-1">Nouvel Email</label>
+                    <input
+                      type="email"
+                      value={emailForm.email}
+                      onChange={(e) => setEmailForm({ email: e.target.value })}
+                      className="input-field"
+                      placeholder="nouveau@email.com"
+                    />
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                    <div className="space-y-3">
-                      <label className="label-text ml-1 text-primary-600">Code de vérification</label>
-                      <input
-                        type="text"
-                        value={emailForm.code}
-                        onChange={(e) => setEmailForm({ ...emailForm, code: e.target.value })}
-                        className="input-field border-primary-200 bg-primary-50/30 text-center text-xl font-black tracking-widest"
-                        placeholder="000000"
-                        maxLength={6}
-                      />
-                    </div>
-                    <div className="flex gap-4">
-                      <Button type="submit" variant="primary" loading={loading} className="flex-1">
-                        Vérifier
-                      </Button>
-                      <Button variant="ghost" onClick={() => setEmailStep(1)} className="px-6">
-                        Annuler
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                  <Button type="submit" variant="secondary" loading={loading} className="px-12">
+                    Mettre à jour l'email
+                  </Button>
+                </div>
               </form>
             </Card>
 

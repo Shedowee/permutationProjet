@@ -1,30 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import Card from '../../../shared/components/Card';
 import Button from '../../../shared/components/Button';
-import { UserPlusIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import {
+  UserPlusIcon,
+  CheckCircleIcon,
+  ExclamationCircleIcon,
+  EnvelopeIcon,
+  KeyIcon,
+  ShieldCheckIcon,
+  IdentificationIcon
+} from '@heroicons/react/24/outline';
 import { listUserStatuses } from '../../../services/paramService';
 import { listRoles } from '../../../services/adminService';
 
-/**
- * Composant de formulaire pour créer un utilisateur
- * 
- * Ce composant gère le formulaire de création d'utilisateur
- * et peut être utilisé dans d'autres composants comme UserManagement
- */
 const CreateUserForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    role: '',
-    status: 'actif'
+    role: 'user',
+    status: 'pending',
+    specialite: ''
   });
 
   const [errors, setErrors] = useState({});
-  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roles, setRoles] = useState([]);
   const [statuses, setStatuses] = useState([]);
+
+  const roleOptions = [
+    { value: 'user', label: 'Utilisateur' },
+    ...roles.filter((role) => String(role.value).toLowerCase() !== 'user'),
+  ];
+  const statusOptions = [
+    { value: 'pending', label: 'En attente' },
+    ...statuses.filter((status) => String(status.value).toLowerCase() !== 'pending'),
+  ];
 
   useEffect(() => {
     (async () => {
@@ -35,9 +45,7 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
         setRoles([]);
       }
     })();
-  }, []);
 
-  useEffect(() => {
     (async () => {
       try {
         const data = await listUserStatuses();
@@ -56,25 +64,20 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
 
   const validateForm = () => {
     const newErrors = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Le nom est requis';
-    }
-
+    if (!formData.name.trim()) newErrors.name = 'Le nom est requis';
     if (!formData.email.trim()) {
       newErrors.email = 'L\'email est requis';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email invalide';
     }
-
     if (!formData.password) {
       newErrors.password = 'Le mot de passe est requis';
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+      newErrors.password = 'Minimum 6 caractères';
     }
-
-    if (!formData.role) {
-      newErrors.role = 'Le rôle est requis';
+    if (!formData.role) newErrors.role = 'Le rôle est requis';
+    if (formData.role === 'formateur' && !formData.specialite.trim()) {
+      newErrors.specialite = 'La spécialité est requise pour un formateur';
     }
 
     setErrors(newErrors);
@@ -83,217 +86,149 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-
-    // Clear success message when user starts editing
-    if (successMessage) {
-      setSuccessMessage('');
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setIsSubmitting(true);
-
     try {
-      // In a real application, you would make an API call here
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Call the onSubmit callback
-      onSubmit(formData);
-      
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        password: '',
-        role: '',
-        status: 'actif'
-      });
-      
-      setSuccessMessage('Compte créé avec succès !');
-    } catch (error) {
-      console.error('Error creating account:', error);
+      await onSubmit(formData);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const InputField = ({ label, name, type = "text", placeholder, icon: Icon, error }) => (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">{label}</label>
+      <div className="relative group">
+        {Icon && <Icon className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${error ? 'text-jb-red' : 'text-jb-text-muted group-focus-within:text-jb-cyan'}`} />}
+        <input
+          type={type}
+          name={name}
+          value={formData[name]}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className={`w-full bg-jb-bg-main border rounded-xl ${Icon ? 'pl-11' : 'px-4'} pr-4 py-3.5 text-jb-text-primary text-sm font-bold outline-none transition-all ${error ? 'border-jb-red/50 focus:border-jb-red' : 'border-jb-border focus:border-jb-cyan'}`}
+        />
+      </div>
+      {error && <p className="text-[10px] font-bold text-jb-red ml-1 uppercase tracking-tighter">{error}</p>}
+    </div>
+  );
+
   return (
-    <div className="max-w-2xl mx-auto space-y-8 py-4">
-      {successMessage && (
-        <div className="p-4 rounded-2xl bg-teal-50 border border-teal-100 flex items-center animate-slideDown">
-          <CheckCircleIcon className="w-5 h-5 text-teal-600 mr-3" />
-          <span className="text-xs font-black text-teal-700 uppercase tracking-widest">{successMessage}</span>
-        </div>
-      )}
-      
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
-              Nom complet *
-            </label>
-            <input
-              type="text"
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="p-4 rounded-lg bg-jb-bg-elevated border border-jb-border">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-jb-text-primary">Création de compte</p>
+        <p className="text-xs text-jb-text-secondary mt-1">
+          Le nouveau compte est créé comme utilisateur de base en attente de validation.
+        </p>
+      </div>
+
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="md:col-span-2">
+            <InputField
+              label="Nom Complet"
               name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              className={`w-full bg-surface-50 border ${
-                errors.name ? 'border-rose-500' : 'border-surface-200'
-              } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
-              placeholder="Entrez le nom complet"
+              placeholder="Ex: Ahmed Alaoui"
+              icon={IdentificationIcon}
+              error={errors.name}
             />
-            {errors.name && (
-              <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1.5" />
-                {errors.name}
-              </p>
-            )}
           </div>
-          
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
-              Email Professionnel *
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              className={`w-full bg-surface-50 border ${
-                errors.email ? 'border-rose-500' : 'border-surface-200'
-              } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
-              placeholder="utilisateur@ofppt.ma"
-            />
-            {errors.email && (
-              <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1.5" />
-                {errors.email}
-              </p>
-            )}
-          </div>
-          
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
-              Mot de passe *
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              className={`w-full bg-surface-50 border ${
-                errors.password ? 'border-rose-500' : 'border-surface-200'
-              } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400`}
-              placeholder="Min. 6 caractères"
-            />
-            {errors.password && (
-              <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1.5" />
-                {errors.password}
-              </p>
-            )}
-          </div>
-          
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
-              Rôle Système *
-            </label>
+
+          <InputField
+            label="Email Professionnel"
+            name="email"
+            type="email"
+            placeholder="ahmed@ofppt.ma"
+            icon={EnvelopeIcon}
+            error={errors.email}
+          />
+
+          <InputField
+            label="Mot de passe"
+            name="password"
+            type="password"
+            placeholder="••••••••"
+            icon={KeyIcon}
+            error={errors.password}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Rôle Système</label>
             <div className="relative group">
+              <ShieldCheckIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-jb-text-muted group-focus-within:text-jb-purple transition-colors" />
               <select
                 name="role"
                 value={formData.role}
                 onChange={handleInputChange}
-                className={`w-full bg-surface-50 border ${
-                  errors.role ? 'border-rose-500' : 'border-surface-200'
-                } rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer`}
+                className={`w-full bg-[#D8E9FB] border rounded-xl pl-11 pr-10 py-3.5 text-jb-text-primary text-sm font-bold outline-none transition-all appearance-none cursor-pointer ${errors.role ? 'border-jb-red/50 focus:border-jb-red' : 'border-jb-border focus:border-jb-purple'}`}
               >
-                <option value="">Sélectionnez un rôle</option>
-                {roles.map(role => (
-                  <option key={role.value} value={role.value}>{role.label}</option>
-                ))}
+                {roleOptions.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
               </select>
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </div>
             </div>
-            {errors.role && (
-              <p className="mt-1 text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 flex items-center">
-                <ExclamationCircleIcon className="w-4 h-4 mr-1.5" />
-                {errors.role}
-              </p>
-            )}
+            {errors.role && <p className="text-[10px] font-bold text-jb-red ml-1 uppercase tracking-tighter">{errors.role}</p>}
           </div>
-          
-          <div className="md:col-span-2 space-y-3">
-            <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1 block">
-              Statut Initial
-            </label>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Statut Initial</label>
             <div className="relative group">
+              <CheckCircleIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-jb-text-muted group-focus-within:text-jb-orange transition-colors" />
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleInputChange}
-                className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                className="w-full bg-[#D8E9FB] border border-jb-border rounded-xl pl-11 pr-10 py-3.5 text-jb-text-primary text-sm font-bold outline-none transition-all appearance-none cursor-pointer focus:border-jb-orange"
               >
-                {statuses.map(status => (
-                  <option key={status.value} value={status.value}>{status.label}</option>
-                ))}
+                {statusOptions.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </div>
             </div>
           </div>
         </div>
-        
-        <div className="pt-8 flex flex-col sm:flex-row justify-end gap-4 border-t border-surface-50">
-          <Button 
-            type="button" 
-            variant="secondary" 
-            onClick={onCancel}
-            className="px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
-          >
-            Annuler
-          </Button>
-          <Button 
-            type="submit" 
-            variant="primary" 
-            className="px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary-500/20 flex items-center justify-center group"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-3"></div>
-                <span>Création...</span>
-              </>
-            ) : (
-              <>
-                <UserPlusIcon className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" />
-                <span>Créer le compte</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </form>
-    </div>
+
+        {formData.role === 'formateur' && (
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Spécialité</label>
+            <div className="relative group">
+              <input
+                type="text"
+                name="specialite"
+                value={formData.specialite}
+                onChange={handleInputChange}
+                placeholder="Ex: Génie logiciel, Réseaux, Comptabilité"
+                className={`w-full bg-jb-bg-main border rounded-xl px-4 py-3.5 text-jb-text-primary text-sm font-bold outline-none transition-all ${errors.specialite ? 'border-jb-red/50 focus:border-jb-red' : 'border-jb-border focus:border-jb-cyan'}`}
+              />
+            </div>
+            {errors.specialite && <p className="text-[10px] font-bold text-jb-red ml-1 uppercase tracking-tighter">{errors.specialite}</p>}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-jb-border">
+        <Button
+          variant="ghost"
+          onClick={onCancel}
+          type="button"
+          className="text-jb-text-muted hover:text-jb-text-primary text-[10px] font-black uppercase tracking-widest"
+        >
+          Annuler
+        </Button>
+        <Button
+          type="submit"
+          isLoading={isSubmitting}
+          className="bg-jb-gradient-primary border-none text-white shadow-primary px-10 rounded-xl py-3.5 flex items-center gap-3 group"
+        >
+          <UserPlusIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          <span className="text-[10px] font-black uppercase tracking-widest">Créer le compte</span>
+        </Button>
+      </div>
+    </form>
   );
 };
 

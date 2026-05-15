@@ -6,7 +6,14 @@ import Modal from '../../../shared/components/Modal';
 import { listRoles } from '../../../services/adminService';
 import { listUsers, updateUser } from '../../../services/usersService';
 import { useToast } from '../../../shared/context/useToast';
-import { UserGroupIcon, ShieldCheckIcon, CheckCircleIcon, ExclamationTriangleIcon, UserCircleIcon } from '@heroicons/react/24/outline';
+import {
+  UserGroupIcon,
+  ShieldCheckIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  UserCircleIcon,
+  ChevronRightIcon
+} from '@heroicons/react/24/outline';
 
 const AssignRoles = () => {
   const { success, error } = useToast();
@@ -22,7 +29,7 @@ const AssignRoles = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [r, u] = await Promise.all([listRoles(), listUsers()]);
+        const [r, u] = await Promise.all([listRoles(), listUsers(1, -1)]);
         setRoles(r);
         setUsers(u);
       } catch {
@@ -39,11 +46,11 @@ const AssignRoles = () => {
 
   const handleAssignRole = async () => {
     setIsLoading(true);
-    
     try {
       const updated = await updateUser({ id: selectedUserId, role: selectedRole });
-      success(`Rôle ${roles.find(r => r.value === selectedRole)?.label || selectedRole} attribué à ${updated.name} avec succès`);
-      setSuccessMessage(`Rôle ${roles.find(r => r.value === selectedRole)?.label || selectedRole} attribué à ${updated.name} avec succès !`);
+      const roleLabel = roles.find(r => r.value === selectedRole)?.label || selectedRole;
+      success(`Rôle ${roleLabel} attribué à ${updated.name} avec succès`);
+      setSuccessMessage(`Rôle ${roleLabel} attribué à ${updated.name} avec succès !`);
       setSelectedUserId('');
       setSelectedRole('');
       setShowConfirmation(false);
@@ -68,174 +75,188 @@ const AssignRoles = () => {
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-10 pb-12">
         <div>
-          <h1 className="text-3xl font-bold text-white">Attribution des Rôles</h1>
-          <p className="text-gray-400 mt-2">Attribuez des rôles spécifiques aux utilisateurs</p>
+          <h1 className="text-4xl font-black text-jb-text-primary tracking-tighter uppercase">Attribution des Rôles</h1>
+          <div className="flex items-center gap-3 mt-2">
+            <span className="h-1 w-12 bg-jb-gradient-alt rounded-full"></span>
+            <p className="text-jb-text-muted font-bold uppercase tracking-[0.2em] text-[10px]">Gestion des privilèges et accès utilisateurs</p>
+          </div>
         </div>
-        
-        <Card className="p-6">
-          {/* Success Message */}
-          {successMessage && (
-            <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 flex items-start">
-              <CheckCircleIcon className="w-6 h-6 text-green-400 mr-3 mt-0.5 flex-shrink-0" />
-              <span className="text-green-400">{successMessage}</span>
-            </div>
-          )}
-          
-          <div className="space-y-6">
-            {/* User Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                <UserGroupIcon className="w-4 h-4 mr-2 text-blue-400" />
-                Sélectionner un utilisateur
-              </label>
-              <select
-                value={selectedUserId}
-                onChange={(e) => {
-                  setSelectedUserId(e.target.value);
-                  if (successMessage) setSuccessMessage('');
-                }}
-                className="w-full rounded-lg border-0 py-3 px-4 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
-              >
-                <option value="">Sélectionnez un utilisateur</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>
-                    {user.name} ({user.email}) - Rôle actuel: {roles.find(r => r.value === user.role)?.label || user.role}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-                <ShieldCheckIcon className="w-4 h-4 mr-2 text-blue-400" />
-                Sélectionner un rôle
-              </label>
-              <select
-                value={selectedRole}
-                onChange={(e) => {
-                  setSelectedRole(e.target.value);
-                  if (successMessage) setSuccessMessage('');
-                }}
-                className="w-full rounded-lg border-0 py-3 px-4 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
-              >
-                <option value="">Sélectionnez un rôle</option>
-                {roles.map(role => (
-                  <option key={role.value} value={role.value}>{role.label}</option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Selected User Info */}
-            {selectedUser && (
-              <div className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20">
-                <h3 className="text-lg font-semibold text-white mb-2 flex items-center">
-                  <UserCircleIcon className="w-5 h-5 mr-2 text-blue-400" />
-                  Utilisateur sélectionné
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-400">Nom:</p>
-                    <p className="text-white font-medium">{selectedUser.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Email:</p>
-                    <p className="text-white font-medium">{selectedUser.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Rôle actuel:</p>
-                    <p className="text-white font-medium">{roles.find(r => r.value === selectedUser.role)?.label || selectedUser.role}</p>
-                  </div>
-                  <div>
-                    <p className="text-gray-400">Statut:</p>
-                    <p className="text-white font-medium capitalize">{selectedUser.status}</p>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className="lg:col-span-2 space-y-8">
+            <Card className="p-10 bg-jb-bg-section border border-jb-border rounded-lg shadow-hard">
+              {/* Success Message */}
+              {successMessage && (
+                <div className="mb-10 p-5 rounded-lg bg-jb-green/10 border border-jb-green/20 flex items-center gap-4 animate-slide-in">
+                  <CheckCircleIcon className="w-6 h-6 text-jb-green shrink-0" />
+                  <p className="text-xs font-black text-jb-green uppercase tracking-widest">{successMessage}</p>
+                </div>
+              )}
+
+              <div className="space-y-10">
+                {/* User Selection */}
+                <div className="space-y-4">
+                  <label className="flex items-center text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em] ml-1">
+                    <UserGroupIcon className="w-4 h-4 mr-2 text-jb-cyan" />
+                    Utilisateur cible
+                  </label>
+                  <div className="relative group">
+                    <select
+                      value={selectedUserId}
+                      onChange={(e) => {
+                        setSelectedUserId(e.target.value);
+                        if (successMessage) setSuccessMessage('');
+                      }}
+                      className="w-full bg-[#D8E9FB] border border-jb-border rounded-lg px-5 py-4 text-jb-text-primary text-sm font-bold focus:border-jb-cyan outline-none transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">Sélectionner un compte</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>{user.name} ({user.email})</option>
+                      ))}
+                    </select>
+                    <ChevronRightIcon className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-jb-text-muted group-hover:text-jb-cyan transition-colors rotate-90" />
                   </div>
                 </div>
+
+                {/* Role Selection */}
+                <div className="space-y-4">
+                  <label className="flex items-center text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em] ml-1">
+                    <ShieldCheckIcon className="w-4 h-4 mr-2 text-jb-purple" />
+                    Privilège à attribuer
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {roles.map((role) => (
+                      <button
+                        key={role.value}
+                        onClick={() => setSelectedRole(role.value)}
+                        className={`flex flex-col items-start p-5 rounded-lg border-2 transition-all text-left group ${
+                          selectedRole === role.value
+                            ? 'bg-jb-purple/10 border-jb-purple shadow-lg shadow-jb-purple/10'
+                            : 'bg-jb-bg-main border-jb-border hover:border-jb-purple/40'
+                        }`}
+                      >
+                        <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
+                          selectedRole === role.value ? 'text-jb-purple' : 'text-jb-text-muted group-hover:text-jb-purple/60'
+                        }`}>
+                          Code: {role.value}
+                        </span>
+                        <span className={`text-sm font-bold ${
+                          selectedRole === role.value ? 'text-jb-text-primary' : 'text-jb-text-secondary'
+                        }`}>
+                          {role.label}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-jb-border">
+                  <Button
+                    onClick={handleReset}
+                    variant="ghost"
+                    className="flex-1 text-jb-text-muted hover:text-jb-text-primary font-black uppercase tracking-widest text-[10px] py-4"
+                  >
+                    Réinitialiser
+                  </Button>
+                  <Button
+                    onClick={handleConfirm}
+                    disabled={!selectedUserId || !selectedRole}
+                    className={`flex-1 py-4 rounded-lg font-black uppercase tracking-widest text-[10px] transition-all ${
+                      selectedUserId && selectedRole
+                        ? 'bg-jb-gradient-alt text-white shadow-primary border-none'
+                        : 'bg-jb-bg-elevated text-jb-text-muted border border-jb-border cursor-not-allowed opacity-50'
+                    }`}
+                  >
+                    Confirmer l'attribution
+                  </Button>
+                </div>
               </div>
-            )}
-            
-            {/* Summary */}
-            {selectedUser && selectedRole && (
-              <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500/10 to-violet-500/10 border border-purple-500/20">
-                <h3 className="text-lg font-semibold text-white mb-2 flex items-center">
-                  <ExclamationTriangleIcon className="w-5 h-5 mr-2 text-purple-400" />
-                  Résumé de l'attribution
-                </h3>
-                <p className="text-gray-300">
-                  Vous êtes sur le point d'attribuer le rôle <span className="text-purple-300 font-medium">{roles.find(r => r.value === selectedRole)?.label || selectedRole}</span> à l'utilisateur <span className="text-white font-medium">{selectedUser.name}</span>.
+            </Card>
+          </div>
+
+          {/* Side Info Panel */}
+          <div className="lg:col-span-1 space-y-8">
+            <Card className="p-8 bg-jb-bg-section border border-jb-border rounded-lg relative overflow-hidden">
+              <div className="absolute -top-4 -right-4 p-8 opacity-[0.03]">
+                <ShieldCheckIcon className="w-32 h-32 text-jb-purple" />
+              </div>
+              <h3 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em] mb-8 pb-4 border-b border-jb-border">
+                Résumé de l'action
+              </h3>
+
+              <div className="space-y-8 relative z-10">
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black text-jb-text-muted uppercase tracking-widest">Utilisateur sélectionné</p>
+                  <p className="text-sm font-bold text-jb-text-primary">{selectedUser ? selectedUser.name : 'Aucun'}</p>
+                </div>
+                <div className="space-y-2">
+                  <p className="text-[9px] font-black text-jb-text-muted uppercase tracking-widest">Futur Rôle</p>
+                  <p className="text-sm font-bold text-jb-purple">
+                    {selectedRole ? (roles.find(r => r.value === selectedRole)?.label || selectedRole) : 'Non défini'}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg bg-jb-blue/5 border border-jb-blue/10">
+                  <p className="text-[10px] text-jb-blue font-bold leading-relaxed italic">
+                    "L'attribution d'un rôle modifie immédiatement les droits d'accès de l'utilisateur."
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Confirmation Modal */}
+        <Modal
+          isOpen={showConfirmation}
+          onClose={() => setShowConfirmation(false)}
+          title="Confirmer l'attribution"
+          size="md"
+        >
+          <div className="space-y-5 py-1">
+            <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 items-start p-4 rounded-lg bg-jb-bg-elevated border border-jb-border">
+              <div className="w-16 h-16 bg-jb-purple/10 rounded-lg border border-jb-purple/20 flex items-center justify-center text-jb-purple">
+                <ShieldCheckIcon className="w-8 h-8" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-jb-text-muted">Validation finale</p>
+                <h3 className="text-lg font-black text-jb-text-primary uppercase tracking-tight">Confirmer l'attribution du rôle</h3>
+                <p className="text-jb-text-secondary leading-relaxed text-sm">
+                  Vous allez attribuer le rôle <span className="text-jb-purple font-black">"{roles.find(r => r.value === selectedRole)?.label}"</span> à <span className="text-jb-text-primary font-black">"{selectedUser?.name}"</span>.
                 </p>
               </div>
-            )}
-            
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button 
-                variant="primary" 
-                size="md" 
-                onClick={handleConfirm}
-                disabled={!selectedUserId || !selectedRole || isLoading}
-                className="flex-1"
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-4 rounded-lg border border-jb-border bg-white">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-jb-text-muted">Utilisateur</p>
+                <p className="text-sm font-bold text-jb-text-primary mt-2 truncate">{selectedUser?.name || '—'}</p>
+              </div>
+              <div className="p-4 rounded-lg border border-jb-border bg-white">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-jb-text-muted">Rôle cible</p>
+                <p className="text-sm font-bold text-jb-purple mt-2 truncate">{roles.find(r => r.value === selectedRole)?.label || '—'}</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-jb-border">
+              <Button
+                variant="ghost"
+                onClick={() => setShowConfirmation(false)}
+                className="flex-1 text-jb-text-muted hover:text-jb-text-primary font-black uppercase tracking-widest text-[10px]"
               >
-                <ShieldCheckIcon className="w-5 h-5 mr-2" />
-                Attribuer le rôle
+                Annuler
               </Button>
-              
-              <Button 
-                variant="secondary" 
-                size="md" 
-                onClick={handleReset}
-                className="flex-1"
+              <Button
+                onClick={handleAssignRole}
+                isLoading={isLoading}
+                className="flex-1 bg-jb-purple hover:bg-jb-purple/80 text-white shadow-hard font-black uppercase tracking-widest text-[10px] py-4 rounded-lg"
               >
-                Réinitialiser
+                Confirmer
               </Button>
             </div>
           </div>
-        </Card>
-        
-        {/* Confirmation Modal */}
-        <Modal 
-          isOpen={showConfirmation}
-          onClose={() => setShowConfirmation(false)}
-          title="Confirmer l'attribution du rôle"
-          size="md"
-        >
-          {selectedUser && selectedRole && (
-            <div className="space-y-4">
-              <p className="text-gray-300">
-                Êtes-vous sûr de vouloir attribuer le rôle <strong>{roles.find(r => r.value === selectedRole)?.label || selectedRole}</strong> à l'utilisateur <strong>{selectedUser.name}</strong> ?
-              </p>
-              <p className="text-gray-400 text-sm">
-                Cette action modifiera les permissions de l'utilisateur en conséquence.
-              </p>
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button 
-                  variant="secondary" 
-                  onClick={() => setShowConfirmation(false)}
-                >
-                  Annuler
-                </Button>
-                <Button 
-                  variant="primary" 
-                  onClick={handleAssignRole}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Attribution...
-                    </>
-                  ) : (
-                    'Confirmer'
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
         </Modal>
       </div>
     </Layout>

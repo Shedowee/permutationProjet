@@ -1,62 +1,95 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Modal from '../../../shared/components/Modal';
 import Button from '../../../shared/components/Button';
 import CreateUserForm from '../components/CreateUserForm';
-import { UserPlusIcon, PencilIcon, TrashIcon, EyeIcon, MagnifyingGlassIcon, FunnelIcon, CheckCircleIcon, ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { fetchUsers, createUser, updateUser, deleteUser } from '../redux/adminSlice';
+import {
+  UserPlusIcon,
+  PencilIcon,
+  TrashIcon,
+  EyeIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  XMarkIcon,
+  IdentificationIcon,
+  AcademicCapIcon,
+  MapPinIcon,
+  BuildingOffice2Icon,
+  CalendarIcon,
+  DocumentIcon,
+  EnvelopeIcon,
+  ShieldCheckIcon,
+  ClockIcon
+} from '@heroicons/react/24/outline';
+import { fetchUsers, selectUsersMeta, createUser, updateUser, deleteUser } from '../redux/adminSlice';
 import { listRoles } from '../../../services/adminService';
 import { listUserStatuses } from '../../../services/paramService';
 import { selectSearchTerm } from '../../../shared/redux/searchSlice';
 import { getUserDetail } from '../../../services/usersService';
-import { 
-  IdentificationIcon, 
-  AcademicCapIcon, 
-  MapPinIcon, 
-  BuildingOfficeIcon, 
-  CalendarIcon,
-  DocumentIcon,
-  EnvelopeIcon,
-  ShieldCheckIcon
-} from "@heroicons/react/24/outline";
 
 const UserManagement = () => {
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const globalSearchTerm = useSelector(selectSearchTerm);
-  const usersState = useSelector(state => state.admin.users) || { data: [], loading: false, error: null };
+  const usersState = useSelector(state => state.admin.users) || { data: [], meta: null, loading: false, error: null };
   const users = useMemo(() => usersState.data || [], [usersState.data]);
+  const meta = useSelector(selectUsersMeta);
+
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeSearch, setActiveSearch] = useState('');
   const [filterRole, setFilterRole] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState(''); // 'view', 'edit', 'delete', 'create'
+  const [modalType, setModalType] = useState(''); // 'view', 'edit', 'delete'
   const [selectedUser, setSelectedUser] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    role: '',
-    status: '',
-    dateCreated: '',
-    lastLogin: ''
-  });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
   const [roles, setRoles] = useState([]);
   const [statuses, setStatuses] = useState([]);
   const [uiSuccess, setUiSuccess] = useState('');
   const [uiError, setUiError] = useState('');
 
+  const [isDetailLoading, setIsDetailLoading] = useState(false);
+  const [userDetail, setUserDetail] = useState(null);
+  const focusUserId = searchParams.get('user');
+  const pendingOnly = searchParams.get('pending') === '1' || searchParams.get('pending') === 'true';
+
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    age: '',
+    phone: '',
+    address: '',
+    role: '',
+    status: '',
+    specialite: ''
+  });
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(4);
-  
+  const pageSize = 5;
+
   useEffect(() => {
-    dispatch(fetchUsers());
-  }, [dispatch]);
-  
+    dispatch(fetchUsers({
+      page: currentPage,
+      limit: pageSize,
+      filters: {
+        search: searchTerm || globalSearchTerm,
+        role: filterRole,
+        status: filterStatus,
+        pending: pendingOnly ? 1 : 0,
+      }
+    }));
+  }, [dispatch, currentPage, searchTerm, globalSearchTerm, filterRole, filterStatus, pendingOnly]);
+
   useEffect(() => {
+    // Fetch roles
     (async () => {
       try {
         const data = await listRoles();
@@ -65,27 +98,31 @@ const UserManagement = () => {
         setRoles([]);
       }
     })();
-  }, []);
-  
-  useEffect(() => {
+
+    // Fetch statuses
     (async () => {
       try {
         const data = await listUserStatuses();
-        setStatuses(data.length ? data : [
+        const mergedStatuses = [
+          { value: 'pending', label: 'En attente' },
+          ...(data || []).filter((status) => String(status.value).toLowerCase() !== 'pending'),
+        ];
+        setStatuses(mergedStatuses.length ? mergedStatuses : [
+          { value: 'pending', label: 'En attente' },
           { value: 'actif', label: 'Actif' },
           { value: 'inactif', label: 'Inactif' },
+          { value: 'bloqué', label: 'Bloqué' },
         ]);
       } catch {
         setStatuses([
+          { value: 'pending', label: 'En attente' },
           { value: 'actif', label: 'Actif' },
           { value: 'inactif', label: 'Inactif' },
+          { value: 'bloqué', label: 'Bloqué' },
         ]);
       }
     })();
-  }, []);
-  
-  // État pour gérer la modal de création d'utilisateur
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  }, [dispatch]);
 
   useEffect(() => {
     if (uiSuccess) {
@@ -101,60 +138,80 @@ const UserManagement = () => {
     }
   }, [uiError]);
 
-  // Filter users based on search and filters
-  const filteredUsers = useMemo(() => {
-    return users.filter(user => {
-      const searchToUse = searchTerm || globalSearchTerm;
-      const matchesSearch = !searchToUse || 
-                           user.name.toLowerCase().includes(searchToUse.toLowerCase()) ||
-                           user.email.toLowerCase().includes(searchToUse.toLowerCase());
-      const matchesRole = !filterRole || user.role === filterRole;
-      const matchesStatus = !filterStatus || user.status === filterStatus;
-      
-      return matchesSearch && matchesRole && matchesStatus;
-    });
-  }, [users, searchTerm, globalSearchTerm, filterRole, filterStatus]);
-
-  // Reset to first page when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    if (currentPage !== 1) setCurrentPage(1);
   }, [searchTerm, globalSearchTerm, filterRole, filterStatus]);
 
-  // Paginated users
-  const totalItems = filteredUsers.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredUsers.slice(start, start + pageSize);
-  }, [filteredUsers, currentPage, pageSize]);
-  
-  // Reset search when input is cleared
   useEffect(() => {
-    if (searchTerm === '') {
-      setActiveSearch('');
+    if (!focusUserId || isDetailLoading) {
+      return;
     }
-  }, [searchTerm]);
 
-  const handleSearch = (e) => {
-    if (e) e.preventDefault();
-    setActiveSearch(searchTerm);
-  };
-  
-  const availableStatuses = statuses;
+    let cancelled = false;
 
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
-  const [userDetail, setUserDetail] = useState(null);
+    const openFocusedUser = async () => {
+      setIsDetailLoading(true);
+      try {
+        const data = await getUserDetail(focusUserId);
+        if (cancelled) {
+          return;
+        }
+
+        setSelectedUser({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          status: data.status,
+          phone: data.phone,
+          age: data.age,
+          address: data.address,
+          specialite: data.formateur?.specialite || '',
+          dateCreated: data.created_at ? new Date(data.created_at).toLocaleDateString('fr-FR') : '',
+          lastLogin: data.logs?.[0]?.date || '',
+        });
+        setUserDetail(data);
+        setModalType('view');
+        setShowModal(true);
+      } catch {
+        setUiError("Erreur lors du chargement des détails");
+      } finally {
+        if (!cancelled) {
+          setIsDetailLoading(false);
+          const nextParams = new URLSearchParams(searchParams);
+          nextParams.delete('user');
+          setSearchParams(nextParams, { replace: true });
+        }
+      }
+    };
+
+    openFocusedUser();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [focusUserId, isDetailLoading, searchParams, setSearchParams]);
+
+  const paginatedUsers = useMemo(() => {
+    return users; // Backend already handles pagination and filtering
+  }, [users]);
+
+  const totalItems = meta?.total || 0;
+  const totalPages = meta?.last_page || 1;
 
   const handleViewUser = async (user) => {
     setSelectedUser(user);
     setModalType('view');
     setShowModal(true);
-    
+    setIsDetailLoading(true);
     try {
-      setIsDetailLoading(true);
       const data = await getUserDetail(user.id);
+      setSelectedUser(prev => ({
+        ...prev,
+        specialite: data.formateur?.specialite || prev?.specialite || ''
+      }));
       setUserDetail(data);
-    } catch (err) {
+    } catch {
       setUiError("Erreur lors du chargement des détails");
     } finally {
       setIsDetailLoading(false);
@@ -166,10 +223,12 @@ const UserManagement = () => {
     setFormData({
       name: user.name,
       email: user.email,
+      age: user.age || '',
+      phone: user.phone || '',
+      address: user.address || '',
       role: user.role,
       status: user.status,
-      dateCreated: user.dateCreated,
-      lastLogin: user.lastLogin
+      specialite: userDetail?.formateur?.specialite || user.specialite || ''
     });
     setModalType('edit');
     setShowModal(true);
@@ -181,17 +240,30 @@ const UserManagement = () => {
     setShowModal(true);
   };
 
-  const handleConfirmDelete = () => {
-    setUiError('');
-    setUiSuccess('');
-    dispatch(deleteUser(selectedUser.id))
+  const handleValidateUser = (user) => {
+    dispatch(updateUser({ id: user.id, userData: { status: 'actif' } }))
       .unwrap()
       .then(() => {
-        setUiSuccess('Utilisateur supprimé avec succès');
+        setUiSuccess('Utilisateur validé');
+        dispatch(fetchUsers({
+          page: currentPage,
+          limit: pageSize,
+          filters: {
+            search: searchTerm || globalSearchTerm,
+            role: filterRole,
+            status: filterStatus,
+            pending: pendingOnly ? 1 : 0,
+          }
+        }));
       })
-      .catch((err) => {
-        setUiError(err || 'Erreur lors de la suppression');
-      })
+      .catch(err => setUiError(err));
+  };
+
+  const handleConfirmDelete = () => {
+    dispatch(deleteUser(selectedUser.id))
+      .unwrap()
+      .then(() => setUiSuccess('Utilisateur supprimé'))
+      .catch(err => setUiError(err))
       .finally(() => {
         setShowModal(false);
         setSelectedUser(null);
@@ -199,129 +271,101 @@ const UserManagement = () => {
   };
 
   const handleSaveUser = () => {
-    setUiError('');
-    setUiSuccess('');
     dispatch(updateUser({ id: selectedUser.id, userData: formData }))
       .unwrap()
-      .then(() => {
-        setUiSuccess('Utilisateur mis à jour avec succès');
-      })
-      .catch((err) => {
-        setUiError(err || 'Erreur lors de la mise à jour');
-      })
+      .then(() => setUiSuccess('Utilisateur mis à jour'))
+      .catch(err => setUiError(err))
       .finally(() => {
         setShowModal(false);
         setSelectedUser(null);
       });
   };
 
-  // Fonction pour gérer la création d'un utilisateur
   const handleCreateUser = (newUserData) => {
-    setUiError('');
-    setUiSuccess('');
     dispatch(createUser(newUserData))
       .unwrap()
-      .then(() => {
-        setUiSuccess('Utilisateur créé avec succès');
-      })
-      .catch((err) => {
-        setUiError(err || 'Erreur lors de la création');
-      })
-      .finally(() => {
-        setShowCreateModal(false);
-      });
+      .then(() => setUiSuccess('Utilisateur créé'))
+      .catch(err => setUiError(err))
+      .finally(() => setShowCreateModal(false));
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const ProfileDetail = ({ label, value, icon }) => (
     <div className="space-y-1">
-      <div className="flex items-center text-[10px] font-black text-surface-400 uppercase tracking-widest mb-1">
+      <div className="flex items-center text-[10px] font-black text-jb-text-muted uppercase tracking-widest mb-1">
         {icon && <span className="mr-1.5 opacity-50">{icon}</span>}
         {label}
       </div>
-      <p className="text-sm font-bold text-surface-900">{value || '—'}</p>
+      <p className="text-sm font-bold text-jb-text-primary">{value || '—'}</p>
     </div>
   );
 
   const columns = [
-    { 
-      header: 'Nom', 
+    {
+      header: 'Utilisateur',
       key: 'name',
-      render: (value) => <span className="font-bold text-surface-900 uppercase tracking-tight text-sm">{value}</span>
+      render: (value, row) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-jb-bg-elevated flex items-center justify-center text-jb-text-primary text-xs font-black border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10">
+            {value.charAt(0)}
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-jb-text-primary text-sm uppercase tracking-tight">{value}</span>
+            <span className="text-jb-text-muted text-[10px] lowercase">{row.email}</span>
+          </div>
+        </div>
+      )
     },
-    { 
-      header: 'Email', 
-      key: 'email',
-      render: (value) => <span className="text-surface-600 font-medium text-xs">{value}</span>
-    },
-    { 
-      header: 'Rôle', 
+    {
+      header: 'Rôle',
       key: 'role',
       render: (value) => {
         const roleLabel = roles.find(r => r.value === value)?.label || value;
         return (
-          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary-50 text-primary-600 border border-primary-100">
+          <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-jb-bg-elevated text-jb-purple border-2 border-jb-cyan/20 ring-1 ring-inset ring-jb-green/10">
             {roleLabel}
           </span>
         );
       }
     },
-    { 
-      header: 'Statut', 
+    {
+      header: 'Statut',
       key: 'status',
       render: (value) => {
-        const cls =
-          value === 'actif'
-            ? 'bg-teal-50 text-teal-600 border-teal-100'
-            : value === 'bloque'
-            ? 'bg-rose-50 text-rose-600 border-rose-100'
-            : 'bg-amber-50 text-amber-600 border-amber-100';
+        const isActif = value === 'actif';
+        const isBlocked = value === 'bloqué';
+        const cls = isActif ? 'text-jb-green bg-jb-green/5 border-jb-green/20' : isBlocked ? 'text-jb-red bg-jb-red/5 border-jb-red/20' : 'text-jb-orange bg-jb-orange/5 border-jb-orange/20';
         return (
-          <div className="flex items-center">
-            <div className={`w-1.5 h-1.5 rounded-full mr-2 ${value === 'actif' ? 'bg-teal-500 animate-pulse' : 'bg-surface-400'}`}></div>
-            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${cls}`}>
+          <div className="flex items-center gap-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${isActif ? 'bg-jb-green animate-pulse' : 'bg-jb-text-muted'}`}></div>
+            <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${cls}`}>
               {value}
             </span>
           </div>
         );
       }
     },
-    { 
-      header: 'Date création', 
-      key: 'dateCreated',
-      render: (value) => <span className="text-surface-600 text-[10px] font-black uppercase tracking-widest">{value}</span>
-    },
-    { 
-      header: 'Actions', 
+    {
+      header: 'Actions',
       key: 'actions',
-      render: (value, row) => (
-        <div className="flex space-x-2">
-          <button 
-            onClick={() => handleViewUser(row)}
-            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-primary-600 hover:border-primary-200 hover:shadow-sm transition-all"
-            title="Voir"
-          >
+      render: (_, row) => (
+        <div className="flex items-center gap-2">
+          {String(row.status).toLowerCase() !== 'actif' && (
+            <button onClick={() => handleValidateUser(row)} className="p-2 rounded-lg bg-jb-bg-elevated border-2 border-jb-green/20 text-jb-text-muted hover:text-jb-green hover:border-jb-green/40 transition-all" title="Valider">
+              <CheckCircleIcon className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={() => handleViewUser(row)} className="p-2 rounded-lg bg-jb-bg-elevated border-2 border-jb-cyan/20 text-jb-text-muted hover:text-jb-cyan hover:border-jb-cyan/40 transition-all">
             <EyeIcon className="w-4 h-4" />
           </button>
-          <button 
-            onClick={() => handleEditUser(row)}
-            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-indigo-600 hover:border-indigo-200 hover:shadow-sm transition-all"
-            title="Modifier"
-          >
+          <button onClick={() => handleEditUser(row)} className="p-2 rounded-lg bg-jb-bg-elevated border-2 border-jb-green/20 text-jb-text-muted hover:text-jb-blue hover:border-jb-blue/40 transition-all">
             <PencilIcon className="w-4 h-4" />
           </button>
-          <button 
-            onClick={() => handleDeleteUser(row)}
-            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-rose-600 hover:border-rose-200 hover:shadow-sm transition-all"
-            title="Supprimer"
-          >
+          <button onClick={() => handleDeleteUser(row)} className="p-2 rounded-lg bg-jb-bg-elevated border-2 border-jb-cyan/20 text-jb-text-muted hover:text-jb-red hover:border-jb-red/40 transition-all">
             <TrashIcon className="w-4 h-4" />
           </button>
         </div>
@@ -331,419 +375,306 @@ const UserManagement = () => {
 
   return (
     <Layout>
-      <div className="space-y-8">
-        <div className="flex justify-between items-center">
+      <div className="space-y-8 max-w-[1600px] mx-auto pb-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <h1 className="text-3xl font-bold text-surface-900">Gestion des Utilisateurs</h1>
-            <p className="text-surface-600 mt-2 font-medium">Gérer les comptes utilisateurs et leurs permissions</p>
+            <h1 className="text-4xl font-black text-jb-text-primary tracking-tighter uppercase">Gestion Utilisateurs</h1>
+            <div className="flex items-center gap-3 mt-2">
+              <span className="h-1 w-12 bg-jb-gradient-primary rounded-full"></span>
+              <p className="text-jb-text-muted font-bold uppercase tracking-[0.2em] text-[10px]">Administration des comptes et accès</p>
+            </div>
           </div>
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center space-x-2"
+            className="bg-jb-gradient-primary border-none shadow-primary px-8 py-4 rounded-lg flex items-center gap-3 group"
+            icon={UserPlusIcon}
           >
-            <UserPlusIcon className="w-5 h-5" />
-            <span>Nouveau Utilisateur</span>
+            <span className="text-sm font-black uppercase tracking-widest">Nouveau Utilisateur</span>
           </Button>
         </div>
-        
-        {/* Filters and Search */}
-        <Card className="p-6 bg-white border border-surface-100 rounded-[2rem] shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="md:col-span-2">
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-surface-400 group-focus-within:text-primary-500 transition-colors">
-                  <MagnifyingGlassIcon className="h-5 w-5" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Rechercher par nom ou email..."
-                  className="w-full pl-12 pr-12 py-3.5 bg-surface-50 border border-surface-200 rounded-2xl text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm('')}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-surface-400 hover:text-rose-500 transition-colors"
-                  >
-                    <XMarkIcon className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-            </div>
-            <div>
-              <div className="relative group">
-                <select
-                  className="w-full py-3.5 pl-4 pr-10 bg-surface-50 border border-surface-200 rounded-2xl text-surface-700 font-black uppercase tracking-widest text-[10px] focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value)}
-                >
-                  <option value="">Tous les rôles</option>
-                  {roles.map(role => (
-                    <option key={role.value} value={role.value}>{role.label}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
-                  <FunnelIcon className="h-4 w-4" />
-                </div>
-              </div>
-            </div>
-            <div>
-              <div className="relative group">
-                <select
-                  className="w-full py-3.5 pl-4 pr-10 bg-surface-50 border border-surface-200 rounded-2xl text-surface-700 font-black uppercase tracking-widest text-[10px] focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="">Tous les statuts</option>
-                  {availableStatuses.map(status => (
-                    <option key={status.value} value={status.value}>{status.label}</option>
-                  ))}
-                </select>
-                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-surface-400">
-                  <FunnelIcon className="h-4 w-4" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </Card>
-        
-        {/* Users Table */}
-        <div className="overflow-hidden rounded-[2rem] border border-surface-100 bg-white shadow-soft">
+
+        {/* Success/Error Alerts */}
+        <div className="space-y-4">
           {uiSuccess && (
-            <div className="m-6 p-4 rounded-2xl bg-teal-50 border border-teal-100 text-teal-700 flex items-start justify-between animate-slideDown">
-              <div className="flex items-start">
-                <CheckCircleIcon className="w-5 h-5 mr-3 text-teal-600" />
-                <span className="text-xs font-black uppercase tracking-widest">{uiSuccess}</span>
-              </div>
-              <button onClick={() => setUiSuccess('')} className="text-teal-400 hover:text-teal-600 transition-colors">
-                <XMarkIcon className="h-5 w-5" />
-              </button>
+            <div className="bg-jb-green/10 border border-jb-green/20 p-4 rounded-lg flex items-center gap-3 animate-slide-in">
+              <CheckCircleIcon className="w-5 h-5 text-jb-green" />
+              <p className="text-xs font-black text-jb-green uppercase tracking-widest">{uiSuccess}</p>
             </div>
           )}
           {uiError && (
-            <div className="m-6 p-4 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 flex items-start justify-between animate-slideDown">
-              <div className="flex items-start">
-                <ExclamationTriangleIcon className="w-5 h-5 mr-3 text-rose-600" />
-                <span className="text-xs font-black uppercase tracking-widest">{uiError}</span>
-              </div>
-              <button onClick={() => setUiError('')} className="text-rose-400 hover:text-rose-600 transition-colors">
-                <XMarkIcon className="h-5 w-5" />
-              </button>
+            <div className="bg-jb-red/10 border border-jb-red/20 p-4 rounded-lg flex items-center gap-3 animate-slide-in">
+              <ExclamationTriangleIcon className="w-5 h-5 text-jb-red" />
+              <p className="text-xs font-black text-jb-red uppercase tracking-widest">{uiError}</p>
             </div>
-          )}
-          
-          {usersState.loading ? (
-            <div className="py-20 flex flex-col items-center justify-center">
-              <div className="w-12 h-12 border-4 border-primary-100 border-t-primary-500 rounded-full animate-spin mb-4"></div>
-              <p className="text-[10px] font-black text-surface-500 uppercase tracking-[0.2em]">Chargement des utilisateurs...</p>
-            </div>
-          ) : usersState.error ? (
-            <div className="py-20 text-center">
-              <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ExclamationTriangleIcon className="w-8 h-8" />
-              </div>
-              <p className="text-sm font-bold text-rose-600">Erreur: {usersState.error}</p>
-            </div>
-          ) : (
-            <Table 
-              data={paginatedUsers} 
-              columns={columns} 
-              loading={usersState.loading}
-              emptyMessage="Aucun utilisateur trouvé"
-              pagination={{
-                currentPage,
-                totalPages,
-                onPageChange: setCurrentPage,
-                totalItems,
-                pageSize
-              }}
-            />
           )}
         </div>
-      </div>
-      
-      {/* View User Modal */}
-      <Modal 
-        isOpen={showModal && modalType === 'view'} 
-        onClose={() => {
-          setShowModal(false);
-          setUserDetail(null);
-        }} 
-        title="Détails de l'utilisateur"
-        size="xl"
-      >
-        {isDetailLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600 mb-4"></div>
-            <p className="text-surface-400 font-medium uppercase tracking-widest text-xs">Chargement du profil...</p>
-          </div>
-        ) : userDetail ? (
-          <div className="space-y-8">
-            {/* Header Profil */}
-            <div className="flex flex-col md:flex-row md:items-center gap-6 pb-8 border-b border-surface-100">
-              <div className="h-24 w-24 rounded-[2rem] bg-primary-600 flex items-center justify-center text-white text-4xl font-black shadow-lg shadow-primary-500/20 overflow-hidden shrink-0">
-                {userDetail.profile_picture ? (
-                  <img src={`${import.meta.env.VITE_API_URL}/storage/${userDetail.profile_picture}`} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  userDetail.nom[0].toUpperCase()
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h2 className="text-3xl font-black text-surface-900 tracking-tight truncate">{userDetail.nom}</h2>
-                <div className="flex flex-wrap items-center gap-3 mt-2">
-                  <div className="flex items-center space-x-1.5 px-3 py-1 rounded-full bg-primary-50 text-primary-600 border border-primary-100 text-[10px] font-black uppercase tracking-widest">
-                    <ShieldCheckIcon className="h-3.5 w-3.5" />
-                    <span>{userDetail.role?.code || 'Sans rôle'}</span>
-                  </div>
-                  <div className={`flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                    userDetail.actif 
-                    ? 'bg-green-50 text-green-600 border-green-100' 
-                    : 'bg-red-50 text-red-600 border-red-100'
-                  }`}>
-                    <span>{userDetail.actif ? 'Actif' : 'Inactif'}</span>
-                  </div>
-                  <div className="flex items-center space-x-1.5 text-surface-400 text-xs font-medium ml-1">
-                    <EnvelopeIcon className="h-4 w-4" />
-                    <span>{userDetail.email}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-              {/* Informations Professionnelles */}
-              <div className="space-y-6">
-                <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] flex items-center">
-                  <IdentificationIcon className="h-4 w-4 mr-2" />
-                  Détails Professionnels
-                </h3>
-                
-                {userDetail.employe ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-surface-50 p-6 rounded-3xl border border-surface-100">
-                    <ProfileDetail label="Matricule" value={userDetail.employe.matricule} icon={<IdentificationIcon className="h-4 w-4" />} />
-                    <ProfileDetail label="CIN" value={userDetail.employe.cin} icon={<IdentificationIcon className="h-4 w-4" />} />
-                    <ProfileDetail label="Grade" value={userDetail.employe.grade?.libelle} icon={<AcademicCapIcon className="h-4 w-4" />} />
-                    <ProfileDetail label="Région" value={userDetail.employe.region?.libelle} icon={<MapPinIcon className="h-4 w-4" />} />
-                    <ProfileDetail label="Établissement" value={userDetail.employe.etablissement?.nom} icon={<BuildingOfficeIcon className="h-4 w-4" />} />
-                    <ProfileDetail label="Recrutement" value={userDetail.employe.date_recrutement ? new Date(userDetail.employe.date_recrutement).toLocaleDateString('fr-FR') : '—'} icon={<CalendarIcon className="h-4 w-4" />} />
-                  </div>
-                ) : (
-                  <div className="p-10 text-center bg-surface-50 rounded-3xl border border-dashed border-surface-200">
-                    <p className="text-surface-400 text-sm font-medium italic">Aucune information professionnelle renseignée</p>
-                  </div>
-                )}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Filters Panel */}
+          <Card className="lg:col-span-1 bg-jb-bg-section border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10 rounded-lg p-8 h-fit sticky top-24">
+            <div className="space-y-8">
+              <div className="flex items-center gap-3 border-b-2 border-jb-cyan/15 pb-4">
+                <FunnelIcon className="w-5 h-5 text-jb-blue" />
+                <h2 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Filtres de recherche</h2>
               </div>
 
-              {/* Documents */}
               <div className="space-y-6">
-                <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] flex items-center">
-                  <DocumentIcon className="h-4 w-4 mr-2" />
-                  Documents de support
-                </h3>
-                
                 <div className="space-y-3">
-                  {userDetail.documents && userDetail.documents.length > 0 ? (
-                    userDetail.documents.map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between p-4 bg-white border border-surface-200 rounded-2xl hover:border-primary-300 transition-all group">
-                        <div className="flex items-center space-x-3 min-w-0">
-                          <div className="p-2 bg-primary-50 rounded-xl text-primary-600 group-hover:scale-110 transition-transform">
-                            <DocumentIcon className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-surface-900 truncate">{doc.title}</p>
-                            <p className="text-[10px] font-black text-surface-400 uppercase tracking-tighter">{doc.file_type} • {(doc.file_size / 1024).toFixed(1)} KB</p>
-                          </div>
-                        </div>
-                        <a 
-                          href={`${import.meta.env.VITE_API_URL}/storage/${doc.file_path}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="p-2 text-surface-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                        >
-                          <EyeIcon className="h-5 w-5" />
-                        </a>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-10 text-center bg-surface-50 rounded-3xl border border-dashed border-surface-200">
-                      <p className="text-surface-400 text-sm font-medium italic">Aucun document téléchargé</p>
+                  <label className="text-[9px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Recherche globale</label>
+                  <div className="relative group">
+                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-jb-text-muted group-focus-within:text-jb-cyan transition-colors" />
+                    <input
+                      type="text"
+                      placeholder="Nom, email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-jb-bg-main border-2 border-jb-green/20 rounded-xl pl-10 pr-4 py-3 text-jb-text-primary text-xs font-bold focus:border-jb-cyan outline-none transition-all placeholder:text-jb-text-muted"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[9px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Par Rôle</label>
+                  <select
+                    value={filterRole}
+                    onChange={(e) => setFilterRole(e.target.value)}
+                    className="w-full bg-jb-bg-main border-2 border-jb-cyan/20 rounded-xl px-4 py-3 text-jb-text-secondary text-xs font-bold focus:border-jb-purple outline-none transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="">Tous les rôles</option>
+                    {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[9px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Par Statut</label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full bg-jb-bg-main border-2 border-jb-green/20 rounded-xl px-4 py-3 text-jb-text-secondary text-xs font-bold focus:border-jb-orange outline-none transition-all appearance-none cursor-pointer"
+                  >
+                    <option value="">Tous les statuts</option>
+                    {statuses.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => {setSearchTerm(''); setFilterRole(''); setFilterStatus('');}}
+                  className="w-full text-jb-text-muted hover:text-jb-text-primary text-[9px] font-black uppercase tracking-widest"
+                >
+                  Réinitialiser
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Table Panel */}
+          <div className="lg:col-span-3 space-y-6">
+            <Card noPadding className="bg-jb-bg-section border-2 border-jb-cyan/20 ring-1 ring-inset ring-jb-green/10 rounded-lg overflow-hidden shadow-hard">
+              <Table
+                columns={columns}
+                data={paginatedUsers}
+                isLoading={usersState.loading}
+                pagination={{
+                  currentPage,
+                  totalPages,
+                  totalItems,
+                  onPageChange: setCurrentPage
+                }}
+                emptyMessage="Aucun utilisateur ne correspond à vos critères"
+              />
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* View Modal */}
+      <Modal isOpen={showModal && modalType === 'view'} onClose={() => setShowModal(false)} title="Profil Utilisateur" size="xl">
+        {isDetailLoading ? (
+          <div className="py-20 flex flex-col items-center justify-center">
+            <div className="w-12 h-12 border-4 border-jb-border border-t-jb-cyan rounded-full animate-spin mb-6"></div>
+            <p className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest">Récupération des données...</p>
+          </div>
+        ) : selectedUser && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-6 items-stretch">
+              <div className="flex items-center gap-6 p-6 bg-jb-bg-main rounded-lg border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:scale-110 transition-standard">
+                  <IdentificationIcon className="w-40 h-40 text-jb-cyan" />
+                </div>
+                <div className="w-20 h-20 rounded-lg bg-jb-gradient-primary flex items-center justify-center text-white text-3xl font-black shadow-primary relative z-10 shrink-0">
+                  {selectedUser.name.charAt(0)}
+                </div>
+                <div className="relative z-10 min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-jb-text-muted">Profil utilisateur</p>
+                  <h3 className="text-2xl sm:text-3xl font-black text-jb-text-primary uppercase tracking-tighter truncate">{selectedUser.name}</h3>
+                  <div className="flex flex-wrap items-center gap-3 mt-3">
+                    <span className="text-jb-text-secondary font-medium text-sm lowercase truncate">{selectedUser.email}</span>
+                    <span className="w-1 h-1 rounded-full bg-jb-border"></span>
+                    <span className="px-3 py-1 rounded-lg bg-jb-bg-elevated text-jb-cyan text-[9px] font-black uppercase tracking-widest border border-jb-cyan/20">{selectedUser.role}</span>
+                    <span className="px-3 py-1 rounded-lg bg-jb-bg-main text-jb-text-primary text-[9px] font-black uppercase tracking-widest border-2 border-jb-cyan/20">{selectedUser.status}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <ProfileDetail label="Statut de compte" value={selectedUser.status} icon={<CheckCircleIcon className="w-3.5 h-3.5" />} />
+                <ProfileDetail label="Inscription" value={selectedUser.dateCreated || "—"} icon={<CalendarIcon className="w-3.5 h-3.5" />} />
+                <ProfileDetail label="Dernière activité" value={selectedUser.lastLogin || "Jamais connecté"} icon={<ClockIcon className="w-3.5 h-3.5" />} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 border-b-2 border-jb-green/15 pb-3">
+                  <IdentificationIcon className="w-5 h-5 text-jb-cyan" />
+                  <h4 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Profil & Contact</h4>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <ProfileDetail label="Nom complet" value={userDetail?.name || selectedUser.name} icon={<IdentificationIcon className="w-3.5 h-3.5" />} />
+                  <ProfileDetail label="Téléphone" value={userDetail?.phone} icon={<EnvelopeIcon className="w-3.5 h-3.5" />} />
+                  <ProfileDetail label="Âge" value={userDetail?.age} icon={<CalendarIcon className="w-3.5 h-3.5" />} />
+                  <ProfileDetail label="Adresse" value={userDetail?.address} icon={<MapPinIcon className="w-3.5 h-3.5" />} />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {userDetail?.admin && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 border-b-2 border-jb-cyan/15 pb-3">
+                      <ShieldCheckIcon className="w-5 h-5 text-jb-red" />
+                      <h4 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Profil Administrateur</h4>
                     </div>
-                  )}
-                </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <ProfileDetail label="Niveau admin" value={userDetail.admin.admin_level} icon={<ShieldCheckIcon className="w-3.5 h-3.5" />} />
+                      <ProfileDetail label="Notes" value={userDetail.admin.notes} icon={<IdentificationIcon className="w-3.5 h-3.5" />} />
+                      <ProfileDetail
+                        label="Métadonnées"
+                        value={userDetail.admin.metadata ? JSON.stringify(userDetail.admin.metadata) : '—'}
+                        icon={<DocumentIcon className="w-3.5 h-3.5" />}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {userDetail?.commission && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 border-b-2 border-jb-green/15 pb-3">
+                      <ShieldCheckIcon className="w-5 h-5 text-jb-orange" />
+                      <h4 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Profil Commission</h4>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <ProfileDetail label="Nom commission" value={userDetail.commission.commission_name} icon={<IdentificationIcon className="w-3.5 h-3.5" />} />
+                      <ProfileDetail label="Période" value={`${userDetail.commission.start_date || '—'} / ${userDetail.commission.end_date || '—'}`} icon={<CalendarIcon className="w-3.5 h-3.5" />} />
+                      <ProfileDetail label="Notes" value={userDetail.commission.notes} icon={<IdentificationIcon className="w-3.5 h-3.5" />} />
+                    </div>
+                  </div>
+                )}
+
+                {userDetail?.formateur && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 border-b-2 border-jb-cyan/15 pb-3">
+                      <BuildingOffice2Icon className="w-5 h-5 text-jb-blue" />
+                      <h4 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Affiliation Professionnelle</h4>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <ProfileDetail label="Établissement" value={userDetail.formateur.etablissement?.name} icon={<BuildingOffice2Icon className="w-3.5 h-3.5" />} />
+                      <ProfileDetail label="Matricule" value={userDetail.formateur.employee_number} icon={<AcademicCapIcon className="w-3.5 h-3.5" />} />
+                      <ProfileDetail label="Spécialité" value={userDetail.formateur.specialite} icon={<DocumentIcon className="w-3.5 h-3.5" />} />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Actions Administrateur */}
-            <div className="pt-8 border-t border-surface-100">
-              <div className="bg-primary-50/50 border border-primary-100 rounded-[2rem] p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-1">
-                  <h4 className="text-sm font-black text-primary-900 uppercase tracking-widest">Attribution de Rôle</h4>
-                  <p className="text-xs text-primary-700/70 font-medium">Assignez un rôle approprié basé sur le profil de l'utilisateur.</p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  {roles.map((r) => (
-                    <button
-                      key={r.value}
-                      onClick={() => {
-                        setSelectedUser(userDetail);
-                        setFormData({
-                          ...formData,
-                          name: userDetail.nom,
-                          email: userDetail.email,
-                          role: r.value,
-                          status: userDetail.actif ? 'actif' : 'inactif'
-                        });
-                        setModalType('edit');
-                      }}
-                      className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all border ${
-                        userDetail.role?.code.toLowerCase() === r.value.toLowerCase()
-                        ? 'bg-primary-600 text-white border-primary-600 shadow-lg shadow-primary-500/20'
-                        : 'bg-white text-surface-600 border-surface-200 hover:border-primary-400 hover:text-primary-600'
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <Button variant="secondary" onClick={() => setShowModal(false)} className="px-10 rounded-2xl py-4 uppercase tracking-widest text-[10px] font-black">
+            <div className="flex justify-end pt-4 border-t-2 border-jb-green/20">
+              <Button onClick={() => setShowModal(false)} className="bg-jb-bg-elevated border-2 border-jb-cyan/20 text-jb-text-primary hover:bg-jb-bg-main px-8 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest">
                 Fermer
               </Button>
             </div>
           </div>
-        ) : null}
-      </Modal>
-      
-      {/* Edit User Modal */}
-      <Modal 
-        isOpen={showModal && modalType === 'edit'} 
-        onClose={() => setShowModal(false)} 
-        title="Modifier l'utilisateur"
-        size="lg"
-      >
-        {selectedUser && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-1">Nom</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-surface-900 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all font-medium"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-1">Email</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-surface-900 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all font-medium"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-1">Rôle</label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-surface-900 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all font-medium"
-                >
-                  {roles.map(role => (
-                    <option key={role.value} value={role.value}>{role.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-surface-400 uppercase tracking-widest ml-1">Statut</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 bg-surface-50 border border-surface-200 rounded-xl text-surface-900 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all font-medium"
-                >
-                  {availableStatuses.map(status => (
-                    <option key={status.value} value={status.value}>{status.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-4 pt-6 border-t border-surface-100">
-              <Button variant="secondary" onClick={() => setShowModal(false)} className="px-8 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest">
-                Annuler
-              </Button>
-              <Button variant="primary" onClick={handleSaveUser} className="px-8 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-500/20">
-                Enregistrer
-              </Button>
-            </div>
-          </div>
         )}
       </Modal>
-      
-      {/* Delete User Modal */}
-      <Modal 
-        isOpen={showModal && modalType === 'delete'} 
-        onClose={() => setShowModal(false)} 
-        title="Confirmer la suppression"
-        size="md"
-      >
-        {selectedUser && (
-          <div className="space-y-6 py-4">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="w-20 h-20 bg-rose-50 rounded-[2rem] flex items-center justify-center text-rose-500 border border-rose-100 shadow-sm">
-                <TrashIcon className="w-10 h-10" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black text-surface-900 tracking-tight">Suppression Irréversible</h3>
-                <p className="text-sm font-bold text-surface-600 leading-relaxed">
-                  Êtes-vous sûr de vouloir supprimer <br />
-                  <span className="text-rose-600 font-black uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-md text-[10px]">
-                    "{selectedUser.name}"
-                  </span> ?
-                </p>
-              </div>
+
+      {/* Edit Modal */}
+      <Modal isOpen={showModal && modalType === 'edit'} onClose={() => setShowModal(false)} title="Modifier Utilisateur" size="lg">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Nom Complet</label>
+              <input name="name" value={formData.name} onChange={handleInputChange} className="w-full bg-jb-bg-main border-2 border-jb-green/20 rounded-xl px-4 py-3 text-jb-text-primary text-sm font-bold focus:border-jb-blue outline-none transition-all" />
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3 pt-6">
-              <Button 
-                variant="secondary" 
-                onClick={() => setShowModal(false)}
-                className="flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
-              >
-                Annuler
-              </Button>
-              <Button 
-                variant="danger" 
-                onClick={handleConfirmDelete}
-                className="flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-500/20"
-              >
-                Supprimer
-              </Button>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Email Professionnel</label>
+              <input name="email" value={formData.email} onChange={handleInputChange} className="w-full bg-jb-bg-main border-2 border-jb-cyan/20 rounded-xl px-4 py-3 text-jb-text-primary text-sm font-bold focus:border-jb-blue outline-none transition-all" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Téléphone</label>
+              <input name="phone" value={formData.phone} onChange={handleInputChange} className="w-full bg-jb-bg-main border-2 border-jb-green/20 rounded-xl px-4 py-3 text-jb-text-primary text-sm font-bold focus:border-jb-blue outline-none transition-all" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Âge</label>
+              <input name="age" type="number" value={formData.age} onChange={handleInputChange} className="w-full bg-jb-bg-main border-2 border-jb-cyan/20 rounded-xl px-4 py-3 text-jb-text-primary text-sm font-bold focus:border-jb-blue outline-none transition-all" />
+            </div>
+            <div className="space-y-3 md:col-span-2">
+              <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Adresse</label>
+              <input name="address" value={formData.address} onChange={handleInputChange} className="w-full bg-jb-bg-main border-2 border-jb-green/20 rounded-xl px-4 py-3 text-jb-text-primary text-sm font-bold focus:border-jb-blue outline-none transition-all" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Rôle Système</label>
+              <select name="role" value={formData.role} onChange={handleInputChange} className="w-full bg-jb-bg-main border-2 border-jb-cyan/20 rounded-xl px-4 py-3 text-jb-text-primary text-sm font-bold focus:border-jb-purple outline-none transition-all appearance-none cursor-pointer">
+                {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </select>
+            </div>
+            {formData.role === 'formateur' && (
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Spécialité</label>
+                <input
+                  name="specialite"
+                  value={formData.specialite}
+                  onChange={handleInputChange}
+                  className="w-full bg-jb-bg-main border-2 border-jb-green/20 rounded-xl px-4 py-3 text-jb-text-primary text-sm font-bold focus:border-jb-blue outline-none transition-all"
+                  placeholder="Ex: Génie logiciel"
+                />
+              </div>
+            )}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest ml-1">Statut Actuel</label>
+              <select name="status" value={formData.status} onChange={handleInputChange} className="w-full bg-jb-bg-main border-2 border-jb-green/20 rounded-xl px-4 py-3 text-jb-text-primary text-sm font-bold focus:border-jb-orange outline-none transition-all appearance-none cursor-pointer">
+                {statuses.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
             </div>
           </div>
-        )}
+          <div className="flex justify-end gap-4 pt-5 border-t-2 border-jb-cyan/15">
+            <Button variant="ghost" onClick={() => setShowModal(false)} className="text-jb-text-muted hover:text-jb-text-primary text-[10px] font-black uppercase tracking-widest">Annuler</Button>
+            <Button onClick={handleSaveUser} className="bg-jb-blue hover:bg-jb-blue/80 text-white shadow-soft px-10 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest">Enregistrer les modifications</Button>
+          </div>
+        </div>
       </Modal>
-      
-      {/* Modal pour créer un utilisateur */}
-      <Modal 
-        isOpen={showCreateModal} 
-        onClose={() => setShowCreateModal(false)} 
-        title="Créer un nouvel utilisateur"
-        size="lg"
-      >
-        <CreateUserForm
-          onSubmit={handleCreateUser}
-          onCancel={() => setShowCreateModal(false)}
-        />
+
+      {/* Delete Modal */}
+      <Modal isOpen={showModal && modalType === 'delete'} onClose={() => setShowModal(false)} title="Confirmation de Suppression" size="md">
+        <div className="space-y-6 py-2 text-center">
+          <div className="w-20 h-20 bg-jb-red/10 rounded-lg border border-jb-red/20 flex items-center justify-center text-jb-red mx-auto shadow-lg shadow-jb-red/5">
+            <TrashIcon className="w-10 h-10" />
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-xl font-black text-jb-text-primary uppercase tracking-tighter">Action irréversible</h3>
+            <p className="text-jb-text-secondary leading-relaxed max-w-sm mx-auto">
+              Vous êtes sur le point de supprimer le compte de <span className="text-jb-text-primary font-black uppercase tracking-widest bg-jb-bg-elevated px-2 py-1 rounded-lg">"{selectedUser?.name}"</span>.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-3">
+            <Button variant="ghost" onClick={() => setShowModal(false)} className="flex-1 text-jb-text-muted hover:text-jb-text-primary font-black uppercase tracking-widest text-[10px]">Abandonner</Button>
+            <Button onClick={handleConfirmDelete} className="flex-1 bg-jb-red hover:bg-jb-red/80 text-white shadow-hard font-black uppercase tracking-widest text-[10px] py-3 rounded-lg">Supprimer définitivement</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Create Modal */}
+      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Nouvel Utilisateur" size="lg">
+        <CreateUserForm onSubmit={handleCreateUser} onCancel={() => setShowCreateModal(false)} />
       </Modal>
     </Layout>
   );

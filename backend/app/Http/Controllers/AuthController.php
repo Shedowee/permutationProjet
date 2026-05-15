@@ -290,6 +290,7 @@ class AuthController extends Controller
                     'id' => $user->formateur->id,
                     'employee_number' => $user->formateur->employee_number,
                     'position' => $user->formateur->position,
+                    'specialite' => $user->formateur->specialite,
                     'establishment_id' => $user->formateur->establishment_id,
                     'etablissement' => $user->formateur->etablissement ? [
                         'id' => $user->formateur->etablissement->id,
@@ -352,6 +353,7 @@ class AuthController extends Controller
                     'id' => $user->formateur->id,
                     'employee_number' => $user->formateur->employee_number,
                     'position' => $user->formateur->position,
+                    'specialite' => $user->formateur->specialite,
                     'establishment_id' => $user->formateur->establishment_id,
                     'etablissement' => $user->formateur->etablissement ? [
                         'id' => $user->formateur->etablissement->id,

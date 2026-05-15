@@ -13,23 +13,23 @@ const Button = ({
   icon: Icon,
   ...props 
 }) => {
-  const baseClasses = 'relative inline-flex items-center justify-center font-bold transition-standard overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]';
+  const baseClasses = 'relative inline-flex items-center justify-center font-bold transition-standard overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500/15';
   
   const variants = {
-    primary: 'bg-primary-500 text-white shadow-primary hover:bg-primary-600',
-    secondary: 'bg-secondary-500 text-white shadow-secondary hover:bg-secondary-600',
-    accent: 'bg-accent-500 text-white shadow-soft hover:bg-accent-600',
-    danger: 'bg-red-500 text-white shadow-soft hover:bg-red-600',
-    success: 'bg-green-500 text-white shadow-soft hover:bg-green-600',
-    ghost: 'bg-transparent text-surface-600 hover:bg-surface-100 hover:text-surface-900',
-    outline: 'bg-transparent border-2 border-surface-200 text-surface-700 hover:bg-surface-50 hover:border-surface-300',
+    primary: 'bg-[linear-gradient(135deg,#007b3a_0%,#18a874_100%)] text-white shadow-[0_16px_34px_-22px_rgba(0,146,69,0.5)] hover:brightness-105',
+    secondary: 'bg-slate-900 text-white shadow-[0_16px_34px_-24px_rgba(15,23,42,0.55)] hover:bg-slate-800',
+    accent: 'bg-sky-600 text-white shadow-[0_16px_34px_-24px_rgba(2,132,199,0.48)] hover:bg-sky-500',
+    danger: 'bg-red-600 text-white shadow-[0_16px_34px_-24px_rgba(220,38,38,0.48)] hover:bg-red-700',
+    success: 'bg-emerald-600 text-white shadow-[0_16px_34px_-24px_rgba(5,150,105,0.48)] hover:bg-emerald-700',
+    ghost: 'bg-transparent text-surface-600 hover:bg-slate-100/80 hover:text-surface-900',
+    outline: 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-sky-300 hover:text-sky-700',
   };
   
   const sizes = {
     xs: 'px-3 py-1.5 text-[10px] rounded-lg tracking-widest uppercase',
-    sm: 'px-4 py-2 text-xs rounded-xl tracking-wider uppercase',
-    md: 'px-6 py-3 text-sm rounded-2xl',
-    lg: 'px-8 py-4 text-base rounded-2xl',
+    sm: 'px-4 py-2 text-xs rounded-lg tracking-wider uppercase',
+    md: 'px-5 py-2.5 text-sm rounded-lg',
+    lg: 'px-7 py-3.5 text-base rounded-lg',
   };
   
   return (

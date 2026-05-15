@@ -23,7 +23,7 @@ const EstablishmentCard = ({ establishment, onEdit, onDelete, onToggleStatus }) 
   };
 
   return (
-    <Card className="p-6 bg-white rounded-2xl border border-surface-100 shadow-sm hover:shadow-hard hover:border-primary-100 transition-all group relative overflow-hidden">
+    <Card className="p-6 bg-white rounded-lg border border-surface-100 shadow-[0_26px_58px_-34px_rgba(15,23,42,0.22)] hover:shadow-[0_32px_76px_-44px_rgba(15,23,42,0.3)] hover:border-primary-100 transition-all group relative overflow-hidden">
       {/* Decorative tag */}
       <div className="absolute top-0 right-0 w-24 h-24 -mt-12 -mr-12 bg-primary-50 rounded-full opacity-0 group-hover:opacity-50 transition-all duration-500 scale-0 group-hover:scale-100"></div>
       

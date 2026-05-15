@@ -16,28 +16,45 @@ const ETAT_DEMANDE = {
 // Async thunk pour charger les demandes
 export const fetchDemandes = createAsyncThunk(
   'formateur/fetchDemandes',
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1, limit = 4, filters = {} } = {}, { rejectWithValue }) => {
     try {
-      const data = await demandesApi.listDemandes();
+      const response = await demandesApi.listDemandes(page, limit, filters);
+      const data = response.data ?? [];
+      const meta = response.meta;
+
       const mapped = data.map((d) => ({
         id: d.id,
-        utilisateurId: d.employe?.user?.id ?? null,
+        utilisateurId: d.formateur?.user?.id ?? null,
         utilisateurNom:
-          d.employe?.user?.nom ??
-          [d.employe?.nom, d.employe?.prenom].filter(Boolean).join(' ') ??
+          d.formateur?.user?.name ??
+          [d.formateur?.nom, d.formateur?.prenom].filter(Boolean).join(' ') ??
           '—',
-        utilisateurEmail: d.employe?.user?.email ?? '—',
+        utilisateurEmail: d.formateur?.user?.email ?? '—',
+        utilisateurPhone: d.formateur?.user?.phone ?? '—',
+        utilisateurAddress: d.formateur?.user?.address ?? '—',
+        formateurEtablissement: d.formateur?.etablissement?.name ?? '—',
+        formateurVille: d.formateur?.etablissement?.ville?.value?.libelle ?? d.formateur?.etablissement?.ville?.name ?? '—',
+        formateurRegion: d.formateur?.etablissement?.ville?.region?.value?.libelle ?? d.formateur?.etablissement?.ville?.region?.name ?? '—',
         motif: d.motif ?? '',
         dateDemande: d.date_soumission?.split('T')[0] ?? '',
-        etat: d.etat?.code ?? ETAT_DEMANDE.EN_ATTENTE,
+        dateDemandeComplete: d.date_soumission ?? null,
+        etat: d.etat?.key ?? ETAT_DEMANDE.EN_ATTENTE,
         commentaire: d.commentaire_commission ?? '',
         dateValidation: d.date_traitement ?? null,
-        regionSouhaitee: d.region_souhaitee?.libelle ?? '—',
-        villeSouhaitee: d.ville_souhaitee?.libelle ?? '—',
-        etablissementSouhaite: d.etablissement_souhaite?.nom ?? '—',
+        traitePar: d.traitePar ?? d.traite_par ?? d.processedBy ?? d.processed_by ?? null,
+        regionSouhaitee: d.region_souhaitee?.value?.libelle ?? d.region_souhaitee?.key ?? '—',
+        villeSouhaitee: d.ville_souhaitee?.value?.libelle ?? d.ville_souhaitee?.key ?? '—',
+        etablissementSouhaite: d.etablissement_souhaite?.name ?? '—',
         documentJoint: d.document_joint ?? null,
       }));
-      return mapped;
+
+      for (const item of mapped) {
+        const reviewer = item.traitePar || {};
+        const reviewerFullName = [reviewer.prenom, reviewer.nom].filter(Boolean).join(' ');
+        item.traiteParNom = reviewer.name || reviewer.nom || reviewerFullName || reviewer.full_name || reviewer.fullName || '—';
+        item.traiteParEmail = reviewer.email || reviewer.mail || '—';
+      }
+      return { data: mapped, meta };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des demandes');
     }
@@ -52,9 +69,14 @@ export const createDemande = createAsyncThunk(
       const created = await demandesApi.createDemande(formData);
       return {
         id: created.id,
-        utilisateurId: created.employe_id,
+        utilisateurId: created.formateur_id,
         utilisateurNom: 'Moi',
         utilisateurEmail: '',
+        utilisateurPhone: '',
+        utilisateurAddress: '',
+        formateurEtablissement: '',
+        formateurVille: '',
+        formateurRegion: '',
         motif: created.motif ?? '',
         dateDemande: (created.date_soumission || '').split('T')[0],
         etat: ETAT_DEMANDE.EN_ATTENTE,
@@ -76,23 +98,25 @@ export const fetchFormateurStats = createAsyncThunk(
   'formateur/fetchStats',
   async (_, { rejectWithValue }) => {
     try {
-      const data = await demandesApi.listDemandes();
+      // Get all requests for stats calculation
+      const response = await demandesApi.listDemandes(1, -1, { scope: 'mine' });
+      const data = response.data || [];
 
       const totalRequests = data.length;
       const pendingRequests = data.filter(
-        (d) => d.etat && d.etat.code === ETAT_DEMANDE.EN_ATTENTE
+        (d) => d.etat && d.etat.key === ETAT_DEMANDE.EN_ATTENTE
       ).length;
       const validatedRequests = data.filter(
-        (d) => d.etat && d.etat.code === ETAT_DEMANDE.VALIDE
+        (d) => d.etat && d.etat.key === ETAT_DEMANDE.VALIDE
       ).length;
       const rejectedRequests = data.filter(
-        (d) => d.etat && d.etat.code === ETAT_DEMANDE.REFUSE
+        (d) => d.etat && d.etat.key === ETAT_DEMANDE.REFUSE
       ).length;
 
       let lastRequestStatus = null;
       let lastRequestDate = null;
       let lastRequestMotif = '';
-      let lastRequestDates = '';
+      let lastRequestLocation = '';
 
       if (data.length > 0) {
         const sorted = [...data].sort((a, b) => {
@@ -101,16 +125,20 @@ export const fetchFormateurStats = createAsyncThunk(
           return db - da;
         });
         const last = sorted[0];
-        lastRequestStatus = last.etat ? last.etat.code : null;
-        lastRequestDate = last.date_soumission
-          ? last.date_soumission.split('T')[0]
-          : null;
+        lastRequestStatus = last.etat?.key || null;
+        lastRequestDate = last.date_soumission ? last.date_soumission.split('T')[0] : null;
         lastRequestMotif = last.motif || '';
-        lastRequestDates = lastRequestDate || '';
+
+        const region = last.region_souhaitee?.value?.libelle || last.region_souhaitee?.key || '';
+        const ville = last.ville_souhaitee?.value?.libelle || last.ville_souhaitee?.key || '';
+        if (region && ville) {
+          lastRequestLocation = `${region} → ${ville}`;
+        } else if (region || ville) {
+          lastRequestLocation = region || ville;
+        }
       }
 
-      const successRate =
-        totalRequests > 0 ? (validatedRequests / totalRequests) * 100 : 0;
+      const successRate = totalRequests > 0 ? Math.round((validatedRequests / totalRequests) * 100) : 0;
 
       return {
         totalRequests,
@@ -120,8 +148,8 @@ export const fetchFormateurStats = createAsyncThunk(
         lastRequestStatus,
         lastRequestDate,
         lastRequestMotif,
-        lastRequestDates,
-        successRate: Number(successRate.toFixed(1)),
+        lastRequestLocation,
+        successRate,
       };
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des statistiques');
@@ -134,11 +162,12 @@ const initialState = {
   // Demandes state
   demandes: {
     data: [],
+    meta: null,
     loading: false,
     error: null,
     etatDemande: ETAT_DEMANDE,
   },
-  
+
   // Statistiques state
   stats: {
     data: null,
@@ -161,14 +190,14 @@ const formateurSlice = createSlice({
       state.stats.loading = false;
       state.stats.error = null;
     },
-    
+
     // Reset demandes state
     resetDemandes: (state) => {
       state.demandes.data = [];
       state.demandes.loading = false;
       state.demandes.error = null;
     },
-    
+
     // Reset stats state
     resetStats: (state) => {
       state.stats.data = null;
@@ -176,7 +205,7 @@ const formateurSlice = createSlice({
       state.stats.error = null;
     }
   },
-  
+
   extraReducers: (builder) => {
     builder
       // Demandes reducers
@@ -186,7 +215,8 @@ const formateurSlice = createSlice({
       })
       .addCase(fetchDemandes.fulfilled, (state, action) => {
         state.demandes.loading = false;
-        state.demandes.data = action.payload;
+        state.demandes.data = action.payload.data;
+        state.demandes.meta = action.payload.meta;
         state.demandes.error = null;
       })
       .addCase(fetchDemandes.rejected, (state, action) => {
@@ -206,7 +236,7 @@ const formateurSlice = createSlice({
         state.demandes.loading = false;
         state.demandes.error = action.payload?.message ?? action.payload;
       })
-      
+
       // Stats reducers
       .addCase(fetchFormateurStats.pending, (state) => {
         state.stats.loading = true;
@@ -227,6 +257,7 @@ const formateurSlice = createSlice({
 // ==================== SELECTORS ====================
 // Demandes selectors
 export const selectDemandes = (state) => state.formateur.demandes.data;
+export const selectDemandesMeta = (state) => state.formateur.demandes.meta;
 export const selectDemandesLoading = (state) => state.formateur.demandes.loading;
 export const selectDemandesError = (state) => state.formateur.demandes.error;
 export const selectEtatDemande = (state) => state.formateur.demandes.etatDemande;

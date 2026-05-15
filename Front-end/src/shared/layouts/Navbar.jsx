@@ -1,74 +1,47 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bars3Icon, 
-  XMarkIcon,
   BellIcon, 
   ShieldCheckIcon,
   UserIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
-  HomeIcon,
-  UserGroupIcon,
-  KeyIcon,
-  BuildingOffice2Icon,
-  ClipboardDocumentListIcon,
-  PlusCircleIcon,
-  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { getNotifications, markNotificationRead, getUnreadCount } from '../../services/userService';
 import { useToast } from '../../shared/context/useToast';
 
-const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
+const Navbar = ({ onMenuClick, userRole }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
   const { logout, user } = useAuth();
   const { success, error: toastError } = useToast();
   
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const getMenuItems = () => {
-    const common = [
-      { name: "Mon Profil", href: "/profile", icon: UserCircleIcon },
-    ];
+  const normalizeNotification = (notification) => {
+    const payload = notification?.payload || {};
 
-    if (userRole === "admin") {
-      return [
-        { name: "Tableau de bord", href: "/admin", icon: HomeIcon },
-        { name: "Utilisateurs", href: "/admin/users", icon: UserGroupIcon },
-        { name: "Rôles", href: "/admin/roles", icon: KeyIcon },
-        { name: "Établissements", href: "/admin/etablissements", icon: BuildingOffice2Icon },
-        ...common
-      ];
-    } else if (userRole === "commission") {
-      return [
-        { name: "Tableau de bord", href: "/commission", icon: HomeIcon },
-        { name: "Demandes", href: "/commission/demandes", icon: ClipboardDocumentListIcon },
-        ...common
-      ];
-    } else if (userRole === "formateur" || userRole === "employe") {
-      return [
-        { name: "Tableau de bord", href: `/${userRole}`, icon: HomeIcon },
-        { name: "Mes Demandes", href: `/${userRole}/demandes`, icon: ClipboardDocumentListIcon },
-        { name: "Créer une Demande", href: `/${userRole}/demandes/create`, icon: PlusCircleIcon },
-        ...common
-      ];
-    }
-    return common;
+    return {
+      id: notification.id,
+      title: payload.title || notification.title || "Notification",
+      message: payload.message || notification.message || "",
+      type: notification.type || "info",
+      read_at: notification.read_at || null,
+      is_read: Boolean(notification.read_at),
+      created_at: notification.created_at || null,
+      route: payload.route || null,
+    };
   };
 
-  const navigation = getMenuItems();
-  
   const fetchNotifications = async () => {
     try {
       const res = await getNotifications();
-      setNotifications(res?.data?.data || []);
+      setNotifications((res?.data || []).map(normalizeNotification));
       const countRes = await getUnreadCount();
       setUnreadCount(countRes?.count || 0);
     } catch (err) {
@@ -84,9 +57,17 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
     }
   }, [user]);
 
-  const handleMarkRead = async (id) => {
+  const handleNotificationClick = async (notification) => {
     try {
-      await markNotificationRead(id);
+      if (!notification.is_read) {
+        await markNotificationRead(notification.id);
+      }
+      setNotificationsOpen(false);
+      if (notification.route) {
+        navigate(notification.route);
+      } else if (userRole === "admin") {
+        navigate(`/admin/notifications/${notification.id}`);
+      }
       fetchNotifications();
     } catch (err) {
       console.error("Failed to mark as read", err);
@@ -95,7 +76,6 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
 
   const handleLogout = async () => {
     setProfileOpen(false);
-    setMobileMenuOpen(false);
     try {
       await logout();
       success('Déconnexion réussie');
@@ -106,43 +86,33 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
     }
   };
 
-  const isActive = (path) => location.pathname === path;
-
   return (
-    <nav className="sticky top-0 z-[100] w-full bg-white/80 backdrop-blur-xl border-b border-surface-100 shadow-soft">
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20">
-          <div className="flex items-center gap-4">
-            {/* Desktop Sidebar Toggle */}
-            <button
-              onClick={onMenuClick}
-              className="hidden lg:flex p-2.5 rounded-xl text-surface-500 hover:text-primary-600 hover:bg-primary-50 transition-standard"
-              aria-label="Toggle sidebar"
-            >
-              <Bars3Icon className={`w-6 h-6 transform transition-transform duration-500 ${isSidebarOpen ? 'rotate-90' : 'rotate-0'}`} />
-            </button>
-
+    <nav className="relative z-[110] w-full bg-gradient-to-r from-primary-950 via-primary-900 to-primary-700 text-white backdrop-blur-xl border-b border-primary-900/40 shadow-[0_18px_48px_-34px_rgba(0,146,69,0.45)]">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:pl-[calc(var(--sidebar-width)+1.5rem)] lg:pr-8 transition-[padding-left] duration-300">
+        <div className="flex justify-between h-16">
+          <div className="flex items-center gap-3">
             {/* Mobile Menu Toggle */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2.5 rounded-xl text-surface-500 hover:text-primary-600 hover:bg-primary-50 transition-standard"
+              onClick={onMenuClick}
+              className="lg:hidden p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-standard"
+              aria-label="Ouvrir la navigation"
             >
-              {mobileMenuOpen ? <XMarkIcon className="w-6 h-6" /> : <Bars3Icon className="w-6 h-6" />}
+              <Bars3Icon className="w-5 h-5" />
             </button>
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-11 h-11 bg-primary-500 rounded-xl flex items-center justify-center shadow-primary group-hover:scale-105 transition-standard">
-                <ShieldCheckIcon className="h-7 w-7 text-white" />
+            <Link to="/" className="ml-2 sm:ml-4 lg:ml-0 flex items-center gap-3 group">
+              <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/20 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)] group-hover:scale-105 transition-standard">
+                <ShieldCheckIcon className="h-5 w-5 text-white" />
               </div>
               <div className="hidden sm:flex flex-col">
-                <span className="text-xl font-black text-surface-900 tracking-tight leading-none">OFPPT</span>
-                <span className="text-[10px] font-bold text-primary-600 uppercase tracking-widest mt-1">Permutations</span>
+                <span className="text-lg font-black text-white tracking-tight leading-none">OFPPT</span>
+                <span className="text-[10px] font-bold text-primary-100 uppercase tracking-widest mt-1">Permutations</span>
               </div>
             </Link>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Notifications */}
             <div className="relative">
               <button
@@ -150,11 +120,11 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
                   setNotificationsOpen(!notificationsOpen);
                   setProfileOpen(false);
                 }}
-                className={`p-2.5 rounded-xl transition-standard relative ${notificationsOpen ? 'bg-primary-50 text-primary-600' : 'text-surface-500 hover:text-primary-600 hover:bg-primary-50'}`}
+                className={`p-2 rounded-lg transition-standard relative ${notificationsOpen ? 'bg-white/15 text-white' : 'text-white/80 hover:text-white hover:bg-white/10'}`}
               >
-                <BellIcon className="h-6 w-6" />
+                <BellIcon className="h-5 w-5" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-2.5 right-2.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
+                  <span className="absolute top-2 right-2 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
                 )}
               </button>
 
@@ -172,23 +142,23 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
                       initial={{ opacity: 0, scale: 0.95, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                      className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-hard border border-surface-100 overflow-hidden z-20 origin-top-right"
+                      className="absolute right-0 mt-3 w-80 sm:w-96 bg-white rounded-2xl shadow-hard border border-primary-100 overflow-hidden z-20 origin-top-right"
                     >
-                      <div className="p-4 border-b border-surface-50 bg-surface-50/50 flex items-center justify-between">
+                      <div className="p-4 border-b border-primary-50 bg-primary-50/70 flex items-center justify-between">
                         <h3 className="text-xs font-black text-surface-900 uppercase tracking-widest">Notifications</h3>
-                        {unreadCount > 0 && <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-[10px] font-bold">{unreadCount} nouvelles</span>}
+                        {unreadCount > 0 && <span className="px-2 py-0.5 bg-primary-600 text-white rounded-full text-[10px] font-bold">{unreadCount} nouvelles</span>}
                       </div>
                       <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
                         {notifications.length > 0 ? (
                           notifications.map((n) => (
                             <div
                               key={n.id}
-                              onClick={() => handleMarkRead(n.id)}
-                              className={`flex items-start p-4 hover:bg-primary-50/30 transition-standard border-b border-surface-50 last:border-0 cursor-pointer ${!n.is_read ? 'bg-primary-50/10' : ''}`}
+                              onClick={() => handleNotificationClick(n)}
+                              className={`flex items-start p-4 hover:bg-primary-50/50 transition-standard border-b border-primary-50 last:border-0 cursor-pointer ${!n.is_read ? 'bg-primary-50/20' : ''}`}
                             >
                               <div className={`mt-1 p-2 rounded-lg shrink-0 ${
                                 n.type === 'system' ? 'bg-amber-100 text-amber-600' :
-                                n.type === 'account' ? 'bg-green-100 text-green-600' :
+                                n.type === 'account' ? 'bg-primary-100 text-primary-700' :
                                 'bg-primary-100 text-primary-600'
                               }`}>
                                 <BellIcon className="h-4 w-4" />
@@ -197,7 +167,7 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
                                 <p className={`text-sm font-bold text-surface-900 ${!n.is_read ? 'font-black' : ''}`}>{n.title}</p>
                                 <p className="text-xs text-surface-500 mt-1 line-clamp-2 leading-relaxed">{n.message}</p>
                                 <p className="text-[10px] text-surface-400 mt-2 font-bold uppercase tracking-widest">
-                                  {new Date(n.created_at).toLocaleString()}
+                                  {n.created_at ? new Date(n.created_at).toLocaleString() : "Date inconnue"}
                                 </p>
                               </div>
                               {!n.is_read && (
@@ -227,14 +197,14 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
                   setProfileOpen(!profileOpen);
                   setNotificationsOpen(false);
                 }}
-                className={`flex items-center gap-3 p-1.5 pr-3 rounded-xl transition-standard group ${profileOpen ? 'bg-primary-50' : 'hover:bg-surface-50'}`}
+                className={`flex items-center gap-2 p-1 pr-2.5 rounded-lg transition-standard group ${profileOpen ? 'bg-white/15' : 'hover:bg-white/10'}`}
               >
-                <div className="h-10 w-10 rounded-xl bg-primary-500 flex items-center justify-center text-white font-black shadow-primary group-hover:scale-105 transition-standard">
+                <div className="h-9 w-9 rounded-lg bg-white text-primary-800 flex items-center justify-center font-black shadow-[0_16px_28px_-18px_rgba(255,255,255,0.4)] group-hover:scale-105 transition-standard">
                   {(user?.nom || user?.name || "U")[0].toUpperCase()}
                 </div>
                 <div className="hidden lg:block text-left">
-                  <p className="text-sm font-black text-surface-900 leading-none">{user?.nom || user?.name || "Utilisateur"}</p>
-                  <p className="text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mt-1.5">{userRole}</p>
+                  <p className="text-sm font-black text-white leading-none">{user?.nom || user?.name || "Utilisateur"}</p>
+                  <p className="text-[10px] font-black text-primary-100 uppercase tracking-[0.2em] mt-1.5">{userRole}</p>
                 </div>
               </button>
 
@@ -252,16 +222,16 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
                       initial={{ opacity: 0, scale: 0.95, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                      className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-hard border border-surface-100 overflow-hidden z-20 origin-top-right"
+                      className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-hard border border-primary-100 overflow-hidden z-20 origin-top-right"
                     >
-                      <div className="p-5 border-b border-surface-50 bg-surface-50/50">
+                      <div className="p-5 border-b border-primary-50 bg-primary-50/70">
                         <p className="text-sm font-black text-surface-900 truncate">{user?.nom || user?.name}</p>
                         <p className="text-xs text-surface-600 font-bold truncate mt-1">{user?.email}</p>
                       </div>
                       <div className="p-2">
                         <Link
                           to="/profile"
-                          className="flex items-center gap-3 p-3 rounded-xl text-sm font-bold text-surface-700 hover:text-primary-600 hover:bg-primary-50 transition-standard"
+                          className="flex items-center gap-3 p-3 rounded-xl text-sm font-bold text-surface-700 hover:text-primary-700 hover:bg-primary-50 transition-standard"
                           onClick={() => setProfileOpen(false)}
                         >
                           <UserIcon className="h-5 w-5" />
@@ -270,7 +240,7 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
                         {userRole === 'admin' && (
                           <Link
                             to="/admin/settings"
-                            className="flex items-center gap-3 p-3 rounded-xl text-sm font-bold text-surface-700 hover:text-primary-600 hover:bg-primary-50 transition-standard"
+                            className="flex items-center gap-3 p-3 rounded-xl text-sm font-bold text-surface-700 hover:text-primary-700 hover:bg-primary-50 transition-standard"
                             onClick={() => setProfileOpen(false)}
                           >
                             <Cog6ToothIcon className="h-5 w-5" />
@@ -295,77 +265,6 @@ const Navbar = ({ onMenuClick, userRole, isSidebarOpen }) => {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-surface-900/40 backdrop-blur-sm z-40 lg:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 left-0 w-80 bg-white shadow-hard z-50 lg:hidden overflow-y-auto"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center shadow-primary">
-                      <ShieldCheckIcon className="h-6 w-6 text-white" />
-                    </div>
-                    <span className="text-lg font-black text-surface-900">OFPPT</span>
-                  </div>
-                  <button
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 rounded-xl text-surface-500 hover:bg-surface-50"
-                  >
-                    <XMarkIcon className="w-6 h-6" />
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[10px] font-black text-surface-400 uppercase tracking-widest px-4 mb-4">Navigation</p>
-                  {navigation.map((item) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.href);
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold transition-standard ${
-                          active 
-                            ? 'bg-primary-500 text-white shadow-primary' 
-                            : 'text-surface-600 hover:bg-primary-50 hover:text-primary-600'
-                        }`}
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span>{item.name}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-10 pt-10 border-t border-surface-100">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-sm font-bold text-red-600 hover:bg-red-50 transition-standard"
-                  >
-                    <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                    <span>Déconnexion</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </nav>
   );
 };

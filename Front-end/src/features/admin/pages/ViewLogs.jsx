@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import Table from '../../../shared/components/Table';
 import Button from '../../../shared/components/Button';
-import { DocumentTextIcon, ClockIcon, FunnelIcon, MagnifyingGlassIcon, ChevronUpDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { DocumentTextIcon, ClockIcon, FunnelIcon, MagnifyingGlassIcon, ChevronUpDownIcon, XMarkIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { fetchLogs, selectLogs, LOG_ACTION_TYPES } from '../redux/logsSlice';
 import { selectSearchTerm } from '../../../shared/redux/searchSlice';
 
@@ -13,48 +14,35 @@ const ViewLogs = () => {
   const globalSearchTerm = useSelector(selectSearchTerm);
   const logsRaw = useSelector(selectLogs);
   const logs = useMemo(() => logsRaw || [], [logsRaw]);
-  const { loading, error } = useSelector(state => state.logs);
+  const { loading, error, meta } = useSelector(state => state.logs);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
-  const logsPerPage = 10;
+  const pageSize = 5;
   
   useEffect(() => {
-    dispatch(fetchLogs());
-  }, [dispatch]);
+    dispatch(fetchLogs({ 
+      page: currentPage, 
+      limit: pageSize,
+      filters: {
+        q: activeSearch || globalSearchTerm,
+        type: filterType,
+        date: filterDate
+      }
+    }));
+  }, [dispatch, currentPage, activeSearch, globalSearchTerm, filterType, filterDate]);
 
-  // Filter and sort logs
-  const filteredLogs = useMemo(() => {
-    let filtered = logs.filter(log => {
-      const searchToUse = activeSearch || globalSearchTerm;
-      const matchesSearch = !searchToUse ||
-                           log.user.toLowerCase().includes(searchToUse.toLowerCase()) ||
-                           log.action.toLowerCase().includes(searchToUse.toLowerCase()) ||
-                           log.ip.includes(searchToUse);
-      const matchesType = !filterType || log.type === filterType;
-      const matchesDate = !filterDate || log.date.startsWith(filterDate);
-      
-      return matchesSearch && matchesType && matchesDate;
-    });
+  useEffect(() => {
+    if (currentPage !== 1) setCurrentPage(1);
+  }, [activeSearch, globalSearchTerm, filterType, filterDate]);
 
-    // Sort logs
-    if (sortConfig.key) {
-      filtered.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [logs, activeSearch, globalSearchTerm, filterType, filterDate, sortConfig]);
+  // Logs are already paginated and filtered on backend
+  const currentLogs = useMemo(() => logs, [logs]);
+  const totalPages = meta?.last_page || 1;
+  const totalItems = meta?.total || 0;
 
   // Reset search when input is cleared
   useEffect(() => {
@@ -67,12 +55,6 @@ const ViewLogs = () => {
     if (e) e.preventDefault();
     setActiveSearch(searchTerm);
   };
-
-  // Pagination
-  const indexOfLastLog = currentPage * logsPerPage;
-  const indexOfFirstLog = indexOfLastLog - logsPerPage;
-  const currentLogs = filteredLogs.slice(indexOfFirstLog, indexOfLastLog);
-  const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
 
   const getActionTypeColor = (type) => {
     switch (type) {
@@ -130,7 +112,15 @@ const ViewLogs = () => {
         </button>
       ),
       key: 'action',
-      render: (value) => <span className="text-gray-300">{value}</span>
+      render: (value, row) => (
+        <Link
+          to={`/admin/logs/${row.id}`}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-jb-cyan/10 text-jb-cyan border border-jb-cyan/20 hover:bg-jb-cyan/15 transition-standard"
+        >
+          <EyeIcon className="w-4 h-4" />
+          <span>{value}</span>
+        </Link>
+      )
     },
     { 
       header: (
@@ -202,7 +192,7 @@ const ViewLogs = () => {
                 <input
                   type="text"
                   placeholder="Rechercher par utilisateur, action ou IP..."
-                  className="w-full pl-10 pr-10 py-2 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-10 pr-10 py-2 bg-[#D8E9FB] border border-jb-cyan/20 rounded-lg text-jb-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -213,7 +203,7 @@ const ViewLogs = () => {
                       setSearchTerm('');
                       setActiveSearch('');
                     }}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-jb-text-primary"
                   >
                     <XMarkIcon className="h-5 w-5" />
                   </button>
@@ -222,7 +212,7 @@ const ViewLogs = () => {
             </div>
             <div>
               <select
-                className="w-full py-2 px-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full py-2 px-3 bg-[#D8E9FB] border border-jb-green/20 rounded-lg text-jb-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >
@@ -237,7 +227,7 @@ const ViewLogs = () => {
             <div className="flex space-x-2">
               <input
                 type="date"
-                className="flex-1 py-2 px-3 bg-gray-800/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 py-2 px-3 bg-[#D8E9FB] border border-jb-cyan/20 rounded-lg text-jb-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
               />
@@ -254,78 +244,25 @@ const ViewLogs = () => {
           
           <div className="flex justify-between items-center">
             <p className="text-gray-400">
-              {filteredLogs.length} {filteredLogs.length === 1 ? 'log trouvé' : 'logs trouvés'}
+              {totalItems} {totalItems === 1 ? 'log trouvé' : 'logs trouvés'}
             </p>
           </div>
         </Card>
         
         {/* Logs Table */}
-        <Card className="p-6">
-          {loading ? (
-            <div className="py-8 text-center text-gray-400">Chargement des logs...</div>
-          ) : error ? (
-            <div className="py-8 text-center text-red-400">Erreur: {error}</div>
-          ) : (
-            <Table 
-              data={currentLogs} 
-              columns={columns} 
-              caption={`Journal des activités (${filteredLogs.length} total)`}
-            />
-          )}
-          
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-700/50">
-              <p className="text-sm text-gray-400">
-                Affichage de {indexOfFirstLog + 1} à {Math.min(indexOfLastLog, filteredLogs.length)} sur {filteredLogs.length} logs
-              </p>
-              <div className="flex space-x-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-1.5"
-                >
-                  Précédent
-                </Button>
-                
-                <div className="flex space-x-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <Button
-                        key={pageNum}
-                        variant={currentPage === pageNum ? 'primary' : 'secondary'}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-1.5 ${currentPage === pageNum ? 'min-w-[40px]' : 'min-w-[32px]'}`}
-                      >
-                        {pageNum}
-                      </Button>
-                    );
-                  })}
-                </div>
-                
-                <Button
-                  variant="secondary"
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-1.5"
-                >
-                  Suivant
-                </Button>
-              </div>
-            </div>
-          )}
+        <Card noPadding className="bg-jb-bg-section border border-jb-border rounded-lg overflow-hidden shadow-hard">
+          <Table 
+            columns={columns} 
+            data={currentLogs} 
+            isLoading={loading}
+            pagination={{
+              currentPage,
+              totalPages,
+              totalItems,
+              onPageChange: setCurrentPage,
+              pageSize
+            }}
+          />
         </Card>
         
         {/* Logs Summary Card */}
@@ -336,7 +273,7 @@ const ViewLogs = () => {
                 <ClockIcon className="w-6 h-6 text-blue-400" />
               </div>
               <div className="ml-4">
-                <p className="text-2xl font-bold text-white">{filteredLogs.length}</p>
+                <p className="text-2xl font-bold text-white">{totalItems}</p>
                 <p className="text-sm text-gray-400">Total logs</p>
               </div>
             </div>
@@ -349,7 +286,7 @@ const ViewLogs = () => {
               </div>
               <div className="ml-4">
                 <p className="text-2xl font-bold text-white">
-                  {filteredLogs.filter(log => log.type === LOG_ACTION_TYPES.CREATE).length}
+                  {logs.filter(log => log.type === LOG_ACTION_TYPES.CREATE).length}
                 </p>
                 <p className="text-sm text-gray-400">Créations</p>
               </div>
@@ -363,7 +300,7 @@ const ViewLogs = () => {
               </div>
               <div className="ml-4">
                 <p className="text-2xl font-bold text-white">
-                  {filteredLogs.filter(log => log.type === LOG_ACTION_TYPES.DELETE).length}
+                  {logs.filter(log => log.type === LOG_ACTION_TYPES.DELETE).length}
                 </p>
                 <p className="text-sm text-gray-400">Suppressions</p>
               </div>

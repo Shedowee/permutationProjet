@@ -29,10 +29,11 @@ const GuestRoute = ({ children }) => {
       admin: "/admin",
       commission: "/commission",
       formateur: "/formateur",
-      employe: "/employe",
+      user: "/profile",
     };
 
-    const redirectPath = dashboards[role] || "/dashboard";
+    // If role is unknown, default to /dashboard which handles generic views
+    const redirectPath = dashboards[role] || "/profile";
     return <Navigate to={redirectPath} replace />;
   }
 

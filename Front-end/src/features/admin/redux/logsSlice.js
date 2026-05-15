@@ -22,9 +22,9 @@ export const LOG_ACTION_TYPES = {
 // Async thunk pour charger les logs
 export const fetchLogs = createAsyncThunk(
   'admin/fetchLogs',
-  async (_, { rejectWithValue }) => {
+  async ({ page = 1, limit = 5 } = {}, { rejectWithValue }) => {
     try {
-      const logs = await logsApi.listLogs();
+      const logs = await logsApi.listLogs({ page, limit });
       return logs;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des logs');
@@ -34,6 +34,7 @@ export const fetchLogs = createAsyncThunk(
 
 const initialState = {
   logs: [],
+  meta: null,
   loading: false,
   error: null,
 };
@@ -56,7 +57,8 @@ const logsSlice = createSlice({
       })
       .addCase(fetchLogs.fulfilled, (state, action) => {
         state.loading = false;
-        state.logs = action.payload;
+        state.logs = action.payload.data;
+        state.meta = action.payload.meta;
         state.error = null;
       })
       .addCase(fetchLogs.rejected, (state, action) => {

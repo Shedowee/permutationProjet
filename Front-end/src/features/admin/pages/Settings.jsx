@@ -4,11 +4,11 @@ import Card from "../../../shared/components/Card";
 import Button from "../../../shared/components/Button";
 import Table from "../../../shared/components/Table";
 import Modal from "../../../shared/components/Modal";
-import { 
-  PlusIcon, 
-  PencilIcon, 
-  TrashIcon, 
-  CheckCircleIcon, 
+import {
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
+  CheckCircleIcon,
   XCircleIcon,
   ArrowPathIcon,
   AdjustmentsHorizontalIcon,
@@ -39,7 +39,7 @@ const Settings = () => {
   });
   const [filterType, setFilterType] = useState("");
   const [message, setMessage] = useState({ text: "", type: "success" });
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -59,7 +59,13 @@ const Settings = () => {
     try {
       setLoading(true);
       const data = await listParametres({ include_inactive: true });
-      setParametres(data);
+      // Map backend data (key, value.libelle) to frontend format (code, libelle)
+      const mapped = data.map(p => ({
+        ...p,
+        code: p.key,
+        libelle: p.value?.libelle || p.key
+      }));
+      setParametres(mapped);
     } catch (err) {
       console.error(err);
       setMessage({ text: "Erreur lors du chargement des paramètres", type: "error" });
@@ -112,13 +118,19 @@ const Settings = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     try {
+      setLoading(true);
       if (modalType === "create") {
         await createParametre(formData);
         setMessage({ text: "Paramètre créé avec succès", type: "success" });
       } else if (modalType === "edit") {
-        await updateParametre(selectedParam.id, formData);
+        await updateParametre(selectedParam.id, {
+          libelle: formData.libelle,
+          actif: formData.actif,
+          ordre: formData.ordre,
+          parent_id: formData.parent_id
+        });
         setMessage({ text: "Paramètre mis à jour avec succès", type: "success" });
       } else if (modalType === "delete") {
         await deleteParametre(selectedParam.id);
@@ -126,16 +138,16 @@ const Settings = () => {
       }
       setShowModal(false);
       loadParametres();
-      
-      // Clear message after 3 seconds
-      setTimeout(() => setMessage({ text: "", type: "success" }), 3000);
     } catch (err) {
-      setMessage({ text: err.response?.data?.message || "Une erreur est survenue", type: "error" });
+      console.error(err);
+      setMessage({ text: "Erreur lors de l'opération", type: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
   const filteredParams = parametres.filter(p => !filterType || p.type === filterType);
-  
+
   // Calculate pagination
   const totalItems = filteredParams.length;
   const totalPages = Math.ceil(totalItems / pageSize);
@@ -145,9 +157,9 @@ const Settings = () => {
   );
 
   const columns = [
-    { 
-      header: "Type & Catégorie", 
-      key: "type", 
+    {
+      header: "Type & Catégorie",
+      key: "type",
       render: (val, row) => (
         <div className="flex flex-col space-y-1">
           <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest bg-primary-50 px-2 py-0.5 rounded-md w-fit">
@@ -160,24 +172,24 @@ const Settings = () => {
             </div>
           )}
         </div>
-      ) 
+      )
     },
-    { 
-      header: "Code Système", 
+    {
+      header: "Code Système",
       key: "code",
       render: (val) => (
-        <code className="text-[11px] font-mono bg-surface-50 text-surface-700 px-2 py-1 rounded-lg border border-surface-100">
+        <code className="text-[11px] font-mono bg-surface-50 text-surface-700 px-2 py-1 rounded-lg border-2 border-jb-green/20">
           {val}
         </code>
       )
     },
-    { 
-      header: "Libellé Affiché", 
+    {
+      header: "Libellé Affiché",
       key: "libelle",
       render: (val) => <span className="font-bold text-surface-900">{val}</span>
     },
-    { 
-      header: "Ordre", 
+    {
+      header: "Ordre",
       key: "ordre",
       render: (val) => (
         <div className="flex items-center space-x-2 text-surface-500 font-bold">
@@ -186,9 +198,9 @@ const Settings = () => {
         </div>
       )
     },
-    { 
-      header: "État", 
-      key: "actif", 
+    {
+      header: "État",
+      key: "actif",
       render: (val) => (
         <div className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
           val ? "bg-teal-50 text-teal-600 border border-teal-100" : "bg-rose-50 text-rose-600 border border-rose-100"
@@ -196,23 +208,23 @@ const Settings = () => {
           <div className={`w-1.5 h-1.5 rounded-full mr-2 ${val ? "bg-teal-500 animate-pulse" : "bg-rose-500"}`}></div>
           {val ? "Actif" : "Inactif"}
         </div>
-      ) 
+      )
     },
     {
       header: "Actions",
       key: "actions",
       render: (_, row) => (
         <div className="flex items-center space-x-2">
-          <button 
-            onClick={() => handleOpenEdit(row)} 
-            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-primary-600 hover:border-primary-200 hover:shadow-sm transition-all group"
+          <button
+            onClick={() => handleOpenEdit(row)}
+            className="p-2 rounded-xl bg-white border-2 border-jb-cyan/20 text-surface-500 hover:text-primary-600 hover:border-primary-200 hover:shadow-[0_14px_26px_-16px_rgba(47,123,229,0.2)] transition-all group"
             title="Modifier"
           >
             <PencilIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
           </button>
-          <button 
-            onClick={() => handleOpenDelete(row)} 
-            className="p-2 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-rose-600 hover:border-rose-200 hover:shadow-sm transition-all group"
+          <button
+            onClick={() => handleOpenDelete(row)}
+            className="p-2 rounded-xl bg-white border-2 border-jb-green/20 text-surface-500 hover:text-rose-600 hover:border-rose-200 hover:shadow-[0_14px_26px_-16px_rgba(12,122,59,0.2)] transition-all group"
             title="Supprimer"
           >
             <TrashIcon className="w-4 h-4 group-hover:scale-110 transition-transform" />
@@ -228,7 +240,7 @@ const Settings = () => {
         {/* En-tête de page */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center space-x-4">
-            <div className="p-4 bg-white rounded-[1.5rem] shadow-sm border border-surface-100">
+            <div className="p-4 bg-white rounded-lg shadow-[0_22px_46px_-26px_rgba(15,159,181,0.28)] border-2 border-jb-cyan/20 ring-1 ring-inset ring-jb-green/10">
               <AdjustmentsHorizontalIcon className="w-8 h-8 text-primary-600" />
             </div>
             <div>
@@ -240,10 +252,10 @@ const Settings = () => {
               <p className="text-surface-600 text-sm font-bold">Gérez les constantes et référentiels de l'application</p>
             </div>
           </div>
-          <Button 
-            variant="primary" 
-            onClick={handleOpenCreate} 
-            className="flex items-center space-x-3 px-8 py-4 rounded-2xl shadow-xl shadow-primary-500/20 group"
+          <Button
+            variant="primary"
+            onClick={handleOpenCreate}
+            className="flex items-center space-x-3 px-8 py-4 rounded-lg shadow-[0_24px_50px_-28px_rgba(47,123,229,0.3)] group"
           >
             <PlusIcon className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
             <span className="font-black uppercase tracking-widest text-[10px]">Nouveau Paramètre</span>
@@ -252,9 +264,9 @@ const Settings = () => {
 
         {/* Messages de retour */}
         {message.text && (
-          <div className={`p-5 rounded-[1.5rem] border-2 flex items-center space-x-4 animate-slideUp ${
-            message.type === 'success' 
-              ? 'bg-teal-50 border-teal-100 text-teal-700' 
+          <div className={`p-5 rounded-lg border-2 flex items-center space-x-4 animate-slideUp ${
+            message.type === 'success'
+              ? 'bg-teal-50 border-teal-100 text-teal-700'
               : 'bg-rose-50 border-rose-100 text-rose-700'
           }`}>
             <div className={`p-2 rounded-xl ${message.type === 'success' ? 'bg-teal-500 text-white' : 'bg-rose-500 text-white'}`}>
@@ -265,7 +277,7 @@ const Settings = () => {
         )}
 
         {/* Filtres et Tableau */}
-        <div className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-8 border border-surface-100 shadow-sm space-y-6 sm:space-y-8">
+        <div className="bg-white rounded-lg sm:rounded-lg p-4 sm:p-8 border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10 shadow-[0_28px_64px_-38px_rgba(12,122,59,0.28)] space-y-6 sm:space-y-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
             <div className="flex items-center space-x-3 sm:space-x-4 overflow-x-auto pb-2 sm:pb-0">
               <div className="relative group shrink-0">
@@ -275,7 +287,7 @@ const Settings = () => {
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="bg-surface-50 border border-surface-100 rounded-xl sm:rounded-2xl pl-11 pr-10 py-3 text-[10px] sm:text-xs font-black uppercase tracking-widest text-surface-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none appearance-none cursor-pointer"
+                  className="bg-surface-50 border-2 border-jb-green/20 rounded-xl sm:rounded-lg pl-11 pr-10 py-3 text-[10px] sm:text-xs font-black uppercase tracking-widest text-surface-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all outline-none appearance-none cursor-pointer"
                 >
                   {types.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
@@ -286,16 +298,16 @@ const Settings = () => {
                 </div>
               </div>
 
-              <button 
-                onClick={loadParametres} 
-                className="p-3 rounded-xl sm:rounded-2xl bg-surface-50 border border-surface-100 text-surface-600 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-all group shrink-0"
+              <button
+                onClick={loadParametres}
+                className="p-3 rounded-xl sm:rounded-lg bg-surface-50 border-2 border-jb-cyan/20 text-surface-600 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 transition-all group shrink-0"
                 title="Actualiser les données"
               >
                 <ArrowPathIcon className={`w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-180 transition-transform duration-500 ${loading ? "animate-spin" : ""}`} />
               </button>
             </div>
-            
-            <div className="flex items-center space-x-2 px-4 py-2 bg-surface-50 rounded-xl border border-surface-100 self-start sm:self-auto">
+
+            <div className="flex items-center space-x-2 px-4 py-2 bg-surface-50 rounded-xl border-2 border-jb-green/20 self-start sm:self-auto">
               <HashtagIcon className="h-4 w-4 text-surface-600" />
               <span className="text-[10px] font-black text-surface-700 uppercase tracking-widest">
                 {filteredParams.length} entrées trouvées
@@ -303,10 +315,10 @@ const Settings = () => {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl sm:rounded-2xl">
-            <Table 
-              columns={columns} 
-              data={paginatedParams} 
+          <div className="overflow-hidden rounded-xl sm:rounded-lg">
+            <Table
+              columns={columns}
+              data={paginatedParams}
               loading={loading}
               emptyMessage="Aucun paramètre configuré dans cette catégorie"
               className="max-h-[calc(100vh-28rem)] min-h-[400px]"
@@ -328,8 +340,8 @@ const Settings = () => {
           title={modalType === "create" ? "Nouveau Paramètre" : "Modifier Paramètre"}
           size="lg"
         >
-          <form onSubmit={handleSubmit} className="space-y-8 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <form onSubmit={handleSubmit} className="space-y-6 py-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1">Catégorie / Type *</label>
                 <div className="relative group">
@@ -337,7 +349,7 @@ const Settings = () => {
                     name="type"
                     value={formData.type}
                     onChange={handleInputChange}
-                    className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                  className="w-full bg-surface-50 border-2 border-jb-green/20 rounded-lg px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
                     required
                   >
                     {types.filter(t => t.value !== "").map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -355,7 +367,7 @@ const Settings = () => {
                   name="code"
                   value={formData.code}
                   onChange={handleInputChange}
-                  className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-surface-50 border-2 border-jb-cyan/20 rounded-lg px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="EX: REG_CASABLANCA"
                   required
                   disabled={modalType === "edit"}
@@ -371,7 +383,7 @@ const Settings = () => {
                     name="parent_id"
                     value={formData.parent_id}
                     onChange={handleInputChange}
-                    className="w-full bg-primary-50 border border-primary-100 rounded-2xl px-6 py-4 text-primary-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full bg-primary-50 border border-primary-100 rounded-lg px-6 py-4 text-primary-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
                     required={formData.type === "VILLE"}
                   >
                     <option value="">Sélectionnez une région</option>
@@ -391,13 +403,13 @@ const Settings = () => {
                 name="libelle"
                 value={formData.libelle}
                 onChange={handleInputChange}
-                className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400"
+                  className="w-full bg-surface-50 border-2 border-jb-green/20 rounded-lg px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all placeholder:text-surface-400"
                 placeholder="Le nom tel qu'il apparaîtra dans les menus"
                 required
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1">Priorité d'affichage</label>
                 <input
@@ -405,12 +417,12 @@ const Settings = () => {
                   name="ordre"
                   value={formData.ordre}
                   onChange={handleInputChange}
-                  className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all"
+                  className="w-full bg-surface-50 border-2 border-jb-cyan/20 rounded-lg px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all"
                   required
                 />
               </div>
-              
-              <div className="flex items-center space-x-4 pt-6">
+
+              <div className="flex items-center space-x-4 pt-5">
                 <div className="relative inline-flex items-center cursor-pointer group">
                   <input
                     type="checkbox"
@@ -428,19 +440,19 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="pt-8 flex justify-end space-x-4 border-t border-surface-50">
-              <Button 
-                type="button" 
-                variant="secondary" 
+            <div className="pt-5 flex justify-end space-x-4 border-t-2 border-jb-cyan/15">
+              <Button
+                type="button"
+                variant="secondary"
                 onClick={() => setShowModal(false)}
-                className="px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                className="px-8 py-4 rounded-lg font-black uppercase tracking-widest text-[10px]"
               >
                 Annuler
               </Button>
-              <Button 
-                type="submit" 
-                variant="primary" 
-                className="px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary-500/20"
+              <Button
+                type="submit"
+                variant="primary"
+                className="px-12 py-4 rounded-lg font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary-500/20"
               >
                 {modalType === "create" ? "Créer l'entrée" : "Enregistrer les modifications"}
               </Button>
@@ -454,13 +466,13 @@ const Settings = () => {
           onClose={() => setShowModal(false)}
           title="Confirmer la suppression"
         >
-          <div className="space-y-8 py-4">
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className="p-4 bg-rose-50 text-rose-500 rounded-full border-4 border-rose-100 animate-bounce">
-                <TrashIcon className="w-10 h-10" />
+          <div className="space-y-6 py-2">
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="p-4 bg-rose-50 text-rose-500 rounded-lg border border-rose-100 animate-pulse">
+                <TrashIcon className="w-8 h-8" />
               </div>
               <div className="space-y-2">
-                <p className="text-surface-900 font-bold text-lg">Suppression irréversible</p>
+                <p className="text-surface-900 font-black text-base uppercase tracking-tight">Suppression irréversible</p>
                 <p className="text-surface-700 text-sm leading-relaxed font-medium">
                   Êtes-vous absolument certain de vouloir supprimer le paramètre <br />
                   <span className="text-rose-600 font-black uppercase tracking-widest bg-rose-50 px-2 py-1 rounded-md text-[10px]">
@@ -470,18 +482,18 @@ const Settings = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-4 pt-4 border-t border-surface-50">
-              <Button 
-                variant="secondary" 
+            <div className="flex justify-end space-x-4 pt-4 border-t-2 border-jb-cyan/15">
+              <Button
+                variant="secondary"
                 onClick={() => setShowModal(false)}
-                className="px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                className="px-8 py-4 rounded-lg font-black uppercase tracking-widest text-[10px]"
               >
                 Garder
               </Button>
-              <Button 
-                variant="danger" 
-                onClick={handleSubmit} 
-                className="px-12 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-rose-500/20"
+              <Button
+                variant="danger"
+                onClick={handleSubmit}
+                className="px-12 py-4 rounded-lg font-black uppercase tracking-widest text-[10px] shadow-lg shadow-rose-500/20"
               >
                 Oui, Supprimer
               </Button>

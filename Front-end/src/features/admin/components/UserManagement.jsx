@@ -79,19 +79,19 @@ const UserManagement = () => {
     { 
       header: 'Nom', 
       key: 'name',
-      render: (value) => <span className="font-medium text-white">{value}</span>
+      render: (value) => <span className="font-medium text-jb-text-primary">{value}</span>
     },
     { 
       header: 'Email', 
       key: 'email',
-      render: (value) => <span className="text-gray-300">{value}</span>
+      render: (value) => <span className="text-jb-text-secondary">{value}</span>
     },
     { 
       header: 'Rôle', 
       key: 'role',
       render: (value) => {
         const role = roles.find(r => r.value === value);
-        return <span className="text-blue-400 font-medium">{role?.label || value}</span>;
+        return <span className="text-jb-cyan font-medium">{role?.label || value}</span>;
       }
     },
     { 
@@ -110,7 +110,7 @@ const UserManagement = () => {
     { 
       header: 'Créé le', 
       key: 'createdAt',
-      render: (value) => <span className="text-gray-400 text-sm">{value}</span>
+      render: (value) => <span className="text-jb-text-muted text-sm">{value}</span>
     },
     { 
       header: 'Actions', 
@@ -144,8 +144,8 @@ const UserManagement = () => {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-white">Gestion des Utilisateurs</h1>
-          <p className="text-gray-400 mt-2">Gérer les comptes et les permissions des utilisateurs</p>
+          <h1 className="text-3xl font-bold text-jb-text-primary">Gestion des Utilisateurs</h1>
+          <p className="text-jb-text-secondary mt-2">Gérer les comptes et les permissions des utilisateurs</p>
         </div>
         
         {/* Controls */}
@@ -155,11 +155,11 @@ const UserManagement = () => {
               {/* Search */}
               <div className="relative flex-1 max-w-md">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  <MagnifyingGlassIcon className="h-5 w-5 text-jb-text-muted" />
                 </div>
                 <input
                   type="text"
-                  className="block w-full rounded-lg border-0 bg-white/5 py-2 pl-10 pr-10 text-white placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10"
+                  className="block w-full rounded-lg border-0 bg-[#D8E9FB] py-2 pl-10 pr-10 text-jb-text-primary placeholder:text-jb-text-muted focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border border-white/10"
                   placeholder="Rechercher par nom ou email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -168,7 +168,7 @@ const UserManagement = () => {
                   <button
                     type="button"
                     onClick={() => setSearchTerm('')}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-jb-text-primary"
                   >
                     <XMarkIcon className="h-5 w-5" />
                   </button>
@@ -178,7 +178,7 @@ const UserManagement = () => {
               {/* Filters */}
               <div className="flex gap-3">
                 <select
-                  className="rounded-lg border-0 bg-white/5 py-2 px-3 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10 min-w-[150px]"
+                  className="rounded-lg border-0 bg-[#D8E9FB] py-2 px-3 text-jb-text-primary focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border border-white/10 min-w-[150px]"
                   value={filterRole}
                   onChange={(e) => setFilterRole(e.target.value)}
                 >
@@ -189,7 +189,7 @@ const UserManagement = () => {
                 </select>
                 
                 <select
-                  className="rounded-lg border-0 bg-white/5 py-2 px-3 text-white focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-white/5 to-white/3 backdrop-blur-sm border border-white/10 min-w-[150px]"
+                  className="rounded-lg border-0 bg-[#D8E9FB] py-2 px-3 text-jb-text-primary focus:ring-2 focus:ring-inset focus:ring-blue-500 bg-gradient-to-r from-[#D8E9FB] to-white/20 backdrop-blur-sm border border-white/10 min-w-[150px]"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
@@ -227,10 +227,10 @@ const UserManagement = () => {
         >
           {userToDelete && (
             <div className="space-y-4">
-              <p className="text-gray-300">
+              <p className="text-jb-text-secondary">
                 Êtes-vous sûr de vouloir supprimer l'utilisateur <strong>{userToDelete.name}</strong> ?
               </p>
-              <p className="text-gray-400 text-sm">
+              <p className="text-jb-text-muted text-sm">
                 Cette action est irréversible et supprimera définitivement le compte.
               </p>
               <div className="flex justify-end space-x-3 pt-4">

@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
             FormateurSeeder::class,      // Formateur professional profiles
             AdminSeeder::class,           // Admin profile assignment
             CommissionSeeder::class,      // Commission profile + jurisdictions
-            PermissionRequestSeeder::class, // Sample permission workflow records
             DemandePermutationSeeder::class, // Sample requests
             PermutationMarketSeeder::class,  // Available and reciprocal demandes
         ]);

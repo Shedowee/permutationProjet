@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../../../shared/components/Modal';
 import Button from '../../../shared/components/Button';
-import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
+import {
+  CheckCircleIcon,
+  XCircleIcon,
   ChatBubbleLeftRightIcon,
   MapPinIcon,
   BuildingOfficeIcon,
@@ -39,11 +39,6 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
       return;
     }
 
-    if (!commentaire.trim()) {
-      setError('Veuillez ajouter un commentaire expliquant votre décision');
-      return;
-    }
-
     setLoading(true);
     setError('');
 
@@ -68,35 +63,35 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
   if (!demande) return null;
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={onClose} 
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
       title={`Dossier de Permutation #${demande.id}`}
-      size="xl"
+      size="lg"
     >
-      <div className="space-y-10">
+      <div className="space-y-6">
         {/* Informations de la demande */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <div className="bg-surface-50 rounded-3xl p-6 border border-surface-100">
-              <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-5">
+            <div className="bg-surface-50 rounded-lg p-5 border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10">
+              <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-3 flex items-center">
                 <UserIcon className="h-4 w-4 mr-2" />
-                Informations du Demandeur
+                Informations du Formateur
               </h3>
               <div className="space-y-1">
-                <p className="text-surface-900 font-black text-lg tracking-tight">{demande.utilisateurNom}</p>
+                <p className="text-surface-900 font-black text-base sm:text-lg tracking-tight">{demande.utilisateurNom}</p>
                 <p className="text-surface-500 text-xs font-bold uppercase tracking-widest">{demande.utilisateurEmail}</p>
               </div>
             </div>
 
-            <div className="bg-primary-50/30 rounded-3xl p-6 border border-primary-100">
-              <h3 className="text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-4 flex items-center">
+            <div className="bg-primary-50/30 rounded-lg p-5 border-2 border-jb-cyan/20 ring-1 ring-inset ring-jb-green/10">
+              <h3 className="text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-3 flex items-center">
                 <MapPinIcon className="h-4 w-4 mr-2" />
                 Destination Souhaitée
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="flex items-start gap-4">
-                  <div className="p-2.5 bg-white rounded-xl shadow-soft text-primary-600 shrink-0">
+                  <div className="p-2 bg-white rounded-xl shadow-soft text-primary-600 shrink-0 border-2 border-jb-green/20">
                     <BuildingOfficeIcon className="h-5 w-5" />
                   </div>
                   <div>
@@ -111,23 +106,23 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-surface-50 rounded-3xl p-6 border border-surface-100 h-full flex flex-col">
-              <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+          <div className="space-y-5">
+            <div className="bg-surface-50 rounded-lg p-5 border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10 h-full flex flex-col">
+              <h3 className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] mb-3 flex items-center">
                 <DocumentTextIcon className="h-4 w-4 mr-2" />
                 Motif & Justificatif
               </h3>
-              <div className="bg-white/50 p-6 rounded-2xl border border-surface-100 mb-6 flex-1">
-                <p className="text-surface-700 italic text-sm font-bold leading-relaxed">
+              <div className="bg-white/50 p-4 rounded-lg border-2 border-jb-cyan/20 mb-4 flex-1">
+                <p className="text-surface-700 italic text-sm font-bold leading-relaxed max-h-24 overflow-y-auto custom-scrollbar pr-1">
                   "{demande.motif}"
                 </p>
               </div>
               {demande.documentJoint && (
-                <a 
-                  href={`${import.meta.env.VITE_API_URL}/storage/${demande.documentJoint}`} 
-                  target="_blank" 
+                <a
+                  href={`${import.meta.env.VITE_API_URL}/storage/${demande.documentJoint}`}
+                  target="_blank"
                   rel="noreferrer"
-                  className="flex items-center justify-between p-4 bg-white rounded-2xl border border-surface-200 hover:border-primary-300 transition-standard group shadow-soft"
+                  className="flex items-center justify-between p-3.5 bg-white rounded-lg border-2 border-jb-green/20 hover:border-primary-300 transition-standard group shadow-soft"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary-50 rounded-xl text-primary-600 group-hover:scale-110 transition-standard">
@@ -143,7 +138,7 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
         </div>
 
         {/* Formulaire de décision */}
-        <div className="pt-10 border-t border-surface-100 space-y-10">
+        <div className="pt-6 border-t-2 border-jb-cyan/15 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black text-surface-900 uppercase tracking-[0.2em] flex items-center">
               <ChatBubbleLeftRightIcon className="h-5 w-5 mr-3 text-primary-600" />
@@ -154,35 +149,35 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
               <span>Soumis le {demande.dateDemande}</span>
             </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <button
               onClick={() => setDecision('VALIDE')}
-              className={`p-8 rounded-[2.5rem] border-2 transition-standard flex flex-col items-center text-center gap-4 ${
-                decision === 'VALIDE' 
-                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-primary' 
-                  : 'border-surface-100 bg-surface-50 text-surface-400 hover:border-primary-200 hover:bg-primary-50/30'
+              className={`p-6 rounded-lg border-2 transition-standard flex flex-col items-center text-center gap-4 ${
+                decision === 'VALIDE'
+                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-primary'
+                  : 'border-2 border-jb-green/20 bg-surface-50 text-surface-400 hover:border-primary-200 hover:bg-primary-50/30'
               }`}
             >
-              <div className={`p-4 rounded-2xl transition-standard ${decision === 'VALIDE' ? 'bg-primary-500 text-white shadow-lg' : 'bg-white text-surface-200 shadow-soft'}`}>
-                <CheckCircleIcon className="w-8 h-8" />
+              <div className={`p-3 rounded-lg transition-standard ${decision === 'VALIDE' ? 'bg-primary-500 text-white shadow-lg' : 'bg-white text-surface-200 shadow-soft'}`}>
+                <CheckCircleIcon className="w-7 h-7" />
               </div>
               <div>
                 <p className="font-black uppercase tracking-[0.2em] text-xs">Approuver</p>
                 <p className="text-[10px] font-bold mt-1 opacity-60">Valider la permutation</p>
               </div>
             </button>
-            
+
             <button
               onClick={() => setDecision('REFUSE')}
-              className={`p-8 rounded-[2.5rem] border-2 transition-standard flex flex-col items-center text-center gap-4 ${
-                decision === 'REFUSE' 
-                  ? 'border-red-500 bg-red-50 text-red-700 shadow-soft shadow-red-500/10' 
-                  : 'border-surface-100 bg-surface-50 text-surface-400 hover:border-red-200 hover:bg-red-50/30'
+              className={`p-6 rounded-lg border-2 transition-standard flex flex-col items-center text-center gap-4 ${
+                decision === 'REFUSE'
+                  ? 'border-red-500 bg-red-50 text-red-700 shadow-soft shadow-red-500/10'
+                  : 'border-2 border-jb-cyan/20 bg-surface-50 text-surface-400 hover:border-red-200 hover:bg-red-50/30'
               }`}
             >
-              <div className={`p-4 rounded-2xl transition-standard ${decision === 'REFUSE' ? 'bg-red-500 text-white shadow-lg' : 'bg-white text-surface-200 shadow-soft'}`}>
-                <XCircleIcon className="w-8 h-8" />
+              <div className={`p-3 rounded-lg transition-standard ${decision === 'REFUSE' ? 'bg-red-500 text-white shadow-lg' : 'bg-white text-surface-200 shadow-soft'}`}>
+                <XCircleIcon className="w-7 h-7" />
               </div>
               <div>
                 <p className="font-black uppercase tracking-[0.2em] text-xs">Rejeter</p>
@@ -191,9 +186,9 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <label className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em] ml-2">
-              Commentaire de décision *
+              Commentaire de décision (optionnel)
             </label>
             <textarea
               value={commentaire}
@@ -201,8 +196,8 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
                 setCommentaire(e.target.value);
                 if (error) setError('');
               }}
-              rows="4"
-              className="input-field py-5 px-6 min-h-[120px] resize-none font-bold"
+              rows="3"
+              className="input-field py-4 px-5 min-h-[96px] resize-none font-bold"
               placeholder="Veuillez justifier votre décision..."
               disabled={loading}
             />
@@ -210,11 +205,11 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
 
           <AnimatePresence>
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="p-5 rounded-2xl bg-red-50 border border-red-100 flex items-center gap-3 text-red-600"
+                className="p-4 rounded-lg bg-red-50 border border-red-100 flex items-center gap-3 text-red-600"
               >
                 <XCircleIcon className="h-5 w-5 shrink-0" />
                 <p className="text-[10px] font-black uppercase tracking-widest">{error}</p>
@@ -224,22 +219,22 @@ const TraitementDemandeModal = ({ isOpen, onClose, demande, onTraiter }) => {
         </div>
 
         {/* Boutons d'action */}
-        <div className="flex flex-col sm:flex-row justify-end gap-4 pt-6 border-t border-surface-50">
-          <Button 
-            variant="outline" 
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t-2 border-jb-cyan/15">
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={loading}
-            className="w-full sm:w-auto px-10"
+            className="w-full sm:w-auto px-8"
           >
             Annuler
           </Button>
-          
-          <Button 
-            variant="primary" 
+
+          <Button
+            variant="primary"
             onClick={handleSubmit}
             loading={loading}
-            disabled={!decision || !commentaire.trim()}
-            className="w-full sm:w-auto px-12 shadow-primary"
+            disabled={!decision}
+            className="w-full sm:w-auto px-10 shadow-primary"
           >
             Confirmer la décision
           </Button>

@@ -22,7 +22,7 @@ const SingleEstablishmentCard = ({ establishment, onEdit, onToggleStatus }) => {
   };
 
   return (
-    <Card className="p-10 bg-white rounded-[2.5rem] border border-surface-100 shadow-sm overflow-hidden relative group">
+    <Card className="p-10 bg-white rounded-lg border border-surface-100 shadow-[0_26px_58px_-34px_rgba(15,23,42,0.22)] overflow-hidden relative group">
       {/* Decorative background element */}
       <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-primary-50 rounded-full opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
       
@@ -36,7 +36,7 @@ const SingleEstablishmentCard = ({ establishment, onEdit, onToggleStatus }) => {
                 <span>Identifiant Établissement</span>
               </div>
             </div>
-            <div className={`inline-flex items-center px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest ${
+            <div className={`inline-flex items-center px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest ${
               establishment.actif 
                 ? 'bg-teal-50 text-teal-600 border border-teal-100' 
                 : 'bg-rose-50 text-rose-600 border border-rose-100'
@@ -47,7 +47,7 @@ const SingleEstablishmentCard = ({ establishment, onEdit, onToggleStatus }) => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
-            <div className="p-6 rounded-3xl bg-surface-50 border border-surface-100 space-y-3">
+            <div className="p-6 rounded-lg bg-surface-50 border border-surface-100 space-y-3">
               <div className="flex items-center space-x-2 text-[10px] font-black text-surface-500 uppercase tracking-widest">
                 <TagIcon className="h-4 w-4 text-primary-500" />
                 <span>Code Système</span>
@@ -55,7 +55,7 @@ const SingleEstablishmentCard = ({ establishment, onEdit, onToggleStatus }) => {
               <p className="text-xl font-bold text-surface-900 font-mono tracking-wider">{establishment.code}</p>
             </div>
             
-            <div className="p-6 rounded-3xl bg-surface-50 border border-surface-100 space-y-3">
+            <div className="p-6 rounded-lg bg-surface-50 border border-surface-100 space-y-3">
               <div className="flex items-center space-x-2 text-[10px] font-black text-surface-500 uppercase tracking-widest">
                 <MapPinIcon className="h-4 w-4 text-primary-500" />
                 <span>Adresse & Localisation</span>
@@ -84,7 +84,7 @@ const SingleEstablishmentCard = ({ establishment, onEdit, onToggleStatus }) => {
         
         <button
           onClick={() => onEdit(establishment)}
-          className="flex items-center space-x-3 px-8 py-4 bg-white border-2 border-primary-100 text-primary-600 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-primary-50 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-500/10 transition-all group"
+          className="flex items-center space-x-3 px-8 py-4 bg-white border-2 border-primary-100 text-primary-600 rounded-lg font-black uppercase tracking-widest text-[10px] hover:bg-primary-50 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-500/10 transition-all group"
         >
           <PencilIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
           <span>Modifier les informations</span>

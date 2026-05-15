@@ -6,6 +6,7 @@ import Sidebar from "./Sidebar";
 import TechBackground from "../components/TechBackground";
 import { ExclamationTriangleIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
+import { DashboardSurfaceContext } from "../context/DashboardSurfaceContextBase";
 
 const Layout = ({ children }) => {
   const navigate = useNavigate();
@@ -22,8 +23,13 @@ const Layout = ({ children }) => {
 
   const showVerificationBanner = user && !user.email_verified_at;
 
+  const sidebarWidthClass = sidebarOpen ? "lg:[--sidebar-width:16rem]" : "lg:[--sidebar-width:5rem]";
+
   return (
-    <div className="flex flex-col min-h-screen text-surface-900 antialiased relative">
+    <div
+      className={`relative min-h-screen overflow-x-hidden bg-[var(--dashboard-shell-bg)] text-surface-900 antialiased ${sidebarWidthClass}`}
+      style={{ "--dashboard-shell-bg": "radial-gradient(circle_at_top_left,rgba(24,168,116,0.13),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_24%),linear-gradient(135deg,#eef2f7_0%,#e4efe8_46%,#d4e5da_100%)" }}
+    >
       <TechBackground />
       
       {/* Verification Warning Banner */}
@@ -48,84 +54,87 @@ const Layout = ({ children }) => {
       <Navbar
         onMenuClick={() => setSidebarOpen(!sidebarOpen)}
         userRole={userRole}
-        isSidebarOpen={sidebarOpen}
       />
 
-      <div className="flex flex-1 relative overflow-hidden">
-        {/* Sidebar below header */}
+      <DashboardSurfaceContext.Provider value={true}>
         <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
           userRole={userRole}
         />
-        
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col min-w-0 transition-standard bg-surface-50/30">
-          <div className="flex-1 p-3 sm:p-6 lg:p-8 xl:p-10 max-w-full overflow-x-hidden">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-            >
-              {children}
-            </motion.div>
-          </div>
-        </main>
-      </div>
-      
-      {/* Footer Section */}
-      <footer className="bg-white border-t border-surface-100 py-12 z-10">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-            <div className="col-span-1 md:col-span-1 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary-500 rounded-xl flex items-center justify-center shadow-primary">
-                  <ShieldCheckIcon className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-black text-surface-900 tracking-tight">OFPPT</span>
+
+        <div className="dashboard-surface surface-page relative z-10 min-h-[calc(100vh-4rem)]">
+          <div className="lg:pl-[var(--sidebar-width)] transition-[padding-left] duration-300">
+            {/* Main Content */}
+            <main className="flex-1 flex flex-col min-w-0 transition-standard bg-transparent">
+              <div className="flex-1 p-3 sm:p-5 lg:p-6 xl:p-8 max-w-full overflow-x-hidden">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                >
+                  {children}
+                </motion.div>
               </div>
-              <p className="text-xs font-bold text-surface-600 uppercase tracking-widest leading-relaxed">
-                Système de gestion des permutations professionnelles.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <h4 className="text-xs font-black text-surface-900 uppercase tracking-widest">Navigation</h4>
-              <ul className="space-y-2">
-                <li><Link to="/" className="text-sm font-bold text-surface-600 hover:text-primary-600 transition-standard">Accueil</Link></li>
-                <li><Link to="/profile" className="text-sm font-bold text-surface-600 hover:text-primary-600 transition-standard">Profil</Link></li>
-              </ul>
-            </div>
+            </main>
 
-            <div className="space-y-4">
-              <h4 className="text-xs font-black text-surface-900 uppercase tracking-widest">Support</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-sm font-bold text-surface-600 hover:text-primary-600 transition-standard">Centre d'aide</a></li>
-                <li><a href="#" className="text-sm font-bold text-surface-600 hover:text-primary-600 transition-standard">Contact</a></li>
-              </ul>
-            </div>
+            {/* Footer Section */}
+            <footer className="mt-auto bg-gradient-to-br from-primary-950 via-primary-900 to-primary-800 text-white border-t border-primary-900/40 py-6 z-10">
+              <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="col-span-1 md:col-span-1 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/15 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)]">
+                        <ShieldCheckIcon className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="text-lg font-black text-white tracking-tight">OFPPT</span>
+                    </div>
+                    <p className="text-[11px] font-bold text-primary-100 uppercase tracking-widest leading-relaxed">
+                      Système de gestion des permutations professionnelles.
+                    </p>
+                  </div>
 
-            <div className="space-y-4 text-left md:text-right">
-              <h4 className="text-xs font-black text-surface-900 uppercase tracking-widest">Légal</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className="text-sm font-bold text-surface-600 hover:text-primary-600 transition-standard">Confidentialité</a></li>
-                <li><a href="#" className="text-sm font-bold text-surface-600 hover:text-primary-600 transition-standard">Mentions légales</a></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="mt-12 pt-8 border-t border-surface-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs font-black text-surface-500 uppercase tracking-widest">
-              © 2024 Office de la Formation Professionnelle et de la Promotion du Travail
-            </p>
-            <div className="flex gap-6">
-              <span className="w-2 h-2 rounded-full bg-primary-500"></span>
-              <span className="w-2 h-2 rounded-full bg-secondary-500"></span>
-              <span className="w-2 h-2 rounded-full bg-accent-500"></span>
-            </div>
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-white uppercase tracking-widest">Navigation</h4>
+                    <ul className="space-y-1.5">
+                      <li><Link to="/" className="text-sm font-bold text-primary-100 hover:text-white transition-standard">Accueil</Link></li>
+                      <li><Link to="/profile" className="text-sm font-bold text-primary-100 hover:text-white transition-standard">Profil</Link></li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-black text-white uppercase tracking-widest">Support</h4>
+                    <ul className="space-y-1.5">
+                      <li><a href="#" className="text-sm font-bold text-primary-100 hover:text-white transition-standard">Centre d'aide</a></li>
+                      <li><a href="#" className="text-sm font-bold text-primary-100 hover:text-white transition-standard">Contact</a></li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-3 text-left md:text-right">
+                    <h4 className="text-xs font-black text-white uppercase tracking-widest">Légal</h4>
+                    <ul className="space-y-1.5">
+                      <li><a href="#" className="text-sm font-bold text-primary-100 hover:text-white transition-standard">Confidentialité</a></li>
+                      <li><a href="#" className="text-sm font-bold text-primary-100 hover:text-white transition-standard">Mentions légales</a></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-3">
+                  <p className="text-[11px] font-black text-primary-100 uppercase tracking-widest">
+                    © 2024 Office de la Formation Professionnelle et de la Promotion du Travail
+                  </p>
+                  <div className="flex gap-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-300"></span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
+                  </div>
+                </div>
+              </div>
+            </footer>
           </div>
         </div>
-      </footer>
+      </DashboardSurfaceContext.Provider>
     </div>
   );
 };

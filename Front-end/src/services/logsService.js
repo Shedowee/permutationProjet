@@ -7,21 +7,28 @@ const mapLogFromApi = (l) => ({
   type: l.type || "view",
   date: l.date || "",
   ip: l.ip || "",
+  table: l.table || "",
+  record_id: l.record_id || null,
+  before: l.before || null,
+  after: l.after || null,
 });
 
-export const listLogs = async ({ q, type, date } = {}) => {
-  const params = {};
+export const listLogs = async ({ q, type, date, page = 1, limit = 5 } = {}) => {
+  const params = { page, limit };
   if (q) params.q = q;
   if (type) params.type = type;
   if (date) params.date = date;
 
   const res = await api.get("/api/logs", { params, withCredentials: true });
   const data = res.data?.data ?? [];
-  return data.map(mapLogFromApi);
+  const meta = res.data?.meta;
+  return {
+    data: data.map(mapLogFromApi),
+    meta
+  };
 };
 
 export const getLog = async (id) => {
   const res = await api.get(`/api/logs/${id}`, { withCredentials: true });
   return res.data?.data;
 };
-

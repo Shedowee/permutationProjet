@@ -1,106 +1,258 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { motion } from 'framer-motion';
+import { 
+  fetchEtablissements, 
+  createEtablissement, 
+  updateEtablissement, 
+  deleteEtablissement 
+} from '../redux/adminSlice';
 import Layout from '../../../shared/layouts/Layout';
-import SingleEstablishmentCard from '../components/SingleEstablishmentCard';
-import EstablishmentForm from '../components/EstablishmentForm';
+import Card from '../../../shared/components/Card';
+import Button from '../../../shared/components/Button';
 import Modal from '../../../shared/components/Modal';
-import { fetchEtablissement, updateEtablissement } from '../redux/adminSlice';
-import { BuildingOffice2Icon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import Table from '../../../shared/components/Table';
+import EstablishmentForm from '../components/EstablishmentForm';
+import { 
+  BuildingOffice2Icon, 
+  PlusIcon, 
+  PencilSquareIcon, 
+  TrashIcon,
+  MapPinIcon,
+  PhoneIcon,
+  EnvelopeIcon
+} from '@heroicons/react/24/outline';
 
-/**
- * Composant de gestion d'un seul établissement
- * 
- * Ce composant gère un seul établissement (pas de liste)
- * avec une interface utilisateur moderne basée sur une fiche unique.
- */
 const EtablissementManagement = () => {
   const dispatch = useDispatch();
-  const establishment = useSelector(state => state.admin.etablissement.data);
+  const { data: establishments, loading, error, meta } = useSelector(state => state.admin.etablissement);
   
-  // État pour gérer la modal
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  useEffect(() => {
-    dispatch(fetchEtablissement());
-  }, [dispatch]);
+  const [selectedEstablishment, setSelectedEstablishment] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
-  /**
-   * Fonction pour mettre à jour l'établissement
-   * @param {Object} updatedEstablishment - Les données mises à jour de l'établissement
-   */
-  const handleUpdate = (updatedEstablishment) => {
-    dispatch(updateEtablissement(updatedEstablishment));
-    setIsModalOpen(false);
+  useEffect(() => {
+    dispatch(fetchEtablissements({ page, limit, search: searchTerm }));
+  }, [dispatch, page, limit, searchTerm]);
+
+  const handleCreate = () => {
+    setSelectedEstablishment(null);
+    setIsModalOpen(true);
   };
 
+  const handleEdit = (etab) => {
+    setSelectedEstablishment(etab);
+    setIsModalOpen(true);
+  };
 
-  /**
-   * Fonction pour activer/désactiver l'établissement
-   */
-  const handleToggleStatus = () => {
-    if (establishment) {
-      dispatch(updateEtablissement({
-        ...establishment,
-        actif: !establishment.actif
-      }));
+  const handleDelete = async (id) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet établissement ?')) {
+      try {
+        await dispatch(deleteEtablissement(id)).unwrap();
+      } catch (err) {
+        alert(err || 'Erreur lors de la suppression');
+      }
     }
   };
 
-  /**
-   * Ouvre la modal pour modifier l'établissement
-   */
-  const openEditModal = () => {
-    setIsModalOpen(true);
-  }
+  const handleToggleActive = async (etab) => {
+    try {
+      await dispatch(updateEtablissement({
+        id: etab.id,
+        actif: !etab.actif,
+      })).unwrap();
+    } catch (err) {
+      alert(err || 'Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  const handleSubmit = async (formData) => {
+    try {
+      if (selectedEstablishment) {
+        await dispatch(updateEtablissement(formData)).unwrap();
+      } else {
+        await dispatch(createEtablissement(formData)).unwrap();
+      }
+      setIsModalOpen(false);
+    } catch (err) {
+      alert(err || 'Erreur lors de l\'enregistrement');
+    }
+  };
+
+  const filteredEstablishments = useMemo(() => establishments, [establishments]);
+
+  const columns = [
+    {
+      header: "Établissement",
+      key: "name",
+      render: (val, row) => (
+        <div className="flex flex-col">
+          <span className="font-bold text-surface-900">{val}</span>
+          <span className="text-[10px] text-surface-400 flex items-center mt-1">
+            <MapPinIcon className="w-3 h-3 mr-1" />
+            {row.address || 'Pas d\'adresse'}
+          </span>
+        </div>
+      )
+    },
+    {
+      header: "Ville / Région",
+      key: "ville",
+      render: (val, row) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-bold text-surface-700">{row.city_label || val?.value?.libelle || '—'}</span>
+          <span className="text-[10px] text-surface-400 uppercase tracking-widest">{row.region_label || val?.parent?.value?.libelle || '—'}</span>
+        </div>
+      )
+    },
+    {
+      header: "Contact",
+      key: "contact",
+      render: (_, row) => (
+        <div className="flex flex-col space-y-1">
+          {row.contact_email && (
+            <span className="text-[11px] text-surface-600 flex items-center">
+              <EnvelopeIcon className="w-3 h-3 mr-1 text-primary-500" />
+              {row.contact_email}
+            </span>
+          )}
+          {row.contact_phone && (
+            <span className="text-[11px] text-surface-600 flex items-center">
+              <PhoneIcon className="w-3 h-3 mr-1 text-primary-500" />
+              {row.contact_phone}
+            </span>
+          )}
+        </div>
+      )
+    },
+    {
+      header: "Statut",
+      key: "actif",
+      render: (val, row) => (
+        <div className="flex flex-col gap-2">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest w-fit ${
+            val 
+            ? 'bg-teal-500/10 text-teal-600 border border-teal-500/20' 
+            : 'bg-rose-500/10 text-rose-600 border border-rose-500/20'
+          }`}>
+            {val ? 'Actif' : 'Inactif'}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleToggleActive(row)}
+            className="w-fit text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-surface-200 text-surface-600 hover:text-primary-600 hover:border-primary-300 hover:bg-primary-50 transition-all"
+          >
+            {val ? 'Désactiver' : 'Activer'}
+          </button>
+        </div>
+      )
+    },
+    {
+      header: "Actions",
+      key: "actions",
+      render: (_, row) => (
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => handleEdit(row)}
+            className="p-2 text-surface-400 hover:text-primary-600 hover:bg-primary-50 transition-all rounded-lg"
+            title="Modifier"
+          >
+            <PencilSquareIcon className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => handleDelete(row.id)}
+            className="p-2 text-surface-400 hover:text-rose-600 hover:bg-rose-50 transition-all rounded-lg"
+            title="Supprimer"
+          >
+            <TrashIcon className="w-5 h-5" />
+          </button>
+        </div>
+      )
+    }
+  ];
 
   return (
     <Layout>
-      <div className="space-y-8 animate-fadeIn pb-12">
-        {/* En-tête de page */}
+      <div className="max-w-7xl mx-auto space-y-8 pb-12">
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-4 bg-white rounded-[1.5rem] shadow-sm border border-surface-100">
-              <BuildingOffice2Icon className="w-8 h-8 text-primary-600" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2 text-[10px] font-black text-primary-600 uppercase tracking-[0.2em] mb-1">
-                <ShieldCheckIcon className="h-3.5 w-3.5" />
-                <span>Administration</span>
+          <div>
+            <h1 className="text-4xl font-black text-surface-900 tracking-tight flex items-center">
+              <BuildingOffice2Icon className="w-10 h-10 mr-4 text-primary-600" />
+              Établissements
+            </h1>
+            <p className="text-surface-500 mt-2 font-medium">Gérez le réseau des centres OFPPT à travers le Maroc</p>
+          </div>
+          
+          <Button 
+            variant="primary" 
+            size="lg" 
+            icon={PlusIcon}
+            onClick={handleCreate}
+            className="shadow-[0_24px_50px_-28px_rgba(47,123,229,0.3)]"
+          >
+            Ajouter un établissement
+          </Button>
+        </div>
+
+        {/* Stats & Search */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <Card className="p-6 col-span-1">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-primary-500/10 rounded-lg text-primary-600">
+                <BuildingOffice2Icon className="w-6 h-6" />
               </div>
-              <h1 className="text-3xl font-black text-surface-900 tracking-tight">Fiche <span className="text-primary-600">Établissement</span></h1>
-              <p className="text-surface-600 text-sm font-bold">Gérez les informations de l'établissement unique</p>
+              <div>
+                <p className="text-[10px] font-black text-surface-400 uppercase tracking-[0.2em]">Total Centres</p>
+                <p className="text-2xl font-black text-surface-900">{establishments.length}</p>
+              </div>
             </div>
+          </Card>
+          
+          <div className="col-span-1 lg:col-span-3">
+            <Card className="p-2 h-full flex items-center px-4">
+              <input 
+                type="text"
+                placeholder="Rechercher par nom ou ville..."
+                value={searchTerm}
+                onChange={(e) => { setPage(1); setSearchTerm(e.target.value); }}
+                className="w-full bg-[#D8E9FB] border border-jb-cyan/20 rounded-lg focus:ring-2 focus:ring-jb-green/15 text-surface-900 font-bold placeholder:text-surface-400 px-2 py-3 sm:px-3"
+              />
+            </Card>
           </div>
         </div>
-        
-        {/* Fiche d'établissement unique */}
-        {establishment && (
-          <div className="max-w-4xl">
-            <SingleEstablishmentCard
-              establishment={establishment}
-              onEdit={openEditModal}
-              onToggleStatus={handleToggleStatus}
-            />
-          </div>
-        )}
-        
-        {/* Modal pour modifier l'établissement */}
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title="Modifier l'établissement"
-          size="lg"
-        >
-          {establishment && (
-            <EstablishmentForm
-              establishment={establishment}
-              onSubmit={handleUpdate}
-              onCancel={() => setIsModalOpen(false)}
-            />
-          )}
-        </Modal>
+
+        {/* List Section */}
+        <Card className="overflow-hidden border-none shadow-[0_32px_76px_-44px_rgba(15,23,42,0.24)]">
+          <Table 
+            columns={columns} 
+            data={filteredEstablishments} 
+            loading={loading}
+            pagination={{
+              currentPage: meta?.current_page || page,
+              totalPages: meta?.last_page || 1,
+              totalItems: meta?.total ?? filteredEstablishments.length,
+              onPageChange: (p) => setPage(p),
+              pageSize: limit,
+            }}
+          />
+        </Card>
       </div>
+
+      {/* Form Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={selectedEstablishment ? "Modifier l'établissement" : "Nouvel établissement"}
+        size="lg"
+      >
+        <EstablishmentForm 
+          establishment={selectedEstablishment}
+          onSubmit={handleSubmit}
+          onCancel={() => setIsModalOpen(false)}
+        />
+      </Modal>
     </Layout>
   );
 };

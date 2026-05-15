@@ -12,15 +12,14 @@ import {
   ExclamationTriangleIcon,
   XMarkIcon,
   ShieldCheckIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
-import { fetchUsers } from '../redux/adminSlice';
-import { listRoles } from '../../../services/adminService';
-import { selectSearchTerm } from '../../../shared/redux/searchSlice';
+import { fetchUsers, updateUser } from '../redux/adminSlice';
+import { listPermissions, listRoles, updateRolePermissions } from '../../../services/adminService';
 
 const AssignRoles = () => {
   const dispatch = useDispatch();
-  const globalSearchTerm = useSelector(selectSearchTerm);
   const users = useSelector(state => state.admin.users.data) || [];
   const [selectedUser, setSelectedUser] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
@@ -29,30 +28,35 @@ const AssignRoles = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [roles, setRoles] = useState([]);
-
-  // Filtrer les utilisateurs selon la recherche globale
-  const filteredUsers = React.useMemo(() => {
-    if (!globalSearchTerm) return users;
-    return users.filter(user => 
-      user.name.toLowerCase().includes(globalSearchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(globalSearchTerm.toLowerCase())
-    );
-  }, [users, globalSearchTerm]);
+  const [permissions, setPermissions] = useState([]);
+  const [rolePermissions, setRolePermissions] = useState([]);
+  const [permissionsDirty, setPermissionsDirty] = useState(false);
   
   useEffect(() => {
-    dispatch(fetchUsers());
+    dispatch(fetchUsers({ limit: -1 }));
   }, [dispatch]);
 
   useEffect(() => {
     (async () => {
       try {
-        const data = await listRoles();
-        setRoles(data);
+        const [rolesData, permissionsData] = await Promise.all([
+          listRoles(),
+          listPermissions(),
+        ]);
+        setRoles(rolesData);
+        setPermissions(permissionsData);
       } catch {
         setRoles([]);
+        setPermissions([]);
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const role = roles.find((item) => item.value === selectedRole);
+    setRolePermissions(role?.permissions || []);
+    setPermissionsDirty(false);
+  }, [selectedRole, roles]);
 
   const handleAssignRole = async () => {
     if (!selectedUser || !selectedRole) {
@@ -63,8 +67,11 @@ const AssignRoles = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call actual API via Redux thunk
+      await dispatch(updateUser({ 
+        id: selectedUser, 
+        userData: { role: selectedRole } 
+      })).unwrap();
       
       const user = users.find(u => u.id.toString() === selectedUser);
       if (user) {
@@ -76,17 +83,58 @@ const AssignRoles = () => {
           assignedAt: new Date().toLocaleString('fr-FR')
         };
         
-        setAssignedUsers(prev => [...prev, newAssignment]);
+        setAssignedUsers(prev => [newAssignment, ...prev]);
         setSuccessMessage(`Rôle "${selectedRole}" assigné à ${user.name} avec succès !`);
         setErrorMessage('');
         
         // Reset selections
         setSelectedUser('');
         setSelectedRole('');
+
+        // Refresh users list from server
+        dispatch(fetchUsers({ limit: -1 }));
       }
     } catch (error) {
       console.error('Error assigning role:', error);
-      setErrorMessage("Une erreur s'est produite lors de l'attribution du rôle.");
+      setErrorMessage(error || "Une erreur s'est produite lors de l'attribution du rôle.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const togglePermission = (permissionName) => {
+    setRolePermissions((current) => {
+      const next = current.includes(permissionName)
+        ? current.filter((name) => name !== permissionName)
+        : [...current, permissionName];
+      return next;
+    });
+    setPermissionsDirty(true);
+  };
+
+  const handleSavePermissions = async () => {
+    const role = roles.find((item) => item.value === selectedRole);
+    if (!role) {
+      setErrorMessage('Veuillez sélectionner un rôle.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const updated = await updateRolePermissions(role.id, rolePermissions);
+      setRoles((current) =>
+        current.map((item) =>
+          item.id === role.id
+            ? { ...item, permissions: updated?.permissions?.map((p) => p.name) || rolePermissions }
+            : item
+        )
+      );
+      setSuccessMessage(`Permissions du rôle "${role.label}" mises à jour avec succès !`);
+      setErrorMessage('');
+      setPermissionsDirty(false);
+    } catch (err) {
+      console.error('Error updating permissions:', err);
+      setErrorMessage(err.response?.data?.message || "Impossible de mettre à jour les permissions.");
     } finally {
       setIsSubmitting(false);
     }
@@ -116,7 +164,7 @@ const AssignRoles = () => {
         {/* En-tête de page */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center space-x-4">
-            <div className="p-4 bg-white rounded-[1.5rem] shadow-sm border border-surface-100">
+            <div className="p-4 bg-white rounded-lg shadow-[0_22px_46px_-26px_rgba(15,159,181,0.28)] border-2 border-jb-cyan/20 ring-1 ring-inset ring-jb-green/10">
               <KeyIcon className="w-8 h-8 text-primary-600" />
             </div>
             <div>
@@ -130,17 +178,17 @@ const AssignRoles = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Role Assignment Card */}
-          <Card className="p-8 bg-white rounded-[2rem] border border-surface-100 shadow-sm">
-            <h2 className="text-xs font-black text-surface-900 uppercase tracking-[0.2em] mb-8 flex items-center border-b border-surface-50 pb-4">
+          <Card className="lg:col-span-7 p-8 lg:p-10 bg-white rounded-lg border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10 shadow-[0_30px_72px_-42px_rgba(12,122,59,0.28)]">
+            <h2 className="text-xs font-black text-surface-900 uppercase tracking-[0.2em] mb-8 flex items-center border-b-2 border-jb-green/15 pb-4">
               <KeyIcon className="w-5 h-5 mr-3 text-primary-500" />
               Nouvelle Attribution
             </h2>
             
             <div className="space-y-8">
               {successMessage && (
-                <div className="p-5 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-between animate-slideUp">
+                <div className="p-5 rounded-lg bg-teal-50 border border-teal-100 flex items-center justify-between animate-slideUp">
                   <div className="flex items-center">
                     <CheckCircleIcon className="w-5 h-5 text-teal-600 mr-3" />
                     <span className="text-xs font-black text-teal-700 uppercase tracking-widest">{successMessage}</span>
@@ -155,7 +203,7 @@ const AssignRoles = () => {
               )}
               
               {errorMessage && (
-                <div className="p-5 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-between animate-slideUp">
+                <div className="p-5 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-between animate-slideUp">
                   <div className="flex items-center">
                     <ExclamationTriangleIcon className="w-5 h-5 text-rose-600 mr-3" />
                     <span className="text-xs font-black text-rose-700 uppercase tracking-widest">{errorMessage}</span>
@@ -177,10 +225,10 @@ const AssignRoles = () => {
                   <select
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full bg-surface-50 border-2 border-jb-green/20 rounded-lg px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
                   >
                     <option value="">Sélectionnez un utilisateur</option>
-                    {filteredUsers.map(user => (
+                    {users.map(user => (
                       <option key={user.id} value={user.id.toString()}>
                         {user.name} - {user.email}
                       </option>
@@ -200,7 +248,7 @@ const AssignRoles = () => {
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
-                    className="w-full bg-surface-50 border border-surface-200 rounded-2xl px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
+                    className="w-full bg-surface-50 border-2 border-jb-cyan/20 rounded-lg px-6 py-4 text-surface-900 font-bold focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all appearance-none cursor-pointer"
                   >
                     <option value="">Sélectionnez un rôle</option>
                     {roles.map(role => (
@@ -212,30 +260,91 @@ const AssignRoles = () => {
                   </div>
                 </div>
               </div>
-              
+
+              {selectedRole && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] font-black text-surface-600 uppercase tracking-[0.2em] ml-1">
+                      Permissions du rôle
+                    </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSavePermissions}
+                      disabled={!permissionsDirty || isSubmitting}
+                      className="px-4"
+                    >
+                      <CheckIcon className="w-4 h-4 mr-2" />
+                      Enregistrer
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[280px] overflow-y-auto pr-1">
+                    {permissions.map((permission) => {
+                      const checked = rolePermissions.includes(permission.name);
+                      return (
+                        <button
+                          key={permission.id}
+                          type="button"
+                          onClick={() => togglePermission(permission.name)}
+                          className={`p-4 rounded-lg border text-left transition-all ${
+                            checked
+                              ? 'bg-primary-50 border-primary-200 shadow-[0_14px_28px_-18px_rgba(47,123,229,0.2)]'
+                              : 'bg-white border-2 border-jb-green/20 hover:border-primary-200'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center ${
+                              checked ? 'bg-primary-500 border-primary-500 text-white' : 'border-2 border-jb-cyan/20'
+                            }`}>
+                              {checked && <CheckIcon className="w-3.5 h-3.5" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-surface-900">{permission.name}</p>
+                              <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest mt-1">
+                                {permission.description || 'Aucune description'}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {selectedUser && selectedRole && (
-                <div className="p-6 rounded-2xl bg-primary-50/50 border border-primary-100 space-y-4 animate-slideUp">
+                <div className="p-6 rounded-lg bg-primary-50/50 border border-primary-100 space-y-4 animate-slideUp">
                   <h3 className="text-[10px] font-black text-primary-600 uppercase tracking-widest flex items-center">
                     <CheckCircleIcon className="w-4 h-4 mr-2" />
                     Résumé de l'attribution
                   </h3>
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-surface-600 uppercase tracking-widest">Utilisateur</span>
-                      <span className="text-sm font-bold text-surface-900">{users.find(u => u.id.toString() === selectedUser)?.name}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-surface-600 uppercase tracking-widest">Nouveau rôle</span>
-                      <span className="px-3 py-1 bg-primary-500 text-white text-[10px] font-black rounded-full uppercase tracking-widest">{selectedRole}</span>
-                    </div>
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-surface-600 uppercase tracking-widest">Utilisateur</span>
+                  <span className="text-sm font-bold text-surface-900">{users.find(u => u.id.toString() === selectedUser)?.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-black text-surface-600 uppercase tracking-widest">Nouveau rôle</span>
+                  <span className="px-3 py-1 bg-primary-500 text-white text-[10px] font-black rounded-full uppercase tracking-widest">{selectedRole}</span>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[10px] font-black text-surface-600 uppercase tracking-widest">Permissions associées</span>
+                  <div className="flex flex-wrap gap-2">
+                    {(rolePermissions || []).map((permission) => (
+                      <span key={permission} className="px-2.5 py-1 rounded-full bg-surface-100 text-surface-700 text-[9px] font-black uppercase tracking-widest border-2 border-jb-green/20">
+                        {permission}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
+          )}
               
               <div className="pt-4">
                 <Button 
                   variant="primary" 
-                  className="w-full py-4 rounded-2xl shadow-xl shadow-primary-500/20 flex items-center justify-center group"
+                  className="w-full py-4 rounded-lg shadow-[0_24px_50px_-28px_rgba(47,123,229,0.3)] flex items-center justify-center group"
                   onClick={handleAssignRole}
                   disabled={!selectedUser || !selectedRole || isSubmitting}
                 >
@@ -256,49 +365,49 @@ const AssignRoles = () => {
           </Card>
           
           {/* Recent Assignments Card */}
-          <Card className="p-8 bg-white rounded-[2rem] border border-surface-100 shadow-sm flex flex-col">
-            <h2 className="text-xs font-black text-surface-900 uppercase tracking-[0.2em] mb-8 flex items-center border-b border-surface-50 pb-4">
-              <UserIcon className="w-5 h-5 mr-3 text-secondary-500" />
+          <Card className="lg:col-span-3 p-4 lg:p-5 bg-white rounded-lg border-2 border-jb-cyan/20 ring-1 ring-inset ring-jb-green/10 shadow-[0_28px_64px_-38px_rgba(15,159,181,0.28)] flex flex-col h-fit">
+            <h2 className="text-[10px] font-black text-surface-900 uppercase tracking-[0.22em] mb-4 flex items-center border-b-2 border-jb-cyan/15 pb-2">
+              <UserIcon className="w-4 h-4 mr-2 text-secondary-500" />
               Assignations récentes
             </h2>
             
             {assignedUsers.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-16 h-16 bg-surface-50 rounded-full flex items-center justify-center mb-4">
-                  <UserIcon className="w-8 h-8 text-surface-300" />
+              <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
+                <div className="w-14 h-14 bg-surface-50 rounded-full flex items-center justify-center mb-3">
+                  <UserIcon className="w-7 h-7 text-surface-300" />
                 </div>
                 <p className="text-xs font-black text-surface-600 uppercase tracking-widest">Aucune attribution récente</p>
               </div>
             ) : (
-              <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
+              <div className="space-y-2.5 flex-1 overflow-y-auto custom-scrollbar pr-1">
                 {assignedUsers.map((assignment, index) => (
                   <motion.div 
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     key={index} 
-                    className="p-5 rounded-2xl bg-surface-50 border border-surface-100 group hover:border-primary-200 transition-all"
+                    className="p-3.5 rounded-lg bg-surface-50 border-2 border-jb-green/20 group hover:border-primary-200 transition-all"
                   >
                     <div className="flex justify-between items-start">
-                      <div className="space-y-3">
+                      <div className="space-y-2.5">
                         <div>
-                          <h4 className="font-black text-surface-900 text-sm uppercase tracking-tight">{assignment.userName}</h4>
-                          <p className="text-[10px] font-bold text-surface-600 uppercase tracking-widest">{assignment.userEmail}</p>
+                          <h4 className="font-black text-surface-900 text-[11px] uppercase tracking-tight">{assignment.userName}</h4>
+                          <p className="text-[9px] font-bold text-surface-600 uppercase tracking-widest">{assignment.userEmail}</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-secondary-50 text-secondary-600 border border-secondary-100">
+                        <div className="flex items-center gap-2.5">
+                          <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-secondary-50 text-secondary-600 border-2 border-jb-cyan/20">
                             {assignment.newRole}
                           </span>
-                          <span className="text-[9px] font-bold text-surface-500 uppercase tracking-tighter">
+                          <span className="text-[8px] font-bold text-surface-500 uppercase tracking-tighter">
                             {assignment.assignedAt}
                           </span>
                         </div>
                       </div>
                       <button 
                         onClick={() => handleRemoveAssignment(assignment.userId)}
-                        className="p-2.5 rounded-xl bg-white border border-surface-200 text-surface-500 hover:text-rose-600 hover:border-rose-200 hover:shadow-sm transition-all"
+                        className="p-2 rounded-xl bg-white border-2 border-jb-cyan/20 text-surface-500 hover:text-rose-600 hover:border-rose-200 hover:shadow-[0_14px_26px_-16px_rgba(244,63,94,0.2)] transition-all"
                         title="Retirer l'attribution"
                       >
-                        <ExclamationCircleIcon className="w-5 h-5" />
+                        <ExclamationCircleIcon className="w-4 h-4" />
                       </button>
                     </div>
                   </motion.div>
@@ -309,28 +418,28 @@ const AssignRoles = () => {
         </div>
         
         {/* Users List Card */}
-        <Card className="p-8 bg-white rounded-[2rem] border border-surface-100 shadow-sm">
-          <div className="flex items-center justify-between mb-8 border-b border-surface-50 pb-4">
+        <Card className="p-8 bg-white rounded-lg border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10 shadow-[0_30px_72px_-42px_rgba(12,122,59,0.28)]">
+          <div className="flex items-center justify-between mb-8 border-b-2 border-jb-green/15 pb-4">
             <h2 className="text-xs font-black text-surface-900 uppercase tracking-[0.2em] flex items-center">
               <UserGroupIcon className="w-5 h-5 mr-3 text-primary-500" />
               Liste des Utilisateurs
             </h2>
-            <span className="px-3 py-1 bg-surface-50 text-surface-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-surface-100">
+            <span className="px-3 py-1 bg-surface-50 text-surface-600 text-[10px] font-black rounded-full uppercase tracking-widest border-2 border-jb-cyan/20">
               {users.length} Total
             </span>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {users.map((user, idx) => (
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 key={user.id} 
-                className="p-6 rounded-2xl bg-surface-50 border border-surface-100 hover:border-primary-200 hover:shadow-soft transition-all group"
+                className="p-6 rounded-lg bg-surface-50 border-2 border-jb-green/20 hover:border-primary-200 hover:shadow-soft transition-all group"
               >
                 <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-white border border-surface-100 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform shadow-sm">
+                  <div className="w-12 h-12 rounded-lg bg-white border-2 border-jb-cyan/20 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform shadow-[0_14px_26px_-16px_rgba(15,159,181,0.2)]">
                     <UserIcon className="w-6 h-6 text-primary-500" />
                   </div>
                   <div className="min-w-0">
@@ -341,12 +450,12 @@ const AssignRoles = () => {
                 
                 <div className="flex justify-between items-center gap-2">
                   <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary-50 text-primary-600 border border-primary-100">
-                    {user.role}
+                    {typeof user.role === 'object' ? user.role?.name : user.role}
                   </span>
                   <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                    user.status === 'actif' ? 'bg-teal-50 text-teal-600 border border-teal-100' :
-                    user.status === 'bloque' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                    'bg-amber-50 text-amber-600 border border-amber-100'
+                    user.status === 'active' ? 'bg-teal-50 text-teal-600 border border-teal-100' :
+                    user.status === 'blocked' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
+                    'bg-amber-50 text-amber-600 border-2 border-jb-green/20'
                   }`}>
                     {user.status}
                   </span>

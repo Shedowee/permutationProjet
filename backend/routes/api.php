@@ -12,7 +12,6 @@ use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\UtilisateursController;
 use App\Http\Controllers\AdminStatsController;
 use App\Http\Controllers\LogsController;
-use App\Http\Controllers\PermissionRequestController;
 
 // Public endpoints - CSRF protected by EnsureFrontendRequestsAreStateful middleware
 Route::post('/login', [AuthController::class, 'login']);
@@ -88,12 +87,6 @@ Route::middleware(['auth:sanctum', 'check.role'])->group(function () {
         Route::get('/logs/{log}', [LogsController::class, 'show'])->middleware('permission:read_log_actions');
         Route::get('/admin/stats', [AdminStatsController::class, 'index']);
 
-        // Permission Requests
-        Route::get('/permission-requests', [PermissionRequestController::class, 'index'])->middleware('permission:read_permission_requests');
-        Route::post('/permission-requests', [PermissionRequestController::class, 'store'])->middleware('permission:create_permission_requests');
-        Route::get('/permission-requests/{permissionRequest}', [PermissionRequestController::class, 'show'])->middleware('permission:read_permission_requests');
-        Route::patch('/permission-requests/{permissionRequest}/approve', [PermissionRequestController::class, 'approve'])->middleware('permission:approve_permission_requests');
-        Route::patch('/permission-requests/{permissionRequest}/reject', [PermissionRequestController::class, 'reject'])->middleware('permission:reject_permission_requests');
     });
 });
 

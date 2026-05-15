@@ -1,6 +1,10 @@
 import axios from "axios";
 
+// Use explicit backend API base URL; fall back to Laravel default dev port
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 const api = axios.create({
+  baseURL: BASE_URL,
   withCredentials: true,
   headers: {
     Accept: "application/json",

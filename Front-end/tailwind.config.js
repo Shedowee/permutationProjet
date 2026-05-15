@@ -7,6 +7,29 @@ export default {
         sans: ['Inter', 'Poppins', 'Open Sans', 'sans-serif'],
       },
       colors: {
+        jb: {
+          bg: {
+            main: '#FFFFFF',
+            section: '#F9FAFB',
+            card: '#FFFFFF',
+            elevated: '#F3F4F6',
+          },
+          border: '#E5E7EB',
+          text: {
+            primary: '#000000',
+            secondary: '#374151',
+            muted: '#6B7280',
+          },
+          magenta: '#009245',
+          red: '#EF4444',
+          orange: '#F59E0B',
+          blue: '#3B82F6',
+          purple: '#8B5CF6',
+          green: '#10B981',
+          yellow: '#FACC15',
+          'orange-soft': '#F97316',
+          cyan: '#06B6D4',
+        },
         primary: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -61,21 +84,23 @@ export default {
         }
       },
       boxShadow: {
-        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        'medium': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-        'hard': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        'primary': '0 4px 14px 0 rgba(0, 146, 69, 0.39)',
-        'secondary': '0 4px 14px 0 rgba(0, 114, 188, 0.39)',
+        'soft': '0 10px 28px -20px rgba(15, 31, 24, 0.22)',
+        'medium': '0 18px 40px -26px rgba(15, 31, 24, 0.28)',
+        'hard': '0 30px 62px -34px rgba(15, 31, 24, 0.34)',
+        'primary': '0 18px 34px -18px rgba(0, 146, 69, 0.48)',
+        'secondary': '0 18px 34px -18px rgba(47, 123, 229, 0.40)',
       },
       borderRadius: {
         'xl': '1rem',
         '2xl': '1.5rem',
         '3xl': '2rem',
+        '4xl': '2.5rem',
       },
       animation: {
         'fadeIn': 'fadeIn 0.5s ease-out forwards',
         'slideUp': 'slideUp 0.5s ease-out forwards',
         'scaleIn': 'scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'float': 'float 8s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -89,6 +114,10 @@ export default {
         scaleIn: {
           '0%': { opacity: '0', transform: 'scale(0.95)' },
           '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
         },
       },
     },

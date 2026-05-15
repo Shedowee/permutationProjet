@@ -1,0 +1,66 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor Guest
+actor "Authenticated User" as AuthUser
+actor Formateur
+actor Commission
+actor Admin
+
+Formateur --|> AuthUser
+Commission --|> AuthUser
+Admin --|> AuthUser
+
+rectangle "Permutation Management Platform" {
+  usecase "Register account" as UC_Register
+  usecase "Login / Logout" as UC_Login
+  usecase "Reset password" as UC_Reset
+  usecase "Verify email" as UC_Verify
+
+  usecase "View dashboard" as UC_Dashboard
+  usecase "Manage profile" as UC_Profile
+  usecase "View notifications" as UC_Notifications
+  usecase "Upload / delete documents" as UC_Documents
+
+  usecase "Create permutation request" as UC_CreateDemande
+  usecase "Edit / delete own request" as UC_EditDemande
+  usecase "Track own requests" as UC_TrackDemande
+  usecase "View validated requests" as UC_ValidatedDemande
+
+  usecase "Review permutation requests" as UC_ReviewDemande
+
+  usecase "Manage users" as UC_Users
+  usecase "Manage roles and permissions" as UC_Roles
+  usecase "Manage establishments" as UC_Etabs
+  usecase "Manage parameters" as UC_Params
+  usecase "View logs" as UC_Logs
+  usecase "View stats" as UC_Stats
+}
+
+Guest --> UC_Register
+Guest --> UC_Login
+Guest --> UC_Reset
+Guest --> UC_Verify
+
+AuthUser --> UC_Dashboard
+AuthUser --> UC_Profile
+AuthUser --> UC_Notifications
+AuthUser --> UC_Documents
+
+Formateur --> UC_CreateDemande
+Formateur --> UC_EditDemande
+Formateur --> UC_TrackDemande
+Formateur --> UC_ValidatedDemande
+
+Commission --> UC_ReviewDemande
+
+Admin --> UC_Users
+Admin --> UC_Roles
+Admin --> UC_Etabs
+Admin --> UC_Params
+Admin --> UC_Logs
+Admin --> UC_Stats
+
+@enduml

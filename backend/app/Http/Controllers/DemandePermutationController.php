@@ -10,6 +10,7 @@ use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class DemandePermutationController extends Controller
 {
@@ -344,6 +345,7 @@ class DemandePermutationController extends Controller
      * A pair is (A, B) where:
      *  - A.etablissement_souhaite == B.formateur.establishment_id
      *  - B.etablissement_souhaite == A.formateur.establishment_id
+     *  - Their formateur specialties are compatible
      *  - Both are pending (EN_ATTENTE)
      */
     public function matches(Request $request)
@@ -394,13 +396,15 @@ class DemandePermutationController extends Controller
         foreach ($demandes as $a) {
             $aCurrent = $a->formateur?->establishment_id;
             $aTarget = $a->etablissement_souhaite_id;
+            $aSpecialite = $a->formateur?->specialite;
             if (!$aCurrent || !$aTarget) continue;
             $candidates = $byEtabTarget[$aCurrent] ?? [];
             foreach ($candidates as $b) {
                 if ($b->id === $a->id) continue;
                 $bCurrent = $b->formateur?->establishment_id;
                 $bTarget = $b->etablissement_souhaite_id;
-                if ($bCurrent && $bTarget && $bTarget == $aCurrent && $aTarget == $bCurrent) {
+                $bSpecialite = $b->formateur?->specialite;
+                if ($bCurrent && $bTarget && $bTarget == $aCurrent && $aTarget == $bCurrent && $this->specialitiesCompatible($aSpecialite, $bSpecialite)) {
                     $key = implode('-', [min($a->id, $b->id), max($a->id, $b->id)]);
                     if (!isset($seen[$key])) {
                         $pairs[] = [
@@ -414,5 +418,36 @@ class DemandePermutationController extends Controller
         }
 
         return response()->json(['data' => $pairs]);
+    }
+
+    private function specialitiesCompatible(?string $left, ?string $right): bool
+    {
+        $left = $this->normalizeSpecialite($left);
+        $right = $this->normalizeSpecialite($right);
+
+        if ($left === '' || $right === '') {
+            return true;
+        }
+
+        if ($left === $right) {
+            return true;
+        }
+
+        if (str_contains($left, $right) || str_contains($right, $left)) {
+            return true;
+        }
+
+        similar_text($left, $right, $percent);
+
+        return $percent >= 70;
+    }
+
+    private function normalizeSpecialite(?string $value): string
+    {
+        return Str::of((string) $value)
+            ->ascii()
+            ->lower()
+            ->squish()
+            ->toString();
     }
 }
