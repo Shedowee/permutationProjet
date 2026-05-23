@@ -38,6 +38,7 @@ class LogAction extends Model
             'action' => $action,
             'table_name' => $tableName,
             'record_id' => $recordId,
+            'ip_address' => request()->ip(),
             'before' => $before,
             'after' => $after,
         ]);

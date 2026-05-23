@@ -50,6 +50,7 @@ class LogsController extends Controller
                     'type' => $mapType($log->action ?? ''),
                     'date' => optional($log->created_at)->format('Y-m-d H:i:s'),
                     'table' => $log->table_name ?? '',
+                    'record_id' => $log->record_id,
                     'ip' => $log->ip_address ?? '—',
                 ];
             });
@@ -66,6 +67,7 @@ class LogsController extends Controller
                 'type' => $mapType($log->action ?? ''),
                 'date' => optional($log->created_at)->format('Y-m-d H:i:s'),
                 'table' => $log->table_name ?? '',
+                'record_id' => $log->record_id,
                 'ip' => $log->ip_address ?? '—',
             ];
         });

@@ -25,10 +25,11 @@ class UserSeeder extends Seeder
                 'name' => 'System Administrator',
                 'password_hash' => Hash::make('Admin123!'),
                 'role_id' => $adminRole?->id,
-                'status' => 'actif',
+                'status' => 'active',
                 'email_verified_at' => now(),
                 'age' => 41,
-                'address' => 'Rabat, Maroc',
+                'phone' => '0600000001',
+                'address' => 'Siege OFPPT, Casablanca',
             ]
         );
 
@@ -46,10 +47,10 @@ class UserSeeder extends Seeder
                 'name' => $member['name'],
                 'password_hash' => Hash::make('Commission123!'),
                 'role_id' => $commissionRole?->id,
-                'status' => 'actif',
-                    'email_verified_at' => now(),
-                    'age' => 38,
-                    'address' => 'Casablanca, Maroc',
+                'status' => 'active',
+                'email_verified_at' => now(),
+                'age' => 38,
+                'address' => 'Casablanca, Maroc',
                 ]
             );
         }
@@ -70,7 +71,7 @@ class UserSeeder extends Seeder
                 'name' => $form['name'],
                 'password_hash' => Hash::make('Formateur123!'),
                 'role_id' => $formateurRole?->id,
-                'status' => 'actif',
+                'status' => 'active',
                 'email_verified_at' => now(),
                 'age' => 35,
                 'address' => 'Marrakech, Maroc',
@@ -85,7 +86,7 @@ class UserSeeder extends Seeder
                 'name' => 'Basic User',
                 'password_hash' => Hash::make('User123!'),
                 'role_id' => $userRole?->id,
-                'status' => 'actif',
+                'status' => 'active',
                 'email_verified_at' => now(),
                 'age' => 29,
                 'address' => 'Fès, Maroc',
@@ -99,7 +100,7 @@ class UserSeeder extends Seeder
                 'name' => 'Unassigned User',
                 'password_hash' => Hash::make('Profile123!'),
                 'role_id' => null,
-                'status' => 'actif',
+                'status' => 'active',
                 'email_verified_at' => now(),
                 'age' => 26,
                 'address' => 'Tanger, Maroc',

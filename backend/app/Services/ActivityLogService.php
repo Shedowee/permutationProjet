@@ -13,18 +13,29 @@ class ActivityLogService
      * @param int|null $userId
      * @param string $actionType
      * @param string $description
+     * @param string|null $tableName
+     * @param int|null $recordId
+     * @param array|null $before
+     * @param array|null $after
      * @return void
      */
-    public function log(?int $userId, string $actionType, string $description): void
-    {
+    public function log(
+        ?int $userId, 
+        string $actionType, 
+        string $description, 
+        ?string $tableName = null, 
+        ?int $recordId = null,
+        ?array $before = null,
+        ?array $after = null
+    ): void {
         LogAction::create([
             'user_id' => $userId,
             'action' => $actionType,
-            'table_name' => null, // Can be set if needed
-            'record_id' => null, // Can be set if needed
+            'table_name' => $tableName,
+            'record_id' => $recordId,
             'ip_address' => Request::ip(),
-            'before' => null,
-            'after' => ['description' => $description],
+            'before' => $before,
+            'after' => $after ?: ['description' => $description],
         ]);
     }
 }

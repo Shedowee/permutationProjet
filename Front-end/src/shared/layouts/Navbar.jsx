@@ -87,7 +87,7 @@ const Navbar = ({ onMenuClick, userRole }) => {
   };
 
   return (
-    <nav className="relative z-[110] w-full bg-gradient-to-r from-primary-950 via-primary-900 to-primary-700 text-white backdrop-blur-xl border-b border-primary-900/40 shadow-[0_18px_48px_-34px_rgba(0,146,69,0.45)]">
+    <nav className="sticky top-0 z-[110] w-full bg-gradient-to-r from-primary-950 via-primary-900 to-primary-700 text-white backdrop-blur-xl border-b border-primary-900/40 shadow-[0_18px_48px_-34px_rgba(0,146,69,0.45)]">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:pl-[calc(var(--sidebar-width)+1.5rem)] lg:pr-8 transition-[padding-left] duration-300">
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-3">
@@ -103,7 +103,7 @@ const Navbar = ({ onMenuClick, userRole }) => {
             {/* Logo */}
             <Link to="/" className="ml-2 sm:ml-4 lg:ml-0 flex items-center gap-3 group">
               <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/20 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)] group-hover:scale-105 transition-standard">
-                <ShieldCheckIcon className="h-5 w-5 text-white" />
+                <ShieldCheckIcon className="h-5 w-5 text-primary-300" />
               </div>
               <div className="hidden sm:flex flex-col">
                 <span className="text-lg font-black text-white tracking-tight leading-none">OFPPT</span>

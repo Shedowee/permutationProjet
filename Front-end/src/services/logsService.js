@@ -19,7 +19,7 @@ export const listLogs = async ({ q, type, date, page = 1, limit = 5 } = {}) => {
   if (type) params.type = type;
   if (date) params.date = date;
 
-  const res = await api.get("/api/logs", { params, withCredentials: true });
+  const res = await api.get("/api/admin/logs", { params, withCredentials: true });
   const data = res.data?.data ?? [];
   const meta = res.data?.meta;
   return {
@@ -29,6 +29,6 @@ export const listLogs = async ({ q, type, date, page = 1, limit = 5 } = {}) => {
 };
 
 export const getLog = async (id) => {
-  const res = await api.get(`/api/logs/${id}`, { withCredentials: true });
+  const res = await api.get(`/api/admin/logs/${id}`, { withCredentials: true });
   return res.data?.data;
 };

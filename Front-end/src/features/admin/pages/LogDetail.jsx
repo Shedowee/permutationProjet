@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import Layout from "../../../shared/layouts/Layout";
 import Card from "../../../shared/components/Card";
 import Button from "../../../shared/components/Button";
@@ -9,6 +10,14 @@ import {
   ArrowLeftIcon,
   InformationCircleIcon,
   CodeBracketIcon,
+  ClockIcon,
+  IdentificationIcon,
+  ComputerDesktopIcon,
+  TableCellsIcon,
+  ArrowPathIcon,
+  UserIcon,
+  EnvelopeIcon,
+  Square3Stack3DIcon
 } from "@heroicons/react/24/outline";
 
 const formatValue = (value) => {
@@ -17,18 +26,21 @@ const formatValue = (value) => {
   }
 
   if (typeof value === "object") {
-    return JSON.stringify(value, null, 2);
+    return <pre className="text-[10px] bg-jb-bg-elevated/50 p-3 rounded-lg overflow-x-auto border border-jb-border/50 font-mono text-jb-text-primary">{JSON.stringify(value, null, 2)}</pre>;
   }
 
   return String(value);
 };
 
-const DetailBlock = ({ label, value, mono = false }) => (
-  <div className="p-4 rounded-lg border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10 bg-jb-bg-main/60">
-    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-jb-text-muted mb-2">{label}</p>
-    <p className={`text-sm font-bold text-jb-text-primary break-words ${mono ? "font-mono" : ""}`}>
+const DetailItem = ({ label, value, icon: Icon, mono = false, fullWidth = false }) => (
+  <div className={`group flex flex-col gap-1.5 ${fullWidth ? 'col-span-full' : ''}`}>
+    <div className="flex items-center gap-2">
+      {Icon && <Icon className="w-3.5 h-3.5 text-jb-magenta/60 group-hover:text-jb-magenta transition-colors" />}
+      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-jb-text-muted">{label}</span>
+    </div>
+    <div className={`text-sm font-bold text-jb-text-primary px-3 py-2 rounded-xl bg-jb-bg-section/40 border border-jb-border/30 group-hover:border-jb-magenta/20 transition-all ${mono ? 'font-mono text-xs' : ''}`}>
       {formatValue(value)}
-    </p>
+    </div>
   </div>
 );
 
@@ -65,7 +77,7 @@ const LogDetail = () => {
     };
 
     loadLog();
-  }, [id]);
+  }, [id, navigate]);
 
   const beforeEntries = useMemo(() => Object.entries(log?.before || {}), [log?.before]);
   const afterEntries = useMemo(() => Object.entries(log?.after || {}), [log?.after]);
@@ -75,8 +87,8 @@ const LogDetail = () => {
       <Layout>
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="text-center space-y-4">
-            <div className="w-12 h-12 mx-auto rounded-full border-4 border-jb-green/20 border-t-jb-cyan animate-spin" />
-            <p className="text-jb-text-secondary font-medium">Chargement du détail...</p>
+            <div className="w-12 h-12 mx-auto rounded-full border-4 border-jb-green/20 border-t-jb-magenta animate-spin" />
+            <p className="text-jb-text-secondary font-black uppercase tracking-widest text-xs">Chargement du détail...</p>
           </div>
         </div>
       </Layout>
@@ -87,96 +99,152 @@ const LogDetail = () => {
     return (
       <Layout>
         <div className="max-w-2xl mx-auto text-center py-20">
-          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg inline-block mb-6">
-            <InformationCircleIcon className="h-12 w-12 text-red-500" />
+          <div className="p-6 bg-jb-red/10 border-2 border-jb-red/20 rounded-2xl inline-block mb-6 shadow-hard">
+            <InformationCircleIcon className="h-12 w-12 text-jb-red" />
           </div>
-          <h1 className="text-2xl font-black text-jb-text-primary mb-4">Log introuvable</h1>
-          <p className="text-jb-text-muted mb-8">{error || "L'entrée demandée n'existe plus."}</p>
-          <Button variant="secondary" onClick={() => navigate(-1)}>Retour</Button>
+          <h1 className="text-3xl font-black text-jb-text-primary mb-4 uppercase tracking-tight">Log introuvable</h1>
+          <p className="text-jb-text-muted font-medium mb-8">{error || "L'entrée demandée n'existe plus."}</p>
+          <Button variant="outline" onClick={() => navigate(-1)} icon={ArrowLeftIcon}>Retourner au journal</Button>
         </div>
       </Layout>
     );
   }
 
+  const getActionTypeColor = (type) => {
+    const t = String(type).toLowerCase();
+    if (t.includes('login') || t.includes('connexion')) return 'bg-jb-purple/10 text-jb-purple border-jb-purple/20';
+    if (t.includes('create') || t.includes('création')) return 'bg-jb-green/10 text-jb-green border-jb-green/20';
+    if (t.includes('delete') || t.includes('suppression')) return 'bg-jb-red/10 text-jb-red border-jb-red/20';
+    return 'bg-jb-cyan/10 text-jb-cyan border-jb-cyan/20';
+  };
+
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto space-y-6 pb-12">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2.5 rounded-xl bg-jb-bg-elevated border-2 border-jb-cyan/20 text-jb-text-secondary hover:text-jb-text-primary transition-standard"
-            >
-              <ArrowLeftIcon className="h-5 w-5" />
-            </button>
-            <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-jb-text-muted">Journal des activités</p>
-              <h1 className="text-2xl sm:text-3xl font-black text-jb-text-primary tracking-tight">{log.action || "Action"}</h1>
-              <p className="text-jb-text-secondary">{log.table || "—"} {log.record_id ? `#${log.record_id}` : ""}</p>
-            </div>
-          </div>
-          <div className="p-3 rounded-lg border bg-blue-500/10 border-blue-500/20 text-blue-500">
-            <DocumentTextIcon className="h-8 w-8" />
+      <div className="max-w-[1200px] mx-auto space-y-6 pb-12">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="group p-2.5 rounded-xl bg-white border border-jb-border text-jb-text-secondary hover:text-jb-magenta hover:border-jb-magenta/30 transition-all shadow-sm"
+            title="Retour"
+          >
+            <ArrowLeftIcon className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
+          </button>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-jb-magenta">Journal d'activité</p>
+            <h1 className="text-2xl font-black text-surface-900 tracking-tight uppercase">Détails de l'action</h1>
           </div>
         </div>
 
-        <Card className="p-6 sm:p-8 border-jb-green/20 max-w-none">
-          <div className="flex items-center justify-between gap-4 mb-5">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-jb-cyan/10 rounded-lg">
-                <CodeBracketIcon className="h-6 w-6 text-jb-cyan" />
+        <Card className="p-0 border-2 border-jb-green/10 shadow-hard overflow-hidden">
+          {/* Header Section Inside Card */}
+          <div className="p-6 sm:p-8 bg-gradient-to-r from-jb-bg-section to-white border-b border-jb-border">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className="p-4 rounded-2xl bg-jb-magenta/5 border-2 border-jb-magenta/10 text-jb-magenta shadow-inner">
+                  <DocumentTextIcon className="h-10 w-10" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-jb-text-primary tracking-tight uppercase leading-none">{log.action || "Action"}</h2>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${getActionTypeColor(log.type)}`}>
+                      {log.type || "view"}
+                    </span>
+                    <span className="text-[11px] font-bold text-jb-text-muted flex items-center gap-1.5">
+                      <TableCellsIcon className="w-3.5 h-3.5" />
+                      {log.table || "Système"} {log.record_id ? `• ID #${log.record_id}` : ""}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <h2 className="text-lg sm:text-xl font-black text-jb-text-primary uppercase tracking-wider">Détails</h2>
-            </div>
-            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border-2 bg-jb-bg-main border-jb-cyan/20 text-jb-text-muted">
-              {log.type || "view"}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <DetailBlock label="Log ID" value={log.id} mono />
-            <DetailBlock label="User ID" value={log.user_id} mono />
-            <DetailBlock label="Action" value={log.action} />
-            <DetailBlock label="Table" value={log.table} />
-            <DetailBlock label="Adresse IP" value={log.ip} mono />
-            <DetailBlock label="ID Enregistrement" value={log.record_id} mono />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <DetailBlock label="Utilisateur" value={log.user} />
-            <DetailBlock label="Email utilisateur" value={log.user_email} />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <DetailBlock label="Date" value={log.date} />
-            <DetailBlock label="Type" value={log.type} />
-          </div>
-
-          {(afterEntries.length > 0 || beforeEntries.length > 0) && (
-            <div className="mt-8 grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {afterEntries.length > 0 && (
-                <div>
-                  <h3 className="text-[10px] font-black text-jb-text-muted uppercase tracking-[0.2em] mb-3">Après action</h3>
-                  <div className="space-y-3">
-                    {afterEntries.map(([key, value]) => (
-                      <DetailBlock key={key} label={key} value={value} mono={typeof value === "object"} />
-                    ))}
-                  </div>
+              <div className="flex flex-col items-end gap-1.5">
+                <p className="text-[10px] font-black text-jb-text-muted uppercase tracking-widest">Date de l'action</p>
+                <div className="flex items-center gap-2 text-jb-text-primary">
+                  <ClockIcon className="w-4 h-4 text-jb-magenta" />
+                  <span className="text-sm font-black">{log.date}</span>
                 </div>
-              )}
-
-              {beforeEntries.length > 0 && (
-                <div>
-                  <h3 className="text-[10px] font-black text-jb-text-muted uppercase tracking-[0.2em] mb-3">Avant action</h3>
-                  <div className="space-y-3">
-                    {beforeEntries.map(([key, value]) => (
-                      <DetailBlock key={key} label={key} value={value} mono={typeof value === "object"} />
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Main Body Section */}
+          <div className="p-6 sm:p-8 space-y-10">
+            {/* Metadata Grid */}
+            <section>
+              <div className="flex items-center gap-3 mb-6">
+                <Square3Stack3DIcon className="w-4 h-4 text-jb-magenta" />
+                <h3 className="text-xs font-black text-jb-text-primary uppercase tracking-[0.2em]">Métadonnées techniques</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <DetailItem label="Log ID" value={log.id} icon={IdentificationIcon} mono />
+                <DetailItem label="ID Enregistrement" value={log.record_id} icon={CodeBracketIcon} mono />
+                <DetailItem label="Adresse IP" value={log.ip} icon={ComputerDesktopIcon} mono />
+                <DetailItem label="Source" value={log.table ? "Base de données" : "Système"} icon={TableCellsIcon} />
+              </div>
+            </section>
+
+            {/* User Info */}
+            <section className="p-6 rounded-2xl bg-jb-bg-section/50 border border-jb-border/50">
+              <div className="flex items-center gap-3 mb-6">
+                <UserIcon className="w-4 h-4 text-jb-magenta" />
+                <h3 className="text-xs font-black text-jb-text-primary uppercase tracking-[0.2em]">Auteur de l'action</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <DetailItem label="Nom complet" value={log.user} icon={UserIcon} />
+                <DetailItem label="Adresse Email" value={log.user_email} icon={EnvelopeIcon} />
+              </div>
+            </section>
+
+            {/* State Changes */}
+            {(afterEntries.length > 0 || beforeEntries.length > 0) && (
+              <section className="space-y-8">
+                <div className="flex items-center gap-3">
+                  <ArrowPathIcon className="w-4 h-4 text-jb-magenta" />
+                  <h3 className="text-xs font-black text-jb-text-primary uppercase tracking-[0.2em]">Modifications de l'état</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {beforeEntries.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-jb-orange/5 border border-jb-orange/20 w-fit">
+                        <ArrowLeftIcon className="w-3.5 h-3.5 text-jb-orange" />
+                        <span className="text-[9px] font-black text-jb-orange uppercase tracking-widest">Avant action</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        {beforeEntries.map(([key, value]) => (
+                          <DetailItem key={key} label={key} value={value} mono={typeof value === "object"} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {afterEntries.length > 0 && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-jb-blue/5 border border-jb-blue/20 w-fit">
+                        <ArrowPathIcon className="w-3.5 h-3.5 text-jb-blue" />
+                        <span className="text-[9px] font-black text-jb-blue uppercase tracking-widest">Après action</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        {afterEntries.map(([key, value]) => (
+                          <DetailItem key={key} label={key} value={value} mono={typeof value === "object"} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+          </div>
+
+          {/* Footer Info */}
+          <div className="px-8 py-4 bg-jb-bg-section/30 border-t border-jb-border/50 flex justify-between items-center">
+            <p className="text-[9px] font-bold text-jb-text-muted italic uppercase tracking-widest">
+              Généré automatiquement par le module d'audit système
+            </p>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-jb-green animate-pulse" />
+              <span className="text-[9px] font-black text-jb-text-muted uppercase tracking-widest text-jb-green/80">Log vérifié</span>
+            </div>
+          </div>
         </Card>
       </div>
     </Layout>

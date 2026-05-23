@@ -26,8 +26,14 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Gate::policy(DemandePermutation::class, DemandePermutationPolicy::class);
+        
+        // Register Observers for Activity Logging
         DemandePermutation::observe(UserActionObserver::class);
         \App\Models\User::observe(UserActionObserver::class);
+        \App\Models\Etablissement::observe(UserActionObserver::class);
+        \App\Models\Parametre::observe(UserActionObserver::class);
+        \App\Models\Role::observe(UserActionObserver::class);
+        \App\Models\UserDocument::observe(UserActionObserver::class);
 
         VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
             return (new MailMessage)

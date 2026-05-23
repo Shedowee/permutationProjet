@@ -103,7 +103,6 @@ const AdminDashboard = () => {
       detail: {
         eyebrow: 'Base utilisateur',
         title: 'Adoption et activation',
-        description: 'Le volume total des comptes et le ratio de comptes actifs sur la base complète.',
         bullets: [
           `${activeUsers} comptes actifs`,
           `${pendingVerification} comptes à vérifier`,
@@ -124,7 +123,6 @@ const AdminDashboard = () => {
       detail: {
         eyebrow: 'Flux de demandes',
         title: 'Traitement et validation',
-        description: 'Vue synthétique du volume de demandes, de leur traitement et de leur évolution dans le temps.',
         bullets: [
           `${validatedRequests} demandes validées`,
           `${pendingRequests} demandes en attente`,
@@ -142,7 +140,6 @@ const AdminDashboard = () => {
       detail: {
         eyebrow: 'Contrôle du compte',
         title: 'Validation administrative',
-        description: 'Les comptes listés ici attendent encore une validation ou une mise à jour de statut.',
         bullets: pendingUsers.slice(0, 3).map((user) => `${user.name} - ${user.email}`),
         actionLabel: 'Voir les comptes',
         actionTo: pendingUsersTarget,
@@ -158,7 +155,6 @@ const AdminDashboard = () => {
       detail: {
         eyebrow: 'Référentiel',
         title: 'Couverture réseau',
-        description: 'Le nombre d’établissements actifs disponibles dans l’annuaire du portail.',
         bullets: [
           `${stats?.totalEstablishments || 0} établissements enregistrés`,
           `${topRegion?.region || 'Aucune région dominante'} en tête`,
@@ -178,7 +174,6 @@ const AdminDashboard = () => {
       detail: {
         eyebrow: 'Suivi temps réel',
         title: 'Créations et vérifications',
-        description: 'Ce compteur se met à jour automatiquement pour suivre les nouveaux comptes et les emails vérifiés.',
         bullets: [
           `${newAccountsToday} nouveaux comptes aujourd’hui`,
           `${activityTotals.signups} comptes créés sur la période`,
@@ -197,7 +192,6 @@ const AdminDashboard = () => {
       detail: {
         eyebrow: 'Qualité de traitement',
         title: 'Demandes refusées',
-        description: 'Le volume de refus donne une lecture directe de la sélectivité de la commission.',
         bullets: [
           `${rejectedRequests} demandes refusées`,
           `${totalRequests} demandes totales`,
@@ -223,7 +217,6 @@ const AdminDashboard = () => {
     validationRate,
     activityTotals.emailConfirmations,
     activityTotals.signups,
-    activityTotals.requests,
   ]);
   const progressionCards = statCards.filter((card) => card.percentage !== undefined || card.trend !== undefined);
   const summaryCards = statCards.filter((card) => card.percentage === undefined && card.trend === undefined);
@@ -265,9 +258,6 @@ const AdminDashboard = () => {
             >
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary-600">Administration</p>
               <h1 className="mt-3 text-4xl font-black text-surface-900 tracking-tight uppercase">Tableau de bord</h1>
-              <p className="mt-3 text-sm font-medium text-surface-500 leading-6">
-                Vue d'ensemble de l'activité, des accès et des demandes en cours.
-              </p>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -291,11 +281,7 @@ const AdminDashboard = () => {
           <Card className="p-8 sm:p-10">
             <div className="flex flex-col gap-4 mb-8">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.25em] text-jb-text-muted">Vue opérationnelle</p>
-                <h2 className="mt-2 text-2xl sm:text-3xl font-black text-jb-text-primary">Indicateurs clés</h2>
-                <p className="mt-2 text-sm text-jb-text-secondary max-w-2xl">
-                  Cliquez sur une carte pour afficher ses détails dans une fenêtre modale.
-                </p>
+                <h2 className="text-2xl sm:text-3xl font-black text-jb-text-primary">Indicateurs clés</h2>
               </div>
             </div>
 
@@ -303,8 +289,8 @@ const AdminDashboard = () => {
               <div className="rounded-lg border-2 border-jb-cyan/20 bg-gradient-to-br from-jb-bg-section/90 to-white/80 p-5 sm:p-6 shadow-[0_30px_72px_-44px_rgba(15,31,24,0.28)] ring-1 ring-inset ring-jb-green/10">
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-jb-magenta">Indicateurs</p>
-                    <h3 className="mt-2 text-lg font-black text-jb-text-primary">Suivi</h3>
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-jb-magenta">Suivi</p>
+                    <h3 className="mt-2 text-lg font-black text-jb-text-primary">Activité</h3>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -329,7 +315,7 @@ const AdminDashboard = () => {
               <div className="rounded-lg border-2 border-dashed border-jb-green/20 bg-white/55 p-5 sm:p-6 ring-1 ring-inset ring-jb-cyan/10">
                 <div className="flex items-center justify-between gap-4 mb-4">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-jb-text-muted">Aperçu</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.25em] text-jb-text-muted">Synthèse</p>
                     <h3 className="mt-2 text-lg font-black text-jb-text-primary">Résumé</h3>
                   </div>
                 </div>
@@ -603,7 +589,6 @@ const AdminDashboard = () => {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 border-b-2 border-jb-green/15 pb-4">
                 <div className="min-w-0">
                   <h2 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Répartition rôles</h2>
-                  <p className="mt-2 text-sm text-jb-text-secondary">Part de chaque profil dans la base active.</p>
                 </div>
                 <div className="rounded-lg bg-jb-bg-elevated px-4 py-3 text-left sm:text-right border-2 border-jb-cyan/20">
                   <p className="text-[10px] font-black uppercase tracking-widest text-jb-text-muted">Rôles</p>
@@ -721,9 +706,6 @@ const AdminDashboard = () => {
             <div className="border-b border-primary-100 bg-primary-50/70 p-5">
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-jb-text-muted">Top régions</p>
               <h3 className="mt-2 text-2xl font-black text-jb-text-primary">{selectedRegionDetail.region}</h3>
-              <p className="mt-3 text-sm font-semibold text-jb-text-secondary">
-                Cette région représente {selectedRegionDetail.growth} des demandes suivies sur le tableau de bord.
-              </p>
             </div>
             <div className="grid grid-cols-2 gap-3 p-5">
               <div className="rounded-lg border border-primary-100 bg-primary-50/40 px-4 py-3">
@@ -755,9 +737,6 @@ const AdminDashboard = () => {
             <div className="border-b border-primary-100 bg-primary-50/70 p-5">
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-jb-text-muted">Dernière action</p>
               <h3 className="mt-2 text-xl font-black text-jb-text-primary">{selectedActionDetail.action || 'Action système'}</h3>
-              <p className="mt-3 text-sm font-semibold text-jb-text-secondary">
-                Activité enregistrée dans le journal d'administration.
-              </p>
             </div>
             <div className="space-y-3 p-5">
               {[
@@ -809,9 +788,6 @@ const AdminDashboard = () => {
               <h3 className="mt-2 text-2xl font-black text-jb-text-primary">
                 {selectedStatData.detail?.title || selectedStatData.title}
               </h3>
-              <p className="mt-3 text-sm text-jb-text-secondary leading-relaxed">
-                {selectedStatData.detail?.description}
-              </p>
             </div>
             <div className="shrink-0 rounded-lg px-4 py-3 text-right text-white shadow-[0_24px_42px_-24px_rgba(0,146,69,0.72)]" style={{ background: 'var(--jb-gradient-primary)' }}>
               <p className="text-[10px] font-black uppercase tracking-widest text-white/80">Valeur</p>

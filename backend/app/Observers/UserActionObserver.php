@@ -27,11 +27,14 @@ class UserActionObserver
     {
         $userId = Auth::id();
         $modelName = class_basename($model);
+        $tableName = $model->getTable();
         $description = "{$action} effectuée sur {$modelName} (ID: {$model->id})";
 
         event(new UserActionOccurred($userId, "crud_{$action}", $description, [
-            'model' => $modelName,
-            'model_id' => $model->id,
+            'table_name' => $tableName,
+            'record_id' => $model->id,
+            'before' => $action === 'update' ? $model->getOriginal() : null,
+            'after' => $action !== 'delete' ? $model->toArray() : null,
         ]));
     }
 }

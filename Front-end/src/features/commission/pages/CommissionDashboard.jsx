@@ -45,7 +45,7 @@ const CommissionDashboard = () => {
           <div className="relative">
             <div className="w-16 h-16 rounded-full border-4 border-jb-bg-elevated border-t-jb-magenta animate-spin"></div>
           </div>
-          <p className="text-jb-text-muted font-black uppercase tracking-widest text-[10px]">Chargement des statistiques...</p>
+          <p className="text-jb-text-muted font-black uppercase tracking-widest text-[10px]">Chargement...</p>
         </div>
       </Layout>
     );
@@ -62,10 +62,7 @@ const CommissionDashboard = () => {
               className="max-w-2xl"
             >
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary-600">Commission</p>
-              <h1 className="mt-3 text-4xl font-black text-jb-text-primary tracking-tight uppercase">Espace Commission</h1>
-              <p className="mt-3 text-sm font-medium text-jb-text-muted leading-6">
-                Supervision et traitement des demandes avec une lecture rapide des dossiers.
-              </p>
+              <h1 className="mt-3 text-4xl font-black text-jb-text-primary tracking-tight uppercase">Espace commission</h1>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -173,8 +170,7 @@ const CommissionDashboard = () => {
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-jb-text-primary uppercase tracking-widest">Taux de Traitement</h3>
-                  <p className="text-[10px] text-jb-text-muted mt-2 font-black uppercase tracking-[0.2em]">Progression globale des dossiers</p>
+                  <h3 className="text-xs font-black text-jb-text-primary uppercase tracking-widest">Taux de traitement</h3>
                 </div>
               </Card>
 
@@ -184,19 +180,10 @@ const CommissionDashboard = () => {
                     <div className="p-3 rounded-lg border border-white/70 group-hover:scale-110 transition-standard shadow-[0_18px_34px_-20px_rgba(12,122,59,0.24)]" style={{ background: 'var(--jb-gradient-primary)', color: '#fff' }}>
                       <BoltIcon className="w-6 h-6" />
                     </div>
-                    <h3 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Performance</h3>
+                    <h3 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Délai moyen</h3>
                   </div>
                   <div className="space-y-2">
                     <p className="text-5xl font-black text-jb-text-primary tracking-tight">{stats.avgProcessingTime}</p>
-                    <p className="text-[10px] text-jb-text-muted font-black uppercase tracking-widest leading-relaxed">Temps moyen de réponse</p>
-                  </div>
-                  <div className="mt-12 pt-8 border-t border-white/70 flex items-center justify-between">
-                    <span className="text-[10px] text-jb-text-muted font-black uppercase tracking-widest">Efficacité</span>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className={`w-1.5 h-1.5 rounded-full ${i <= 4 ? 'bg-jb-magenta' : 'bg-jb-bg-elevated'}`}></div>
-                      ))}
-                    </div>
                   </div>
                 </Card>
 
@@ -218,7 +205,7 @@ const CommissionDashboard = () => {
                     <div className="p-3 bg-white/10 text-white rounded-lg border border-white/10 group-hover:scale-110 transition-standard shadow-lg">
                       <ChartBarIcon className="w-6 h-6" />
                     </div>
-                    <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Activité Récente</h3>
+                    <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Activité récente</h3>
                   </div>
                   {lastActivity ? (
                     <div className="space-y-4 relative z-10">
@@ -226,7 +213,7 @@ const CommissionDashboard = () => {
                         <p className="text-3xl font-black text-white tracking-tight truncate" title={lastActivity.requesterName}>
                           {lastActivity.requesterName}
                         </p>
-                        <p className="text-[10px] text-white/45 font-black uppercase tracking-widest leading-relaxed">
+                        <p className="text-[10px] text-white/45 font-black uppercase tracking-widest">
                           {lastActivity.statusLabel} le {stats.lastProcessedRequest}
                         </p>
                       </div>
@@ -251,12 +238,6 @@ const CommissionDashboard = () => {
                       <p className="text-[10px] text-white/40 font-black uppercase tracking-widest leading-relaxed">Aucune activité récente disponible</p>
                     </div>
                   )}
-                  <div className="mt-10 pt-8 border-t border-white/10 flex items-center justify-between relative z-10">
-                    <span className="text-[10px] text-white/30 font-black uppercase tracking-widest">Statut global</span>
-                    <span className="px-3 py-1.5 rounded-xl text-[9px] font-black text-white uppercase tracking-widest shadow-primary" style={{ background: 'var(--jb-gradient-primary)' }}>
-                      OPÉRATIONNEL
-                    </span>
-                  </div>
                 </Card>
               </div>
             </div>
@@ -267,16 +248,20 @@ const CommissionDashboard = () => {
   );
 };
 
-const InfoLine = ({ icon: Icon, label, value }) => (
-  <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
-    <div className="flex items-center gap-2 text-white/45">
-      <Icon className="w-4 h-4" />
-      <span className="text-[9px] font-black uppercase tracking-[0.2em]">{label}</span>
+const InfoLine = ({ icon, label, value }) => {
+  const IconComponent = icon;
+
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+      <div className="flex items-center gap-2 text-white/45">
+        <IconComponent className="w-4 h-4" />
+        <span className="text-[9px] font-black uppercase tracking-[0.2em]">{label}</span>
+      </div>
+      <p className="mt-2 text-sm font-bold text-white/90 truncate" title={value}>
+        {value || '—'}
+      </p>
     </div>
-    <p className="mt-2 text-sm font-bold text-white/90 truncate" title={value}>
-      {value || '—'}
-    </p>
-  </div>
-);
+  );
+};
 
 export default CommissionDashboard;

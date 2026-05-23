@@ -12,7 +12,6 @@ import {
   ExclamationTriangleIcon,
   XMarkIcon,
   ShieldCheckIcon,
-  UserGroupIcon,
   CheckIcon
 } from '@heroicons/react/24/outline';
 import { fetchUsers, updateUser } from '../redux/adminSlice';
@@ -416,54 +415,6 @@ const AssignRoles = () => {
             )}
           </Card>
         </div>
-        
-        {/* Users List Card */}
-        <Card className="p-8 bg-white rounded-lg border-2 border-jb-green/20 ring-1 ring-inset ring-jb-cyan/10 shadow-[0_30px_72px_-42px_rgba(12,122,59,0.28)]">
-          <div className="flex items-center justify-between mb-8 border-b-2 border-jb-green/15 pb-4">
-            <h2 className="text-xs font-black text-surface-900 uppercase tracking-[0.2em] flex items-center">
-              <UserGroupIcon className="w-5 h-5 mr-3 text-primary-500" />
-              Liste des Utilisateurs
-            </h2>
-            <span className="px-3 py-1 bg-surface-50 text-surface-600 text-[10px] font-black rounded-full uppercase tracking-widest border-2 border-jb-cyan/20">
-              {users.length} Total
-            </span>
-          </div>
-          
-          <div className="space-y-4">
-            {users.map((user, idx) => (
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                key={user.id} 
-                className="p-6 rounded-lg bg-surface-50 border-2 border-jb-green/20 hover:border-primary-200 hover:shadow-soft transition-all group"
-              >
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 rounded-lg bg-white border-2 border-jb-cyan/20 flex items-center justify-center mr-4 group-hover:scale-110 transition-transform shadow-[0_14px_26px_-16px_rgba(15,159,181,0.2)]">
-                    <UserIcon className="w-6 h-6 text-primary-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="font-black text-surface-900 text-sm uppercase tracking-tight truncate">{user.name}</h4>
-                    <p className="text-[10px] font-bold text-surface-600 uppercase tracking-widest truncate">{user.email}</p>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center gap-2">
-                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary-50 text-primary-600 border border-primary-100">
-                    {typeof user.role === 'object' ? user.role?.name : user.role}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                    user.status === 'active' ? 'bg-teal-50 text-teal-600 border border-teal-100' :
-                    user.status === 'blocked' ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                    'bg-amber-50 text-amber-600 border-2 border-jb-green/20'
-                  }`}>
-                    {user.status}
-                  </span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </Card>
       </div>
     </Layout>
   );

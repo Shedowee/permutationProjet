@@ -25,7 +25,11 @@ class LogUserAction
         $this->logService->log(
             $event->userId,
             $event->actionType,
-            $event->description
+            $event->description,
+            $event->metadata['table_name'] ?? null,
+            $event->metadata['record_id'] ?? null,
+            $event->metadata['before'] ?? null,
+            $event->metadata['after'] ?? null
         );
     }
 }

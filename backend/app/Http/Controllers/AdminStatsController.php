@@ -20,10 +20,35 @@ class AdminStatsController extends Controller
             ], 403);
         }
 
-        $users = User::with('role')->get();
-        $demandes = DemandePermutation::with(['regionSouhaitee', 'formateur.user'])->get();
-        $etablissements = Etablissement::all();
-        $logs = LogAction::with('user')->orderByDesc('created_at')->get();
+        // Optimization: Use counts instead of fetching all records
+        $totalUsers = User::count();
+        $activeUsers = User::where('status', 'active')->count();
+
+        $roleCounts = User::with('role')->get()->reduce(function (array $acc, User $u) {
+            $role = strtolower((string) ($u->role?->code ?? ''));
+            if ($role !== '') {
+                $acc[$role] = ($acc[$role] ?? 0) + 1;
+            }
+            return $acc;
+        }, []);
+
+        $demandesCounts = DemandePermutation::with('etat')->get();
+        $validatedRequests = $demandesCounts->filter(fn ($d) => ($d->etat?->key ?? null) === 'VALIDE')->count();
+        $pendingRequests = $demandesCounts->filter(fn ($d) => ($d->etat?->key ?? null) === 'EN_ATTENTE')->count();
+        $rejectedRequests = $demandesCounts->filter(fn ($d) => ($d->etat?->key ?? null) === 'REFUSE')->count();
+        $totalRequests = $demandesCounts->count();
+        
+        $totalEstablishments = Etablissement::count();
+
+        $now = now();
+        $currentMonthKey = $now->format('Y-m');
+
+        // Fetch logs for the last 30 days only for performance
+        $recentLogs = LogAction::with('user')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->orderByDesc('created_at')
+            ->get();
+
         $mapType = function ($action) {
             $a = mb_strtolower((string) $action);
             if (str_contains($a, 'login') || str_contains($a, 'connexion')) return 'login';
@@ -35,73 +60,41 @@ class AdminStatsController extends Controller
             return 'view';
         };
 
-        $totalUsers = $users->count();
-        $activeUsers = $users->filter(fn ($u) => $u->status === 'actif')->count();
-
-        $roleCounts = $users->reduce(function (array $acc, User $u) {
-            $role = strtolower((string) ($u->role?->code ?? ''));
-            if ($role === '') {
-                return $acc;
-            }
-            $acc[$role] = ($acc[$role] ?? 0) + 1;
-            return $acc;
-        }, []);
-
-        $validatedRequests = $demandes->filter(fn ($d) => ($d->etat?->key ?? null) === 'VALIDE')->count();
-        $pendingRequests = $demandes->filter(fn ($d) => ($d->etat?->key ?? null) === 'EN_ATTENTE')->count();
-        $rejectedRequests = $demandes->filter(fn ($d) => ($d->etat?->key ?? null) === 'REFUSE')->count();
-        $totalRequests = $demandes->count();
-        $totalEstablishments = $etablissements->count();
-
-        $now = now();
-
-        $sameDay = fn ($a, $b) => $a->year === $b->year && $a->month === $b->month && $a->day === $b->day;
-        $currentMonthKey = $now->format('Y-m');
-
-        $newAccountLogs = $logs->filter(function ($log) {
+        $newAccountLogs = $recentLogs->filter(function ($log) {
             $action = mb_strtolower((string) ($log->action ?? ''));
             return str_contains($action, 'registration') || str_contains($action, 'création') || str_contains($action, 'creation');
         });
-        $verifiedUsers = $users->filter(fn ($user) => $user->email_verified_at);
 
-        $newAccountsToday = $newAccountLogs->filter(fn ($log) => $log->created_at && $sameDay($log->created_at, now()))->count();
-        $newAccounts7d = $newAccountLogs->filter(function ($log) {
-            if (!$log->created_at) {
-                return false;
-            }
-            return now()->diffInDays($log->created_at) <= 7;
-        })->count();
+        $newAccountsToday = $newAccountLogs->filter(fn ($log) => $log->created_at && $log->created_at->isToday())->count();
+        $newAccounts7d = $newAccountLogs->filter(fn ($log) => $log->created_at && $log->created_at->diffInDays(now()) <= 7)->count();
 
+        // Daily activity data for the current month
         $monthlyActivityData = [];
-        for ($day = 1; $day <= $now->daysInMonth; $day++) {
-            $dayDate = $now->copy()->startOfMonth()->addDays($day - 1);
+        $daysInMonth = $now->daysInMonth;
+        
+        // Fetch verified users created this month
+        $verifiedUsersThisMonth = User::whereNotNull('email_verified_at')
+            ->whereMonth('email_verified_at', $now->month)
+            ->whereYear('email_verified_at', $now->year)
+            ->get();
 
-            $dayLogs = $logs->filter(function ($log) use ($dayDate) {
-                if (!$log->created_at) {
-                    return false;
-                }
-                return $log->created_at->year === $dayDate->year
-                    && $log->created_at->month === $dayDate->month
-                    && $log->created_at->day === $dayDate->day;
-            });
+        // Fetch demandes created this month
+        $demandesThisMonth = DemandePermutation::whereMonth('created_at', $now->month)
+            ->whereYear('created_at', $now->year)
+            ->get();
+
+        for ($day = 1; $day <= $daysInMonth; $day++) {
+            $dayDate = $now->copy()->day($day);
+
+            $dayLogs = $recentLogs->filter(fn ($log) => $log->created_at && $log->created_at->isSameDay($dayDate));
 
             $monthlyActivityData[] = [
                 'day' => $day,
                 'label' => (string) $day,
                 'users' => $dayLogs->filter(fn ($log) => $mapType($log->action) === 'login')->count(),
                 'signups' => $dayLogs->filter(fn ($log) => $mapType($log->action) === 'create')->count(),
-                'emailConfirmations' => $verifiedUsers->filter(function ($user) use ($dayDate) {
-                    return $user->email_verified_at
-                        && $user->email_verified_at->year === $dayDate->year
-                        && $user->email_verified_at->month === $dayDate->month
-                        && $user->email_verified_at->day === $dayDate->day;
-                })->count(),
-                'requests' => $demandes->filter(function ($demande) use ($dayDate) {
-                    return $demande->created_at
-                        && $demande->created_at->year === $dayDate->year
-                        && $demande->created_at->month === $dayDate->month
-                        && $demande->created_at->day === $dayDate->day;
-                })->count(),
+                'emailConfirmations' => $verifiedUsersThisMonth->filter(fn ($u) => $u->email_verified_at->isSameDay($dayDate))->count(),
+                'requests' => $demandesThisMonth->filter(fn ($d) => $d->created_at && $d->created_at->isSameDay($dayDate))->count(),
             ];
         }
 
@@ -111,29 +104,23 @@ class AdminStatsController extends Controller
                 'commission' => 'Commission',
                 'formateur' => 'Formateurs',
                 'user' => 'Utilisateurs',
-                default => $role,
+                default => ucfirst($role),
             };
-
             return ['name' => $name, 'value' => $count];
         }, array_keys($roleCounts), array_values($roleCounts));
 
-        $regionCounts = $demandes->reduce(function (array $acc, DemandePermutation $demande) {
-            $region = $demande->regionSouhaitee;
-            $regionName = data_get($region, 'value.libelle') ?? $region?->key ?? 'Autre';
-            $acc[$regionName] = ($acc[$regionName] ?? 0) + 1;
-            return $acc;
-        }, []);
-
-        $regionStats = collect($regionCounts)
-            ->map(fn ($count, $region) => [
-                'region' => $region,
-                'users' => $count,
-            ])
+        $regionStats = DemandePermutation::with('regionSouhaitee')
+            ->get()
+            ->groupBy(function ($d) {
+                $region = $d->regionSouhaitee;
+                return data_get($region, 'value.libelle') ?? $region?->key ?? 'Autre';
+            })
+            ->map(fn ($group) => ['region' => $group->first()->regionSouhaitee?->key ?? 'Autre', 'users' => $group->count()])
             ->sortByDesc('users')
             ->take(5)
             ->values()
-            ->map(function ($entry) use ($demandes) {
-                $share = $demandes->count() > 0 ? ($entry['users'] / $demandes->count()) * 100 : 0;
+            ->map(function ($entry) use ($totalRequests) {
+                $share = $totalRequests > 0 ? ($entry['users'] / $totalRequests) * 100 : 0;
                 return [
                     ...$entry,
                     'growth' => round($share) . '%',
@@ -141,7 +128,7 @@ class AdminStatsController extends Controller
             })
             ->all();
 
-        $recentActions = $logs->take(5)->map(fn ($log) => [
+        $recentActions = $recentLogs->take(5)->map(fn ($log) => [
             'id' => $log->id,
             'user' => $log->user?->name ?? '—',
             'action' => $log->action ?? '',
@@ -149,8 +136,10 @@ class AdminStatsController extends Controller
             'type' => $mapType($log->action ?? ''),
         ])->values()->all();
 
-        $pendingUsers = $users
-            ->filter(fn ($u) => !$u->role || $u->status !== 'actif')
+        $pendingUsers = User::whereNull('role_id')
+            ->orWhere('status', '!=', 'active')
+            ->take(10)
+            ->get()
             ->map(fn ($u) => [
                 'id' => $u->id,
                 'name' => $u->name,

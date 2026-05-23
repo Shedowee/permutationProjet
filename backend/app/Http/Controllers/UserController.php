@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Events\UserActionOccurred;
 use App\Http\Controllers\Concerns\HandlesMailSending;
 
-class UtilisateursController extends Controller
+class UserController extends Controller
 {
     use HandlesMailSending;
 
@@ -275,7 +275,8 @@ class UtilisateursController extends Controller
         event(new UserActionOccurred(
             $user->id,
             'password_change',
-            "Mot de passe modifié pour l'utilisateur: {$user->email}"
+            "Mot de passe modifié pour l'utilisateur: {$user->email}",
+            ['table_name' => 'users', 'record_id' => $user->id]
         ));
 
         return response()->json(['message' => 'Mot de passe mis à jour avec succès']);
@@ -314,7 +315,8 @@ class UtilisateursController extends Controller
         event(new UserActionOccurred(
             $user->id,
             'email_change',
-            "Email changé de {$oldEmail} vers {$request->email}"
+            "Email changé de {$oldEmail} vers {$request->email}",
+            ['table_name' => 'users', 'record_id' => $user->id]
         ));
 
         return response()->json([
@@ -531,7 +533,7 @@ class UtilisateursController extends Controller
         if ($request->boolean('pending')) {
             $query->where(function ($q) {
                 $q->whereNull('role_id')
-                  ->orWhere('status', '!=', 'actif');
+                  ->orWhere('status', '!=', 'active');
             });
         }
 

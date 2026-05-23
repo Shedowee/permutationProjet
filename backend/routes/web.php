@@ -25,7 +25,8 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request, string $id, 
         event(new UserActionOccurred(
             $user->id,
             'email_verified',
-            "Email vérifié: {$user->email}"
+            "Email vérifié: {$user->email}",
+            ['table_name' => 'users', 'record_id' => $user->id]
         ));
     }
 

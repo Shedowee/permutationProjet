@@ -50,13 +50,15 @@ const CreateUserForm = ({ onSubmit, onCancel }) => {
       try {
         const data = await listUserStatuses();
         setStatuses(data.length ? data : [
-          { value: 'actif', label: 'Actif' },
-          { value: 'inactif', label: 'Inactif' },
+          { value: 'active', label: 'Actif' },
+          { value: 'inactive', label: 'Inactif' },
+          { value: 'blocked', label: 'Bloqué' },
         ]);
       } catch {
         setStatuses([
-          { value: 'actif', label: 'Actif' },
-          { value: 'inactif', label: 'Inactif' },
+          { value: 'active', label: 'Actif' },
+          { value: 'inactive', label: 'Inactif' },
+          { value: 'blocked', label: 'Bloqué' },
         ]);
       }
     })();

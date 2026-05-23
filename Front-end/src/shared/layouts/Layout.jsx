@@ -32,29 +32,32 @@ const Layout = ({ children }) => {
     >
       <TechBackground />
       
-      {/* Verification Warning Banner */}
-      {showVerificationBanner && (
-        <div 
-          className="bg-amber-100 border-b border-amber-200 text-amber-800 py-3 px-6 flex items-center justify-center space-x-3 cursor-pointer hover:bg-amber-200 transition-colors z-[100] sticky top-0"
-          onClick={() => navigate("/verify-email")}
-        >
-          <div className="bg-amber-500 p-1 rounded-lg text-white">
-            <ExclamationTriangleIcon className="h-4 w-4 animate-pulse" />
+      {/* Fixed Top Section (Banner + Navbar) */}
+      <div className="sticky top-0 z-[110] flex flex-col w-full">
+        {/* Verification Warning Banner */}
+        {showVerificationBanner && (
+          <div 
+            className="bg-amber-100 border-b border-amber-200 text-amber-800 py-3 px-6 flex items-center justify-center space-x-3 cursor-pointer hover:bg-amber-200 transition-colors"
+            onClick={() => navigate("/verify-email")}
+          >
+            <div className="bg-amber-500 p-1 rounded-lg text-white">
+              <ExclamationTriangleIcon className="h-4 w-4 animate-pulse" />
+            </div>
+            <p className="text-[11px] font-black uppercase tracking-widest flex items-center">
+              Votre adresse email n'est pas encore vérifiée. 
+              <span className="hidden sm:inline-block ml-2 px-3 py-1 bg-amber-500 text-white rounded-full text-[9px] hover:bg-amber-600 transition-colors">
+                Vérifier mon compte
+              </span>
+            </p>
           </div>
-          <p className="text-[11px] font-black uppercase tracking-widest flex items-center">
-            Votre adresse email n'est pas encore vérifiée. 
-            <span className="hidden sm:inline-block ml-2 px-3 py-1 bg-amber-500 text-white rounded-full text-[9px] hover:bg-amber-600 transition-colors">
-              Vérifier mon compte
-            </span>
-          </p>
-        </div>
-      )}
+        )}
 
-      {/* Full-width Header */}
-      <Navbar
-        onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-        userRole={userRole}
-      />
+        {/* Full-width Header */}
+        <Navbar
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          userRole={userRole}
+        />
+      </div>
 
       <DashboardSurfaceContext.Provider value={true}>
         <Sidebar
@@ -85,8 +88,8 @@ const Layout = ({ children }) => {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <div className="col-span-1 md:col-span-1 space-y-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/15 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)]">
-                        <ShieldCheckIcon className="h-5 w-5 text-white" />
+                      <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/20 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)]">
+                        <ShieldCheckIcon className="h-5 w-5 text-primary-300" />
                       </div>
                       <span className="text-lg font-black text-white tracking-tight">OFPPT</span>
                     </div>

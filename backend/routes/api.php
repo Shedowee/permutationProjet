@@ -9,7 +9,7 @@ use App\Http\Controllers\FormateurController;
 use App\Http\Controllers\DemandePermutationController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\UtilisateursController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminStatsController;
 use App\Http\Controllers\LogsController;
 
@@ -26,17 +26,17 @@ Route::middleware(['auth:sanctum', 'check.role'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/email/resend', [AuthController::class, 'resendVerification'])->middleware('throttle:3,60');
 
-    // Profile & Notifications (Always accessible if authenticated)
-    Route::get('/notifications', [UtilisateursController::class, 'getNotifications']);
-    Route::get('/notifications/unread-count', [UtilisateursController::class, 'getUnreadNotificationsCount']);
-    Route::get('/notifications/{notification}', [UtilisateursController::class, 'getNotification']);
-    Route::put('/notifications/{notification}/read', [UtilisateursController::class, 'markNotificationRead']);
-    Route::delete('/notifications', [UtilisateursController::class, 'clearNotifications']);
+    // Notifications
+    Route::get('/notifications', [UserController::class, 'getNotifications']);
+    Route::get('/notifications/unread-count', [UserController::class, 'getUnreadNotificationsCount']);
+    Route::get('/notifications/{notification}', [UserController::class, 'getNotification']);
+    Route::put('/notifications/{notification}/read', [UserController::class, 'markNotificationRead']);
+    Route::delete('/notifications', [UserController::class, 'clearNotifications']);
     
-    Route::put('/user/profile', [UtilisateursController::class, 'updateProfile']);
-    Route::put('/user/password', [UtilisateursController::class, 'updatePassword']);
-    Route::put('/user/email', [UtilisateursController::class, 'updateEmail']);
-    Route::post('/user/profile-picture', [UtilisateursController::class, 'updateProfilePicture']);
+    Route::post('/user/profile-picture', [UserController::class, 'updateProfilePicture']);
+    Route::put('/user/profile', [UserController::class, 'updateProfile']);
+    Route::put('/user/password', [UserController::class, 'updatePassword']);
+    Route::put('/user/email', [UserController::class, 'updateEmail']);
 
     Route::middleware('verified')->group(function () {
         // Parametres
@@ -71,21 +71,17 @@ Route::middleware(['auth:sanctum', 'check.role'])->group(function () {
         Route::get('/permissions', [PermissionController::class, 'index'])->middleware('permission:read_permissions');
         Route::patch('/roles/{role}/permissions', [RoleController::class, 'syncPermissions'])->middleware('permission:update_role_permissions');
 
-        // Users
-        Route::get('/users', [UtilisateursController::class, 'index'])->middleware('permission:read_users');
-        Route::post('/users', [UtilisateursController::class, 'store'])->middleware('permission:create_users');
-        Route::get('/users/{id}', [UtilisateursController::class, 'show'])->middleware('permission:read_users');
-        Route::put('/users/{user}', [UtilisateursController::class, 'update'])->middleware('permission:update_users');
-        Route::delete('/users/{user}', [UtilisateursController::class, 'destroy'])->middleware('permission:delete_users');
+        // Admin / Management
+        Route::middleware(['role:admin'])->group(function () {
+            Route::apiResource('users', UserController::class);
+            Route::get('/admin/stats', [AdminStatsController::class, 'index']);
+            Route::get('/admin/logs', [LogsController::class, 'index']);
+            Route::get('/admin/logs/{log}', [LogsController::class, 'show']);
+        });
 
-        Route::get('/user/documents', [UtilisateursController::class, 'listDocuments'])->middleware('permission:read_user_documents');
-        Route::post('/user/documents', [UtilisateursController::class, 'uploadDocument'])->middleware('permission:create_user_documents');
-        Route::delete('/user/documents/{document}', [UtilisateursController::class, 'deleteDocument'])->middleware('permission:delete_user_documents');
-
-        // Logs
-        Route::get('/logs', [LogsController::class, 'index'])->middleware('permission:read_log_actions');
-        Route::get('/logs/{log}', [LogsController::class, 'show'])->middleware('permission:read_log_actions');
-        Route::get('/admin/stats', [AdminStatsController::class, 'index']);
+        Route::get('/user/documents', [UserController::class, 'listDocuments']);
+        Route::post('/user/documents', [UserController::class, 'uploadDocument']);
+        Route::delete('/user/documents/{document}', [UserController::class, 'deleteDocument']);
 
     });
 });

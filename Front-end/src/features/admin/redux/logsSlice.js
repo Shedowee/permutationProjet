@@ -22,9 +22,9 @@ export const LOG_ACTION_TYPES = {
 // Async thunk pour charger les logs
 export const fetchLogs = createAsyncThunk(
   'admin/fetchLogs',
-  async ({ page = 1, limit = 5 } = {}, { rejectWithValue }) => {
+  async ({ page = 1, limit = 5, filters = {} } = {}, { rejectWithValue }) => {
     try {
-      const logs = await logsApi.listLogs({ page, limit });
+      const logs = await logsApi.listLogs({ page, limit, ...filters });
       return logs;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Erreur de chargement des logs');

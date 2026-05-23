@@ -39,7 +39,7 @@ const FormateurDashboard = () => {
           <div className="relative">
             <div className="w-16 h-16 rounded-full border-4 border-jb-bg-elevated border-t-jb-magenta animate-spin"></div>
           </div>
-          <p className="text-jb-text-muted font-black uppercase tracking-widest text-[10px]">Chargement de votre espace personnel...</p>
+          <p className="text-jb-text-muted font-black uppercase tracking-widest text-[10px]">Chargement...</p>
         </div>
       </Layout>
     );
@@ -56,10 +56,7 @@ const FormateurDashboard = () => {
               className="max-w-2xl"
             >
               <p className="text-[10px] font-black uppercase tracking-[0.35em] text-primary-600">Formateur</p>
-              <h1 className="mt-3 text-4xl font-black text-jb-text-primary tracking-tight uppercase">Mon Espace Personnel</h1>
-              <p className="mt-3 text-sm font-medium text-jb-text-muted leading-6">
-                Suivi et gestion de vos demandes avec un accès direct aux actions principales.
-              </p>
+              <h1 className="mt-3 text-4xl font-black text-jb-text-primary tracking-tight uppercase">Espace formateur</h1>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -68,7 +65,7 @@ const FormateurDashboard = () => {
             >
               <Link to="/formateur/demandes/create">
                 <Button variant="primary" size="lg" icon={PlusIcon}>
-                  Nouvelle Demande
+                  Nouvelle demande
                 </Button>
               </Link>
             </motion.div>
@@ -137,14 +134,14 @@ const FormateurDashboard = () => {
                   <div className="relative z-10">
                     <h2 className="text-xs font-black text-jb-text-primary mb-10 flex items-center uppercase tracking-[0.2em] border-b border-white/70 pb-6">
                       <InformationCircleIcon className="w-5 h-5 mr-3 text-jb-magenta" />
-                      Dernière Demande Soumise
+                      Dernière demande
                     </h2>
 
                     {stats.lastRequestStatus ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                         <div className="space-y-8">
                           <div>
-                            <p className="text-[10px] font-black text-jb-text-muted uppercase tracking-[0.2em] mb-4">Statut Actuel</p>
+                            <p className="text-[10px] font-black text-jb-text-muted uppercase tracking-[0.2em] mb-4">Statut</p>
                             <span className={`px-4 py-2 rounded-xl text-[10px] font-black border uppercase tracking-widest inline-block ${
                               stats.lastRequestStatus === 'EN_ATTENTE' ? 'bg-amber-50 text-amber-700 border-amber-200 shadow-sm' :
                               stats.lastRequestStatus === 'VALIDE' ? 'bg-primary-50 text-primary-700 border-primary-200 shadow-sm' : 
@@ -155,7 +152,7 @@ const FormateurDashboard = () => {
                             </span>
                           </div>
                           <div>
-                            <p className="text-[10px] font-black text-jb-text-muted uppercase tracking-[0.2em] mb-3">Date de Soumission</p>
+                            <p className="text-[10px] font-black text-jb-text-muted uppercase tracking-[0.2em] mb-3">Date</p>
                             <div className="flex items-center gap-3">
                               <CalendarDaysIcon className="w-5 h-5 text-jb-magenta" />
                               <p className="text-jb-text-primary font-black text-xl tracking-tight">{stats.lastRequestDate}</p>
@@ -167,7 +164,7 @@ const FormateurDashboard = () => {
                           <div className="absolute top-4 right-4 text-jb-magenta/20 group-hover/motif:text-jb-magenta transition-standard">
                             <SparklesIcon className="w-5 h-5" />
                           </div>
-                          <p className="text-[10px] font-black text-jb-text-muted uppercase tracking-[0.2em] mb-4">Motif de la demande</p>
+                          <p className="text-[10px] font-black text-jb-text-muted uppercase tracking-[0.2em] mb-4">Motif</p>
                           <p className="text-jb-text-secondary italic text-sm font-bold leading-relaxed">"{stats.lastRequestMotif}"</p>
                         </div>
                       </div>
@@ -199,11 +196,10 @@ const FormateurDashboard = () => {
                       <div className="p-3 bg-white/10 text-primary-400 rounded-lg border border-white/10 group-hover:scale-110 transition-standard shadow-lg">
                         <CalendarDaysIcon className="w-6 h-6" />
                       </div>
-                      <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Période Cible</h3>
+                      <h3 className="text-[10px] font-black text-white/50 uppercase tracking-[0.2em]">Destination</h3>
                     </div>
                     <div className="space-y-2 relative z-10">
                       <p className="text-3xl font-black text-white tracking-tight">{stats.lastRequestLocation || "Aucune"}</p>
-                      <p className="text-[10px] text-white/30 font-black uppercase tracking-widest leading-relaxed">Destination souhaitée</p>
                     </div>
                   </div>
                 </Card>
@@ -213,14 +209,13 @@ const FormateurDashboard = () => {
                     <div className="p-3 rounded-lg border border-white/70 group-hover:scale-110 transition-standard shadow-[0_18px_34px_-20px_rgba(15,159,181,0.24)]" style={{ background: 'linear-gradient(90deg, #2f7be5 0%, #0f9fb5 100%)', color: '#fff' }}>
                       <ChartPieIcon className="w-6 h-6" />
                     </div>
-                    <h3 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Réussite</h3>
+                    <h3 className="text-[10px] font-black text-jb-text-primary uppercase tracking-[0.2em]">Acceptation</h3>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-baseline gap-1">
                       <p className="text-5xl font-black text-jb-blue tracking-tighter">{stats.successRate}</p>
                       <p className="text-xl text-jb-text-muted font-black">%</p>
                     </div>
-                    <p className="text-[10px] text-jb-text-muted font-black uppercase tracking-widest leading-relaxed">Taux d'acceptation</p>
                   </div>
                   <div className="mt-10 w-full bg-jb-bg-elevated rounded-full h-2.5 overflow-hidden border border-white/70">
                     <motion.div 

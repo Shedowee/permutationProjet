@@ -41,11 +41,11 @@ const Sidebar = ({ isOpen, onClose, onToggle, userRole }) => {
         { name: "Demandes", href: "/commission/demandes", icon: ClipboardDocumentListIcon },
         ...common
       ];
-    } else if (userRole === "formateur" || userRole === "employe") {
+    } else if (userRole === "formateur") {
       return [
-        { name: "Tableau de bord", href: `/${userRole}`, icon: HomeIcon },
-        { name: "Mes Demandes", href: `/${userRole}/demandes`, icon: ClipboardDocumentListIcon },
-        { name: "Créer une Demande", href: `/${userRole}/demandes/create`, icon: PlusCircleIcon },
+        { name: "Tableau de bord", href: "/formateur", icon: HomeIcon },
+        { name: "Mes Demandes", href: "/formateur/demandes", icon: ClipboardDocumentListIcon },
+        { name: "Créer une Demande", href: "/formateur/demandes/create", icon: PlusCircleIcon },
         ...common
       ];
     }

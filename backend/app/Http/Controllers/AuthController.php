@@ -49,7 +49,8 @@ class AuthController extends Controller
         event(new UserActionOccurred(
             $user->id,
             'registration',
-            "Nouvel utilisateur enregistré: {$user->email}"
+            "Nouvel utilisateur enregistré: {$user->email}",
+            ['table_name' => 'users', 'record_id' => $user->id]
         ));
 
         return response()->json([

@@ -109,16 +109,16 @@ const UserManagement = () => {
         ];
         setStatuses(mergedStatuses.length ? mergedStatuses : [
           { value: 'pending', label: 'En attente' },
-          { value: 'actif', label: 'Actif' },
-          { value: 'inactif', label: 'Inactif' },
-          { value: 'bloqué', label: 'Bloqué' },
+          { value: 'active', label: 'Actif' },
+          { value: 'inactive', label: 'Inactif' },
+          { value: 'blocked', label: 'Bloqué' },
         ]);
       } catch {
         setStatuses([
           { value: 'pending', label: 'En attente' },
-          { value: 'actif', label: 'Actif' },
-          { value: 'inactif', label: 'Inactif' },
-          { value: 'bloqué', label: 'Bloqué' },
+          { value: 'active', label: 'Actif' },
+          { value: 'inactive', label: 'Inactif' },
+          { value: 'blocked', label: 'Bloqué' },
         ]);
       }
     })();
@@ -241,7 +241,7 @@ const UserManagement = () => {
   };
 
   const handleValidateUser = (user) => {
-    dispatch(updateUser({ id: user.id, userData: { status: 'actif' } }))
+    dispatch(updateUser({ id: user.id, userData: { status: 'active' } }))
       .unwrap()
       .then(() => {
         setUiSuccess('Utilisateur validé');
@@ -336,8 +336,8 @@ const UserManagement = () => {
       header: 'Statut',
       key: 'status',
       render: (value) => {
-        const isActif = value === 'actif';
-        const isBlocked = value === 'bloqué';
+        const isActif = value === 'active';
+        const isBlocked = value === 'blocked';
         const cls = isActif ? 'text-jb-green bg-jb-green/5 border-jb-green/20' : isBlocked ? 'text-jb-red bg-jb-red/5 border-jb-red/20' : 'text-jb-orange bg-jb-orange/5 border-jb-orange/20';
         return (
           <div className="flex items-center gap-2">
@@ -354,7 +354,7 @@ const UserManagement = () => {
       key: 'actions',
       render: (_, row) => (
         <div className="flex items-center gap-2">
-          {String(row.status).toLowerCase() !== 'actif' && (
+          {String(row.status).toLowerCase() !== 'active' && (
             <button onClick={() => handleValidateUser(row)} className="p-2 rounded-lg bg-jb-bg-elevated border-2 border-jb-green/20 text-jb-text-muted hover:text-jb-green hover:border-jb-green/40 transition-all" title="Valider">
               <CheckCircleIcon className="w-4 h-4" />
             </button>

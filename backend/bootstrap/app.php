@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
         $middleware->alias([
+            'role' => \App\Http\Middleware\CheckUserRole::class,
             'check.role' => \App\Http\Middleware\CheckUserRole::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
