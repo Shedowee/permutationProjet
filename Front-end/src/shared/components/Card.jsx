@@ -30,10 +30,11 @@ const Card = ({
     danger: 'bg-red-50 border border-red-100 text-red-900',
     warning: 'bg-amber-50 border border-amber-100 text-amber-900',
     success: 'bg-green-50 border border-green-100 text-green-900',
-    dark: 'bg-surface-900 border border-surface-800 text-white shadow-hard',
+    dark: 'surface-dark bg-surface-900 border border-surface-800 text-white shadow-hard',
   };
 
   const selectedVariant = variants[variant] || variants.default;
+  const forceDarkText = dashboardSurface && variant !== 'dark';
   
   return (
     <motion.div 
@@ -54,7 +55,7 @@ const Card = ({
         ${selectedVariant}
         ${noPadding ? '' : 'p-5 sm:p-6'}
         ${className}
-        ${dashboardSurface ? '!text-surface-900' : ''}
+        ${forceDarkText ? '!text-surface-900' : ''}
       `}
       {...props}
     >

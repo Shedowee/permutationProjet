@@ -82,6 +82,7 @@ export const createDemande = createAsyncThunk(
         etat: ETAT_DEMANDE.EN_ATTENTE,
         commentaire: '',
         dateValidation: null,
+        aiRecommendations: created.ai_recommendations ?? created.aiRecommendations ?? [],
       };
     } catch (error) {
       return rejectWithValue({

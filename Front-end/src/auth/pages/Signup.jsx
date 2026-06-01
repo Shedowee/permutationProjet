@@ -142,7 +142,7 @@ function Signup() {
           </div>
 
           <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/45">
-            OFPPT Permutations • Secure Registration
+            MaPermutation • Secure Registration
           </p>
         </section>
 
@@ -324,7 +324,7 @@ function Signup() {
             </Card>
             
             <p className="mt-6 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-white/55">
-              &copy; {new Date().getFullYear()} OFPPT Permutations • Production Ready
+              &copy; {new Date().getFullYear()} MaPermutation • Production Ready
             </p>
           </div>
         </section>

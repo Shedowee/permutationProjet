@@ -6,6 +6,7 @@ use App\Models\DemandePermutation;
 use App\Models\Formateur;
 use App\Models\LogAction;
 use App\Models\Parametre;
+use App\Services\AiRecommendationService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,10 @@ use Illuminate\Support\Str;
 
 class DemandePermutationController extends Controller
 {
-    public function __construct(private readonly NotificationService $notificationService)
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly AiRecommendationService $aiRecommendationService,
+    )
     {
     }
 
@@ -29,12 +33,13 @@ class DemandePermutationController extends Controller
 
         $query = DemandePermutation::with([
             'formateur.user',
-            'formateur.etablissement.ville.region',
+            'formateur.etablissement.ville.parent',
             'etat',
             'regionSouhaitee',
             'villeSouhaitee',
             'etablissementSouhaite',
             'traitePar',
+            'aiRecommendations.actedBy',
         ])->orderByDesc('date_soumission');
 
         $scope = strtolower($request->query('scope', 'mine'));
@@ -185,7 +190,12 @@ class DemandePermutationController extends Controller
             ]
         );
 
-        return response()->json(['data' => $demande], 201);
+        $recommendations = $this->aiRecommendationService->analyzeDemande($demande);
+
+        return response()->json([
+            'data' => $demande->fresh(['etat', 'aiRecommendations']),
+            'ai_recommendations' => $recommendations->values(),
+        ], 201);
     }
 
     public function update(Request $request, DemandePermutation $demande)
@@ -330,12 +340,13 @@ class DemandePermutationController extends Controller
         return response()->json([
             'data' => $demande->load([
                 'formateur.user',
-                'formateur.etablissement.ville.region',
+                'formateur.etablissement.ville.parent',
                 'etat',
                 'regionSouhaitee',
                 'villeSouhaitee',
                 'etablissementSouhaite',
                 'traitePar',
+                'aiRecommendations.actedBy',
             ]),
         ]);
     }

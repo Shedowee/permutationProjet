@@ -23,8 +23,31 @@ import {
   PaperClipIcon,
   DocumentTextIcon,
   XMarkIcon,
-  SparklesIcon
+  SparklesIcon,
+  BoltIcon,
+  ShareIcon
 } from "@heroicons/react/24/outline";
+
+const aiTypeMeta = {
+  direct: {
+    label: "Correspondance directe",
+    icon: BoltIcon,
+    tone: "bg-emerald-50 border-emerald-200 text-emerald-800",
+    message: "Une permutation directe a été trouvée. La commission est notifiée pour accélérer la validation.",
+  },
+  regional: {
+    label: "Recommandation proche",
+    icon: MapPinIcon,
+    tone: "bg-sky-50 border-sky-200 text-sky-800",
+    message: "Aucune permutation directe n'a été trouvée. Le moteur IA propose le meilleur rapprochement selon la région et la spécialité.",
+  },
+  multihop: {
+    label: "Permutation par N",
+    icon: ShareIcon,
+    tone: "bg-violet-50 border-violet-200 text-violet-800",
+    message: "Aucune correspondance simple n'a été trouvée. Une chaîne de permutation par N est possible et attend votre accord.",
+  },
+};
 
 const CreateDemande = () => {
   const dispatch = useDispatch();
@@ -50,6 +73,7 @@ const CreateDemande = () => {
   const [fetchingCities, setFetchingCities] = useState(false);
   const [fetchingEtabs, setFetchingEtabs] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [createdRecommendations, setCreatedRecommendations] = useState([]);
   const [error, setError] = useState("");
   const [step, setStep] = useState(1); 
 
@@ -213,6 +237,7 @@ const CreateDemande = () => {
   const handleSubmit = async () => {
     setLoading(true);
     setError("");
+    setCreatedRecommendations([]);
 
     const data = new FormData();
     data.append('motif', formData.motif);
@@ -231,9 +256,15 @@ const CreateDemande = () => {
         return;
       }
 
-      await dispatch(createDemande(data)).unwrap();
+      const created = await dispatch(createDemande(data)).unwrap();
+      const recommendationsCount = Array.isArray(created?.aiRecommendations) ? created.aiRecommendations.length : 0;
+      setCreatedRecommendations(created?.aiRecommendations || []);
 
-      toastSuccess("Votre demande a été créée avec succès");
+      toastSuccess(
+        recommendationsCount > 0
+          ? "Votre demande a été créée et le moteur IA a trouvé une recommandation."
+          : "Votre demande a été créée. Le moteur IA poursuivra l'analyse automatiquement."
+      );
       setSuccess(true);
       setStep(1);
       setFormData({
@@ -245,7 +276,6 @@ const CreateDemande = () => {
       });
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
       setError(err.message || "Erreur lors de la création de la demande");
       setStep(1);
@@ -320,7 +350,7 @@ const CreateDemande = () => {
               <div>
                 <h3 className="text-primary-900 font-black uppercase tracking-widest text-xs">Demande enregistrée !</h3>
                 <p className="text-primary-700 text-sm mt-1 font-bold">
-                  Votre dossier a été transmis avec succès à la commission.
+                  Votre dossier est enregistré et analysé par le moteur de matching.
                 </p>
               </div>
             </motion.div>
@@ -343,6 +373,13 @@ const CreateDemande = () => {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {createdRecommendations.length > 0 && (
+          <AiResultSummary
+            recommendations={createdRecommendations}
+            onOpen={() => navigate("/formateur")}
+          />
+        )}
 
         {step === 1 ? (
           <motion.div
@@ -626,6 +663,58 @@ const CreateDemande = () => {
         )}
       </div>
     </Layout>
+  );
+};
+
+const AiResultSummary = ({ recommendations, onOpen }) => {
+  const best = [...recommendations].sort((a, b) => Number(b.score || 0) - Number(a.score || 0))[0];
+  if (!best) {
+    return null;
+  }
+
+  const meta = aiTypeMeta[best.type] || aiTypeMeta.regional;
+  const Icon = meta.icon;
+  const chain = Array.isArray(best.chain) ? best.chain : [];
+
+  return (
+    <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}>
+      <Card className={`p-6 border ${meta.tone}`}>
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+          <div className="flex gap-4">
+            <div className="h-12 w-12 shrink-0 rounded-lg bg-white/80 border border-white/70 flex items-center justify-center shadow-soft">
+              <Icon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em]">Résultat IA</p>
+              <h2 className="mt-1 text-xl font-black tracking-tight">{meta.label}</h2>
+              <p className="mt-2 text-sm font-bold leading-6">{best.summary || meta.message}</p>
+              <p className="mt-2 text-xs font-bold opacity-80">{meta.message}</p>
+            </div>
+          </div>
+
+          <div className="shrink-0 rounded-lg bg-white/80 border border-white/70 px-5 py-4 text-center shadow-soft">
+            <p className="text-3xl font-black">{Math.round(Number(best.score || 0))}%</p>
+            <p className="mt-1 text-[9px] font-black uppercase tracking-widest opacity-70">Compatibilité</p>
+          </div>
+        </div>
+
+        {chain.length > 0 && (
+          <div className="mt-5 flex flex-wrap gap-2">
+            {chain.map((step, index) => (
+              <span key={`${step.demande_id || index}-${index}`} className="rounded-lg bg-white/80 border border-white/70 px-3 py-2 text-xs font-black">
+                {`${step.from || "Origine"} -> ${step.to || "Cible"}`}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end">
+          <Button variant="primary" size="sm" onClick={onOpen}>
+            Voir dans mon tableau de bord
+          </Button>
+        </div>
+      </Card>
+    </motion.div>
   );
 };
 

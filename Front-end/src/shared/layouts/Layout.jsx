@@ -4,7 +4,8 @@ import { useNavigate, Link } from "react-router-dom";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import TechBackground from "../components/TechBackground";
-import { ExclamationTriangleIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import BrandLogo from "../components/BrandLogo";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { motion } from "framer-motion";
 import { DashboardSurfaceContext } from "../context/DashboardSurfaceContextBase";
 
@@ -32,8 +33,8 @@ const Layout = ({ children }) => {
     >
       <TechBackground />
       
-      {/* Fixed Top Section (Banner + Navbar) */}
-      <div className="sticky top-0 z-[110] flex flex-col w-full">
+      {/* Fixed top section. Navbar itself stays non-sticky to avoid nested sticky jitter. */}
+      <div className="fixed inset-x-0 top-0 z-[110] flex w-full flex-col">
         {/* Verification Warning Banner */}
         {showVerificationBanner && (
           <div 
@@ -58,6 +59,8 @@ const Layout = ({ children }) => {
           userRole={userRole}
         />
       </div>
+
+      <div aria-hidden="true" className={showVerificationBanner ? "h-28" : "h-16"} />
 
       <DashboardSurfaceContext.Provider value={true}>
         <Sidebar
@@ -87,12 +90,10 @@ const Layout = ({ children }) => {
               <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   <div className="col-span-1 md:col-span-1 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/20 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)]">
-                        <ShieldCheckIcon className="h-5 w-5 text-primary-300" />
-                      </div>
-                      <span className="text-lg font-black text-white tracking-tight">OFPPT</span>
-                    </div>
+                    <BrandLogo
+                      className="h-8 w-auto max-w-[176px] brightness-0 invert"
+                      markClassName="h-9 w-9 text-xl"
+                    />
                     <p className="text-[11px] font-bold text-primary-100 uppercase tracking-widest leading-relaxed">
                       Système de gestion des permutations professionnelles.
                     </p>

@@ -5,6 +5,7 @@ import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import StatCard from '../../../shared/components/StatCard';
 import Button from '../../../shared/components/Button';
+import AiRecommendationsPanel from '../../ai/components/AiRecommendationsPanel';
 import { fetchCommissionStats } from '../redux/commissionSlice';
 import { motion } from 'framer-motion';
 import { 
@@ -131,6 +132,8 @@ const CommissionDashboard = () => {
                 to="/commission/demandes?etat=REFUSE"
               />
             </div>
+
+            <AiRecommendationsPanel role="commission" limit={8} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <Card className="p-10 lg:col-span-1 flex flex-col items-center justify-center text-center space-y-8 relative overflow-hidden group border border-white/70">

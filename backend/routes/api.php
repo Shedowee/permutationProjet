@@ -11,6 +11,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminStatsController;
+use App\Http\Controllers\AiRecommendationController;
 use App\Http\Controllers\LogsController;
 
 // Public endpoints - CSRF protected by EnsureFrontendRequestsAreStateful middleware
@@ -65,6 +66,12 @@ Route::middleware(['auth:sanctum', 'check.role'])->group(function () {
         Route::put('/demandes/{demande}', [DemandePermutationController::class, 'update']);
         Route::delete('/demandes/{demande}', [DemandePermutationController::class, 'destroy']);
         Route::get('/demandes/matches', [DemandePermutationController::class, 'matches'])->middleware('permission:approve_demandes');
+
+        // AI recommendations
+        Route::get('/ai/recommendations', [AiRecommendationController::class, 'index'])->middleware('permission:read_demandes');
+        Route::post('/ai/demandes/{demande}/scan', [AiRecommendationController::class, 'scan'])->middleware('permission:approve_demandes');
+        Route::post('/ai/recommendations/{recommendation}/accept', [AiRecommendationController::class, 'accept'])->middleware('permission:read_demandes');
+        Route::post('/ai/recommendations/{recommendation}/refuse', [AiRecommendationController::class, 'refuse'])->middleware('permission:read_demandes');
 
         // Roles
         Route::get('/roles', [RoleController::class, 'index'])->middleware('permission:read_roles');

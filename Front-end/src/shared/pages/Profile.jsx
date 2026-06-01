@@ -8,6 +8,7 @@ import { listEtablissementsByCity } from "../../services/etablissementsService";
 import Layout from "../layouts/Layout";
 import Card from "../components/Card";
 import Button from "../components/Button";
+import UserAvatar from "../components/UserAvatar";
 import { 
   UserCircleIcon, 
   LockClosedIcon, 
@@ -276,16 +277,13 @@ export default function Profile() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-standard"></div>
               
               <div className="relative mb-6">
-                <div className="w-24 h-24 bg-primary-500 rounded-lg mx-auto flex items-center justify-center text-white text-4xl font-black shadow-primary overflow-hidden relative">
-                  {user?.photo_url ? (
-                    <img
-                      src={`${import.meta.env.VITE_API_URL}/storage/${user.photo_url}`}
-                      alt="Profil"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    (user?.name || user?.nom || "U")[0].toUpperCase()
-                  )}
+                <div className="w-24 h-24 rounded-lg mx-auto shadow-primary overflow-hidden relative">
+                  <UserAvatar
+                    user={user}
+                    className="h-full w-full rounded-lg text-4xl"
+                    fallbackClassName="bg-primary-500 text-white font-black"
+                    alt="Profil"
+                  />
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}

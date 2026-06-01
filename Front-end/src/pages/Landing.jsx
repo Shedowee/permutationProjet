@@ -90,9 +90,9 @@ const Landing = () => {
       <header className="sticky top-0 z-50 border-b border-primary-900/40 bg-gradient-to-r from-primary-950 via-primary-900 to-primary-700 text-white shadow-[0_18px_48px_-34px_rgba(0,146,69,0.45)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
           <BrandLogo
-            className="h-9 w-auto max-w-[176px] brightness-0 invert sm:max-w-[210px]"
+            className="h-8 w-auto max-w-[176px] brightness-0 invert sm:h-9 sm:max-w-[210px]"
             linkClassName="flex min-w-0 items-center gap-3"
-            alt="OFPPT permutation"
+            alt="MaPermutation"
           />
 
           <div className="flex shrink-0 items-center gap-2">
@@ -115,7 +115,7 @@ const Landing = () => {
                   </Button>
                 </Link>
                 <Link to="/signup">
-                  <Button variant="primary" size="sm" className="rounded-lg bg-white text-primary-800 [background-image:none] hover:bg-primary-50">
+                  <Button variant="outline" size="sm" className="rounded-lg">
                     S'inscrire
                   </Button>
                 </Link>
@@ -143,9 +143,16 @@ const Landing = () => {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.06 }}
-                className="max-w-4xl text-4xl font-black leading-[1.03] text-surface-950 sm:text-5xl lg:text-6xl"
+                className="max-w-4xl"
               >
-                Gérez les permutations OFPPT sans perdre le fil des dossiers.
+                <BrandLogo
+                  clickable={false}
+                  showMark={false}
+                  className="h-auto w-full max-w-[524px]"
+                  linkClassName="block"
+                  alt=""
+                />
+                <span className="sr-only">MaPermutation</span>
               </motion.h1>
 
               <motion.p

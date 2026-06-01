@@ -1,0 +1,24 @@
+services:
+  ai-microservice:
+    build:
+      context: ./ai-microservice
+    container_name: ofppt-ai-microservice
+    ports:
+      - "8001:8001"
+    networks:
+      - ofppt-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ofppt-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - ofppt-network
+    restart: unless-stopped
+
+networks:
+  ofppt-network:
+    driver: bridge
+

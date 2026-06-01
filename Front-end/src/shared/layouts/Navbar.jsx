@@ -5,17 +5,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bars3Icon, 
   BellIcon, 
-  ShieldCheckIcon,
   UserIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import { getNotifications, markNotificationRead, getUnreadCount } from '../../services/userService';
 import { useToast } from '../../shared/context/useToast';
+import BrandLogo from '../components/BrandLogo';
+import UserAvatar from '../components/UserAvatar';
 
 const Navbar = ({ onMenuClick, userRole }) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const { success, error: toastError } = useToast();
@@ -57,6 +59,17 @@ const Navbar = ({ onMenuClick, userRole }) => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const nextScrolled = window.scrollY > 8;
+      setScrolled((current) => (current === nextScrolled ? current : nextScrolled));
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleNotificationClick = async (notification) => {
     try {
       if (!notification.is_read) {
@@ -87,7 +100,11 @@ const Navbar = ({ onMenuClick, userRole }) => {
   };
 
   return (
-    <nav className="sticky top-0 z-[110] w-full bg-gradient-to-r from-primary-950 via-primary-900 to-primary-700 text-white backdrop-blur-xl border-b border-primary-900/40 shadow-[0_18px_48px_-34px_rgba(0,146,69,0.45)]">
+    <nav className={`relative w-full bg-gradient-to-r from-primary-950 via-primary-900 to-primary-700 text-white backdrop-blur-xl border-b transition-shadow duration-200 ${
+      scrolled
+        ? "border-primary-950/60 shadow-[0_18px_44px_-26px_rgba(0,0,0,0.45)]"
+        : "border-primary-900/40 shadow-[0_18px_48px_-34px_rgba(0,146,69,0.45)]"
+    }`}>
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:pl-[calc(var(--sidebar-width)+1.5rem)] lg:pr-8 transition-[padding-left] duration-300">
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-3">
@@ -100,16 +117,11 @@ const Navbar = ({ onMenuClick, userRole }) => {
               <Bars3Icon className="w-5 h-5" />
             </button>
 
-            {/* Logo */}
-            <Link to="/" className="ml-2 sm:ml-4 lg:ml-0 flex items-center gap-3 group">
-              <div className="w-9 h-9 bg-white/15 rounded-lg flex items-center justify-center ring-1 ring-inset ring-white/20 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)] group-hover:scale-105 transition-standard">
-                <ShieldCheckIcon className="h-5 w-5 text-primary-300" />
-              </div>
-              <div className="hidden sm:flex flex-col">
-                <span className="text-lg font-black text-white tracking-tight leading-none">OFPPT</span>
-                <span className="text-[10px] font-bold text-primary-100 uppercase tracking-widest mt-1">Permutations</span>
-              </div>
-            </Link>
+            <BrandLogo
+              className="hidden h-8 w-auto max-w-[176px] brightness-0 invert sm:block"
+              linkClassName="ml-2 sm:ml-4 lg:ml-0"
+              markClassName="h-9 w-9 text-xl"
+            />
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -199,9 +211,11 @@ const Navbar = ({ onMenuClick, userRole }) => {
                 }}
                 className={`flex items-center gap-2 p-1 pr-2.5 rounded-lg transition-standard group ${profileOpen ? 'bg-white/15' : 'hover:bg-white/10'}`}
               >
-                <div className="h-9 w-9 rounded-lg bg-white text-primary-800 flex items-center justify-center font-black shadow-[0_16px_28px_-18px_rgba(255,255,255,0.4)] group-hover:scale-105 transition-standard">
-                  {(user?.nom || user?.name || "U")[0].toUpperCase()}
-                </div>
+                <UserAvatar
+                  user={user}
+                  className="h-9 w-9 rounded-lg shadow-[0_16px_28px_-18px_rgba(255,255,255,0.4)] ring-1 ring-inset ring-white/25 group-hover:scale-105 transition-standard"
+                  fallbackClassName="bg-white text-primary-800 font-black"
+                />
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-black text-white leading-none">{user?.nom || user?.name || "Utilisateur"}</p>
                   <p className="text-[10px] font-black text-primary-100 uppercase tracking-[0.2em] mt-1.5">{userRole}</p>

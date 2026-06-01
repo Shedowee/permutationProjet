@@ -280,7 +280,7 @@ function Login() {
           </div>
 
           <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/45">
-            OFPPT Permutations • Secure Access
+            MaPermutation • Secure Access
           </p>
         </section>
 
@@ -300,10 +300,6 @@ function Login() {
                   <p className="mt-3 text-sm leading-6 text-surface-500">
                     Connectez-vous avec votre email ou matricule pour accéder à votre espace.
                   </p>
-                </div>
-                <div className="hidden sm:flex shrink-0 rounded-2xl bg-primary-50 px-4 py-3 text-right border border-primary-100">
-                  <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary-600">Statut</p>
-                  <p className="mt-1 text-sm font-black text-primary-700">Portail actif</p>
                 </div>
               </div>
 
@@ -402,7 +398,7 @@ function Login() {
             </Card>
 
             <p className="mt-6 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-white/55">
-              &copy; {new Date().getFullYear()} OFPPT Permutations
+              &copy; {new Date().getFullYear()} MaPermutation
             </p>
           </div>
         </section>

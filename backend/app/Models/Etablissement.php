@@ -28,7 +28,7 @@ class Etablissement extends Model
      */
     public function ville()
     {
-        return $this->belongsTo(Parametre::class, 'city_id');
+        return $this->belongsTo(Parametre::class, 'city_id')->with('parent');
     }
 
     /**

@@ -81,14 +81,14 @@
     box-shadow: 0 12px 24px -18px rgba(15, 23, 42, 0.14);
   }
 
-  .dashboard-surface :is([class*="bg-white"], [class*="bg-surface-50"], [class*="bg-[#D8E9FB]"], [class*="bg-jb-bg-section"], [class*="bg-jb-bg-elevated"]) {
+  .dashboard-surface :is([class*="bg-white"], [class*="bg-surface-50"], [class*="bg-[#D8E9FB]"], [class*="bg-jb-bg-section"], [class*="bg-jb-bg-elevated"]):not(.surface-dark *) {
     background-image: var(--dashboard-panel-bg) !important;
     background-color: transparent !important;
     backdrop-filter: blur(18px) saturate(145%) !important;
     -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
   }
 
-  .dashboard-surface :is([class*="bg-white"], [class*="bg-surface-50"], [class*="bg-[#D8E9FB]"], [class*="bg-jb-bg-section"], [class*="bg-jb-bg-elevated"], [class*="border-white/"], [class*="border-surface-100"], [class*="border-surface-200"], [class*="border-jb-border"], [class*="border-jb-green/"], [class*="border-jb-cyan/"]) {
+  .dashboard-surface :is([class*="bg-white"], [class*="bg-surface-50"], [class*="bg-[#D8E9FB]"], [class*="bg-jb-bg-section"], [class*="bg-jb-bg-elevated"], [class*="border-white/"], [class*="border-surface-100"], [class*="border-surface-200"], [class*="border-jb-border"], [class*="border-jb-green/"], [class*="border-jb-cyan/"]):not(.surface-dark *) {
     border-color: var(--dashboard-panel-border) !important;
     box-shadow: var(--dashboard-panel-shadow);
   }

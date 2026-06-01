@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class DemandePermutation extends Model
 {
@@ -75,6 +76,11 @@ class DemandePermutation extends Model
     public function traitePar()
     {
         return $this->belongsTo(User::class, 'traite_par_utilisateur_id');
+    }
+
+    public function aiRecommendations(): HasMany
+    {
+        return $this->hasMany(AiRecommendation::class, 'demande_permutation_id');
     }
 
     /**

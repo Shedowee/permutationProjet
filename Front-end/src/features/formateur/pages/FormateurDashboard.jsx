@@ -6,6 +6,7 @@ import Layout from '../../../shared/layouts/Layout';
 import Card from '../../../shared/components/Card';
 import StatCard from '../../../shared/components/StatCard';
 import Button from '../../../shared/components/Button';
+import AiRecommendationsPanel from '../../ai/components/AiRecommendationsPanel';
 import { fetchFormateurStats } from '../redux/formateurSlice';
 import { motion } from 'framer-motion';
 import { 
@@ -122,6 +123,8 @@ const FormateurDashboard = () => {
                 to="/formateur/demandes?etat=REFUSE"
               />
             </div>
+
+            <AiRecommendationsPanel role="formateur" limit={5} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Dernier Dossier */}

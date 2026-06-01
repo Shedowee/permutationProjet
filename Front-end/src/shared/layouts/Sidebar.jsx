@@ -15,6 +15,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../auth/hooks/useAuth";
+import UserAvatar from "../components/UserAvatar";
 
 const Sidebar = ({ isOpen, onClose, onToggle, userRole }) => {
   const location = useLocation();
@@ -62,12 +63,7 @@ const Sidebar = ({ isOpen, onClose, onToggle, userRole }) => {
         style={{ width: isOpen ? "16rem" : "5rem" }}
         aria-label="Navigation latérale"
       >
-        <div className={`h-16 shrink-0 border-b border-white/10 px-3 flex items-center ${isOpen ? "justify-between" : "justify-center"}`}>
-          {isOpen && (
-            <span className="text-[10px] font-black text-primary-100 uppercase tracking-[0.24em]">
-              Navigation
-            </span>
-          )}
+        <div className={`h-12 shrink-0 border-b border-white/10 px-3 flex items-center ${isOpen ? "justify-end" : "justify-center"}`}>
           <button
             onClick={onToggle}
             className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-standard"
@@ -81,9 +77,11 @@ const Sidebar = ({ isOpen, onClose, onToggle, userRole }) => {
         <div className={`p-4 border-b border-white/10 transition-standard ${isOpen ? "opacity-100" : "px-3"}`}>
           <div className={`flex items-center gap-3 ${!isOpen && "justify-center"}`}>
             <div className="relative shrink-0">
-              <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center text-white font-black ring-1 ring-inset ring-white/15 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)]">
-                {(user?.nom || user?.name || "U")[0].toUpperCase()}
-              </div>
+              <UserAvatar
+                user={user}
+                className="h-10 w-10 rounded-xl ring-1 ring-inset ring-white/15 shadow-[0_18px_34px_-20px_rgba(0,0,0,0.35)]"
+                fallbackClassName="bg-white/15 text-white font-black"
+              />
               <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-primary-300 border-2 border-primary-950 rounded-full"></div>
             </div>
             {isOpen && (
@@ -196,15 +194,6 @@ const Sidebar = ({ isOpen, onClose, onToggle, userRole }) => {
               aria-label="Navigation mobile"
             >
               <div className="h-20 shrink-0 border-b border-white/10 px-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center text-white font-black ring-1 ring-inset ring-white/15">
-                    {(user?.nom || user?.name || "U")[0].toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-white truncate">{user?.nom || user?.name || "Utilisateur"}</p>
-                    <p className="text-[10px] font-bold text-primary-100 uppercase tracking-widest truncate">{userRole}</p>
-                  </div>
-                </div>
                 <button
                   onClick={onClose}
                   className="p-2 rounded-xl text-white/80 hover:text-white hover:bg-white/10 transition-standard"

@@ -23,7 +23,10 @@ export const createDemande = async (formData) => {
       'Content-Type': 'multipart/form-data'
     }
   });
-  return res.data.data;
+  return {
+    ...res.data.data,
+    ai_recommendations: res.data.ai_recommendations ?? res.data.data?.ai_recommendations ?? [],
+  };
 };
 
 export const traiterDemande = async ({ id, etatCode, commentaire }) => {

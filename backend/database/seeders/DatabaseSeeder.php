@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             CommissionSeeder::class,      // Commission profile + jurisdictions
             DemandePermutationSeeder::class, // Sample requests
             PermutationMarketSeeder::class,  // Available and reciprocal demandes
+            AiProcessTestSeeder::class,    // Stable AI direct/regional/multihop test cases
         ]);
     }
 }
